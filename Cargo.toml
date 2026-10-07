@@ -374,7 +374,11 @@ irodzuki = "0.1"
 # spawns `mado mcp` as a child and drives it as a typed rmcp client
 # (docs/INTEGRATION-TESTING.md §L2).
 rmcp = { version = "0.15", features = ["server", "transport-io", "client", "transport-child-process"] }
-schemars = "0.8"
+# schemars 1.2 (was 0.8, which had NO direct source consumer — mcp.rs derives
+# `rmcp::schemars::JsonSchema`, rmcp 0.15's own schemars 1.2.2). Unified to 1.2
+# so `MadoConfig: schemars::JsonSchema` satisfies `shikumi::schema::emit`'s
+# 1.2 bound — the single source the generated nix config surface is built from.
+schemars = { version = "1.2", features = ["derive"] }
 
 # GPU rendering (via garasu, but needed for direct wgpu types in render code)
 wgpu = "25"
@@ -392,7 +396,12 @@ vte = "0.15"
 # CLI and config
 clap = { version = "4", features = ["derive", "env"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1"
+# float_roundtrip makes float serialization exact-shortest-round-trip. Without
+# it, `mado config-schema` (non-test build) and the freshness test (whose dev-dep
+# graph already pulls the feature) serialized the same f32 default 1 ULP apart,
+# so the committed schema could never match the test's emit. Feature unification
+# is additive, so declaring it here pins BOTH builds to the same representation.
+serde_json = { version = "1", features = ["float_roundtrip"] }
 tracing = "0.1"
 thiserror = "2"
 anyhow = "1"

@@ -1,0 +1,1202 @@
+{
+  "accessibility": {
+    "colorblind": {
+      "default": "none",
+      "description": "Colorblind simulation mode.",
+      "type": "unknown"
+    },
+    "font_scale": {
+      "default": 1.0,
+      "description": "Font scale multiplier (1.0 = normal, 2.0 = double size).",
+      "type": "float"
+    },
+    "min_contrast": {
+      "default": 0.0,
+      "description": "Minimum contrast ratio (0.0 = disabled, 4.5 = WCAG AA, 7.0 = WCAG AAA).",
+      "type": "float"
+    },
+    "reduce_motion": {
+      "default": false,
+      "description": "Reduce motion (disable cursor blink and animations).",
+      "type": "bool"
+    }
+  },
+  "appearance": {
+    "background": {
+      "default": "#2E3440",
+      "description": "",
+      "type": "str"
+    },
+    "background_blur": {
+      "default": false,
+      "description": "",
+      "type": "bool"
+    },
+    "bold_is_bright": {
+      "default": false,
+      "description": "",
+      "type": "bool"
+    },
+    "foreground": {
+      "default": "#ECEFF4",
+      "description": "",
+      "type": "str"
+    },
+    "minimum_contrast": {
+      "default": 1.0,
+      "description": "",
+      "type": "float"
+    },
+    "opacity": {
+      "default": 1.0,
+      "description": "",
+      "type": "float"
+    },
+    "unfocused_split_fill": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    }
+  },
+  "behavior": {
+    "confirm_close": {
+      "default": false,
+      "description": "",
+      "type": "bool"
+    },
+    "copy_on_select": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "deselect_on_copy": {
+      "default": true,
+      "description": "When `copy_on_select` auto-copies a highlight on mouse release,\nALSO clear the highlight — so lifting the mouse both copies AND\nunhighlights and no click is ever needed to copy. `false` keeps the\nhighlight live after the auto-copy (the pre-2026-07-06 behavior,\nstill fully available). Inert when `copy_on_select` is off (nothing\nis auto-copied, so nothing is auto-cleared). Default on.",
+      "type": "bool"
+    },
+    "link_url": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "mouse_hide_while_typing": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "mouse_reporting": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "mouse_scroll_multiplier": {
+      "default": 2,
+      "description": "",
+      "type": "int"
+    },
+    "mouse_shift_capture": {
+      "default": "false",
+      "description": "",
+      "type": "enum",
+      "values": [
+        "false",
+        "true",
+        "never",
+        "always"
+      ]
+    },
+    "precise_scroll_mode": {
+      "default": "pixels",
+      "description": "Precise (trackpad / Magic Mouse) scroll behavior — see\n[`PreciseScrollMode`]. `Pixels` (default) is the ghostty-faithful\npixel accumulator with OS-supplied inertia; `Momentum` routes the\ntrackpad into the synthetic glide instead. Selects the precise arm of\nthe scroll system (`ux::scroll`).",
+      "type": "enum",
+      "values": [
+        "pixels",
+        "momentum"
+      ]
+    },
+    "precise_scroll_multiplier": {
+      "default": 2.0,
+      "description": "Precise-scroll pixel gain. Physical pixel deltas are multiplied by\nthis before the cell accumulator. `1.0` is true 1:1 finger tracking;\nthe default `2.0` matches ghostty's effective macOS trackpad feel\n(its apprt's hard-coded 2× over a precision multiplier of 1). Trackpad\nonly — the discrete wheel uses `mouse_scroll_multiplier`.",
+      "type": "float"
+    },
+    "reflow_on_resize": {
+      "default": true,
+      "description": "M2 — rewrap the primary grid's logical lines when the window\nis resized to a different column count (kitty/ghostty\nbehavior). `false` restores the legacy truncate/extend\nsemantics. The alternate screen always truncates regardless —\nfull-screen TUIs redraw themselves on SIGWINCH.",
+      "type": "bool"
+    },
+    "scroll_friction": {
+      "default": 3.0,
+      "description": "Exponential friction (per second) that bleeds off scroll\nvelocity. The glide's velocity halves every `ln2/friction ≈\n0.23s` at the tuned default — a flick visibly coasts for ~0.7s\nthen eases to a crisp stop: not an instant jump, not a\nsluggish-forever crawl. Larger = stops sooner; smaller = glides\nlonger.",
+      "type": "float"
+    },
+    "scroll_max_velocity": {
+      "default": 200.0,
+      "description": "Velocity cap in lines/sec. Bounds how fast even a frantic\nrepeated flick can scroll, so momentum can't launch to the\nscrollback top in a single frame. ~200 lines/sec ≈ three+ screens\nper second at peak — fast, but always trackable by the eye.",
+      "type": "float"
+    },
+    "scroll_momentum": {
+      "default": true,
+      "description": "Momentum scrolling: a wheel/two-finger flick injects velocity\nthat DECELERATES naturally to a stop, instead of a 1:1 instant\njump — a weighty, gravity-like feel. `false` restores the\ndirect line-for-line scroll (the behavior-preserving opt-out).",
+      "type": "bool"
+    },
+    "scrollback_lines": {
+      "default": 18446744073709551615,
+      "description": "",
+      "type": "int"
+    },
+    "selection_autoscroll": {
+      "default": true,
+      "description": "Selection auto-scroll: while dragging a text selection, if the\npointer goes above the top edge or below the bottom edge the\nviewport scrolls in that direction and the highlight extends to\nthe newly revealed lines (so a drag can select more than one\nscreen). `false` freezes selection at the viewport edges.",
+      "type": "bool"
+    },
+    "selection_autoscroll_max_overshoot": {
+      "default": 6.0,
+      "description": "Selection auto-scroll overshoot cap (lines): the speed saturates once\nthe pointer is this many lines past the edge.",
+      "type": "float"
+    },
+    "selection_autoscroll_speed": {
+      "default": 18.0,
+      "description": "Selection auto-scroll speed: sustained lines/sec per line of pointer\novershoot past a viewport edge. Higher reveals faster as you drag\nfurther past the edge.",
+      "type": "float"
+    },
+    "wait_after_command": {
+      "default": false,
+      "description": "",
+      "type": "bool"
+    }
+  },
+  "browser": {
+    "default_height": {
+      "default": 640,
+      "description": "Default float height in logical pixels for a newly-spawned surface.",
+      "type": "int"
+    },
+    "default_opacity": {
+      "default": 0.9800000190734863,
+      "description": "Default float opacity (0.0..=1.0) — the browser quad's alpha when\ncomposited over the terminal grid.",
+      "type": "float"
+    },
+    "default_width": {
+      "default": 900,
+      "description": "Default float width in logical pixels for a newly-spawned surface.",
+      "type": "int"
+    },
+    "enabled": {
+      "default": true,
+      "description": "Master switch. `false` (bare) means no floating browser surface can\nbe created at all — the browser command path is inert.",
+      "type": "bool"
+    },
+    "restore_on_close": {
+      "default": true,
+      "description": "Restore the last float geometry + URL when a surface is re-opened.",
+      "type": "bool"
+    },
+    "snap_band": {
+      "default": 0.05999999865889549,
+      "description": "Snap activation-band thickness as a fraction of the viewport\ndimension. Projects into [`mado::float::SnapConfig`]`::band`\n(clamped 0.0..=0.5 by the snap system).",
+      "type": "float"
+    },
+    "snap_enabled": {
+      "default": true,
+      "description": "Enable edge/corner snapping during a window drag. Projects into\n[`mado::float::SnapConfig`]`::enabled`.",
+      "type": "bool"
+    }
+  },
+  "cursor": {
+    "blink": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "blink_rate_ms": {
+      "default": 500,
+      "description": "",
+      "type": "int"
+    },
+    "click_to_move": {
+      "default": false,
+      "description": "",
+      "type": "bool"
+    },
+    "color": {
+      "default": "#88C0D0",
+      "description": "",
+      "type": "str"
+    },
+    "opacity": {
+      "default": 1.0,
+      "description": "",
+      "type": "float"
+    },
+    "style": {
+      "default": "block",
+      "description": "",
+      "type": "enum",
+      "values": [
+        "block",
+        "block_hollow",
+        "bar",
+        "underline"
+      ]
+    },
+    "text_color": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    }
+  },
+  "display": {
+    "downscale_ratio": {
+      "default": null,
+      "description": "Pin the panel-vs-framebuffer downscale ratio instead of auto-detecting\n(e.g. `0.8405`). `None` = auto-discover. Useful on a platform where the\nprobe can't read the geometry, or to force a specific value.",
+      "type": "float"
+    },
+    "seam_auto_tune": {
+      "default": true,
+      "description": "Discover the display downscale ratio + snap the cell grid onto integer\npanel pixels (kills the scaled-display row seam). Default on; off pins\nthe ratio to 1.0 (byte-identical to no adjustment).",
+      "type": "bool"
+    }
+  },
+  "effects": {
+    "ambience": {
+      "default": "matte",
+      "description": "THE default-on composed layer (operator design law, 2026-06-13):\nONE barely-perceptible ambience that combines the catalog\neffects at threshold intensities sharing one clock + the\nVellum palette. `Matte` by default (effects recede to almost\nnothing — no glow, no halo, aurora off); `Whisper`/`Present` for\nthe louder tiers; `Off` for the clean look. `reduce_motion`\nforces `Off`.\n\nThe per-effect knobs below REMAIN for power users — an explicit\n`effects.aurora.enabled` / `effects.bloom.enabled` / … turns\nthat effect on regardless of the preset, and explicit per-effect\nparams override the composed defaults. `resolved_effects` folds\nthe composition into the per-effect surface, override-aware.",
+      "type": "enum",
+      "values": [
+        "off",
+        "matte",
+        "whisper",
+        "present"
+      ]
+    },
+    "aurora": {
+      "default": {
+        "drift": 1.0,
+        "enabled": false,
+        "horizon": 0.6200000047683716,
+        "intensity": 0.3499999940395355,
+        "shimmer": 0.5
+      },
+      "description": "Aurora (Vellum signature curtain) power-user override. The\nambience preset composes aurora at its threshold intensities; a\npower user who sets `enabled = true` forces aurora on independent of\nthe preset, and the explicit dials below override the composed\nvalues. Colors always flow from the resolved theme palette — no\nhardcoded effect colors (the design law).",
+      "type": "object"
+    },
+    "bloom": {
+      "default": {
+        "enabled": false,
+        "intensity": 0.6000000238418579,
+        "radius_px": 2.5,
+        "threshold": 0.75
+      },
+      "description": "Bloom effect knobs — defaults mirror the catalog's\n`BloomParams::default()`.",
+      "type": "object"
+    },
+    "colorblind": {
+      "default": {
+        "mode": "none"
+      },
+      "description": "Colorblind-simulation effect knobs. `mode != None` IS the enable\n(no separate boolean to drift out of sync). The legacy\n`accessibility.colorblind` knob keeps working as a deprecation\nalias: when this mode is `None`, the accessibility value wins —\nresolved in [`MadoConfig::resolved_effects`], the single point\nevery renderer ingress (both entry points + hot-reload) flows\nthrough.",
+      "type": "object"
+    },
+    "crt": {
+      "default": {
+        "aberration": 0.6000000238418579,
+        "curvature": 0.07999999821186066,
+        "enabled": false,
+        "vignette": 0.25
+      },
+      "description": "CRT-look effect knobs — defaults mirror the engawa catalog's\n`CrtParams::default()` (the tuned reference values).",
+      "type": "object"
+    },
+    "glow_on_bell": {
+      "default": {
+        "enabled": false,
+        "glow_retain": 0.9200000166893005,
+        "radius_px": 240.0
+      },
+      "description": "Glow-on-bell effect knobs — the BEL-driven cursor glow.\nGated to zero nodes by `accessibility.reduce_motion`.",
+      "type": "object"
+    },
+    "grain": {
+      "default": {
+        "enabled": false,
+        "opacity": 0.014999999664723873
+      },
+      "description": "Paper-grain (\"tooth\") knobs — the luma-only film grain that gives\nthe Vellum matte its faint fabric texture. The Matte ambience preset\ncomposes grain at the barely-perceptible default opacity; a power\nuser who sets `enabled = true` forces it on regardless of the preset\nand overrides the composed opacity. Defaults mirror the catalog's\n`GrainParams::default()` (opacity 1.5 %).",
+      "type": "object"
+    },
+    "popup_elevation": {
+      "default": {
+        "enabled": true
+      },
+      "description": "Popup-elevation — the soft drop-shadow behind the centred Ctrl-S\ncard. Overlay chrome (drawn outside the engawa post-graph via the\nrect pipeline), config-toggleable like the catalog effects so the\nwindow-depth + popup depth read as one consistent, switchable look.",
+      "type": "object"
+    },
+    "scanlines": {
+      "default": {
+        "enabled": false,
+        "intensity": 0.25,
+        "period_px": 3.0
+      },
+      "description": "Scanlines effect knobs — defaults mirror the catalog's\n`ScanlinesParams::default()`.",
+      "type": "object"
+    },
+    "snow": {
+      "default": {
+        "accumulation": 0.0,
+        "enabled": false,
+        "intensity": 0.30000001192092896,
+        "layer_count": 2.0,
+        "melt_rate": 0.05999999865889549,
+        "pile_rate": 0.03999999910593033,
+        "snow_pulse_retain": 0.9200000166893005,
+        "temperature": 0.20000000298023224,
+        "wind": 0.0
+      },
+      "description": "Snow overlay knobs. Mirrors the engawa catalog `SnowParams` but only\nthe operator-facing dials; runtime state (time, cursor,\ntyping_pulse, accumulation drift) is mado-managed.",
+      "type": "object"
+    },
+    "window_depth": {
+      "default": {
+        "depth": 0.07999999821186066,
+        "enabled": false,
+        "intensity": 0.2199999988079071,
+        "softness": 1.600000023841858
+      },
+      "description": "Window-depth — the inner-edge vignette engawa catalog effect\n(a recessed \"depth around the sides and edges\" frame).",
+      "type": "object"
+    }
+  },
+  "environment": {
+    "initial_command": {
+      "default": null,
+      "description": "Command to run for the first terminal only (overrides shell).",
+      "type": "nullOrStr"
+    },
+    "vars": {
+      "default": {},
+      "description": "Extra environment variables to set for spawned processes.",
+      "type": "object"
+    },
+    "working_directory": {
+      "default": null,
+      "description": "Initial working directory for spawned processes.",
+      "type": "nullOrStr"
+    }
+  },
+  "feedback": {
+    "copy_flash": {
+      "default": true,
+      "description": "A short selection-overlay flash when `copy_on_select` copies.",
+      "type": "bool"
+    },
+    "exit_code_coloring": {
+      "default": true,
+      "description": "Tint OSC 133 command-block separators by exit status\n(green on 0 / red on non-zero).",
+      "type": "bool"
+    },
+    "exit_code_glow": {
+      "default": true,
+      "description": "A brief green (exit 0) / red (non-zero) cursor glow when a command\ncompletes — peripheral success/fail feedback (OSC 133 `D`).",
+      "type": "bool"
+    },
+    "visual_bell": {
+      "default": true,
+      "description": "The full-window visual bell flash on BEL (decays ~200ms).",
+      "type": "bool"
+    }
+  },
+  "font": {
+    "codepoint_map": {
+      "default": {},
+      "description": "",
+      "type": "object"
+    },
+    "family_bold": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    },
+    "family_bold_italic": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    },
+    "family_italic": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    },
+    "features": {
+      "default": [],
+      "description": "",
+      "type": "array"
+    },
+    "synthetic_style": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "thicken": {
+      "default": false,
+      "description": "",
+      "type": "bool"
+    }
+  },
+  "janitors": {
+    "authority": {
+      "default": "shadow",
+      "description": "Global remediation authority — the shadow-first default every\njanitor inherits unless it carries its own override.",
+      "type": "enum",
+      "values": [
+        "shadow",
+        "effect"
+      ]
+    },
+    "board_rows": {
+      "default": true,
+      "description": "Project findings onto the Ctrl-S board as agent-lane rows (the\n`suggest_inject` path; stable keys ⇒ one living row per finding).",
+      "type": "bool"
+    },
+    "enabled": {
+      "default": true,
+      "description": "Master switch. `false` (bare) = no janitors, no findings, no rows.",
+      "type": "bool"
+    },
+    "ghost_session": {
+      "default": {
+        "authority": null,
+        "enabled": true,
+        "grace_secs": 180,
+        "interval_secs": 60
+      },
+      "description": "The ghost-session sweeper (embedded tear registry).",
+      "type": "object"
+    },
+    "suggest_health": {
+      "default": {
+        "authority": null,
+        "enabled": true,
+        "interval_secs": 120,
+        "min_consecutive_polls": 3
+      },
+      "description": "The suggestion-source health watcher (izumi store).",
+      "type": "object"
+    }
+  },
+  "keybinds": {
+    "custom": {
+      "default": [],
+      "description": "",
+      "type": "array"
+    }
+  },
+  "links": {
+    "enabled": {
+      "default": true,
+      "description": "Master switch. `false` (bare) strips every link affordance.",
+      "type": "bool"
+    },
+    "highlight": {
+      "default": true,
+      "description": "Highlight links: frost-blue text + the underline decoration.",
+      "type": "bool"
+    },
+    "open_on_click": {
+      "default": true,
+      "description": "A plain (no-drag) left click on a link opens it.",
+      "type": "bool"
+    },
+    "pointer_cursor": {
+      "default": true,
+      "description": "Hovering a link shows a pointer/hand cursor.",
+      "type": "bool"
+    }
+  },
+  "motion": {
+    "bell_flash": {
+      "default": {
+        "duration_ms": 200,
+        "easing": "linear",
+        "peak_alpha": 0.10000000149011612
+      },
+      "description": "The visual-bell flash animation — fully wired + morphable.",
+      "type": "object"
+    },
+    "blink_ease": {
+      "default": true,
+      "description": "Ease the cursor blink alpha (smoothstep edges) instead of a hard\non/off pop.",
+      "type": "bool"
+    },
+    "picker_animate": {
+      "default": true,
+      "description": "Fade + scale the Ctrl-S picker overlay in when it opens.\n**Forward gate — render wiring pending** (the typed knob exists; it\ndoes not yet drive a `motion::Tween` at the picker draw site).",
+      "type": "bool"
+    },
+    "unfocused_dim": {
+      "default": true,
+      "description": "Whisper-dim an unfocused window so a backgrounded window reads as\nbackgrounded.",
+      "type": "bool"
+    }
+  },
+  "notifications": {
+    "backend": {
+      "default": "auto",
+      "description": "Which backend delivers banners.",
+      "type": "enum",
+      "values": [
+        "auto",
+        "native",
+        "shirase",
+        "osascript",
+        "log"
+      ]
+    },
+    "badge_unread": {
+      "default": true,
+      "description": "Badge the dock icon with the count of notifications delivered\nwhile mado was unfocused; cleared when the window regains focus.",
+      "type": "bool"
+    },
+    "bell": {
+      "default": {
+        "audible": false,
+        "notify": false,
+        "sound": "beep",
+        "urgency": "normal"
+      },
+      "description": "BEL → notification policy.",
+      "type": "object"
+    },
+    "coalesce_window_ms": {
+      "default": 800,
+      "description": "Collapse a repeat of the same (title, group) within this window\ninto the earlier one (0 = no coalescing).",
+      "type": "int"
+    },
+    "command_completion": {
+      "default": {
+        "deny": [
+          "vim",
+          "nvim",
+          "vi",
+          "emacs",
+          "nano",
+          "less",
+          "more",
+          "man",
+          "top",
+          "htop",
+          "btop",
+          "watch",
+          "ssh",
+          "tmux",
+          "screen",
+          "fzf",
+          "tig",
+          "lazygit",
+          "bat",
+          "vise",
+          "mado"
+        ],
+        "enabled": true,
+        "min_duration_ms": 10000,
+        "notify_on_failure": true,
+        "notify_on_success": true,
+        "only_when_unfocused": true,
+        "respect_alt_screen": true
+      },
+      "description": "Long-command-completion notification policy.",
+      "type": "object"
+    },
+    "enabled": {
+      "default": true,
+      "description": "Master switch. When `false`, no desktop notification is ever\nraised (the visual/audible bell + dock attention still work).",
+      "type": "bool"
+    },
+    "history_capacity": {
+      "default": 50,
+      "description": "How many delivered notifications to retain in history (for the MCP\n`notifications_list` surface).",
+      "type": "int"
+    },
+    "osc": {
+      "default": {
+        "osc777": true,
+        "osc9": true,
+        "osc99": true
+      },
+      "description": "Terminal notification-escape protocol toggles.",
+      "type": "object"
+    },
+    "progress_dock": {
+      "default": true,
+      "description": "Show OSC 9;4 (ConEmu) command progress in the dock badge (e.g.\n`45%`), taking precedence over the unread count while active.",
+      "type": "bool"
+    },
+    "rate_limit_per_min": {
+      "default": 30,
+      "description": "Max notifications delivered per rolling minute (0 = unlimited).\nA storm beyond this is dropped (and traced), never queued forever.",
+      "type": "int"
+    },
+    "when": {
+      "default": "unfocused",
+      "description": "Global focus policy (a source may tighten it, never loosen it).",
+      "type": "enum",
+      "values": [
+        "always",
+        "unfocused"
+      ]
+    }
+  },
+  "performance": {
+    "battery_fps_cap": {
+      "default": null,
+      "description": "Upper bound applied when on battery power. `None` = same as\n`fps_cap`. Battery detection lands in a follow-up — this slot\nis wired now so config schemas don't churn later.",
+      "type": "int"
+    },
+    "fps_cap": {
+      "default": null,
+      "description": "Upper bound on the adaptive recommendation. `None` = no ceiling.\nUse e.g. `240` to prevent a 360Hz panel from pushing too high.",
+      "type": "int"
+    },
+    "target_fps": {
+      "default": null,
+      "description": "Explicit frame-rate target. `None` (the default) defers to\n`garasu::adaptive::recommend` — typically the primary display's\nrefresh rate. Set explicitly to override detection.",
+      "type": "int"
+    },
+    "vsync": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    }
+  },
+  "quick_terminal": {
+    "animation_ms": {
+      "default": 150,
+      "description": "Slide / fade animation duration in milliseconds. Zero disables\nanimation and snaps to the final position. Default: 150ms.",
+      "type": "int"
+    },
+    "autohide_on_blur": {
+      "default": true,
+      "description": "Hide automatically when the window loses focus. Matches\nghostty's `quick-terminal-autohide` default: true.",
+      "type": "bool"
+    },
+    "edge": {
+      "default": "top",
+      "description": "Which edge of the focused screen the Quick Terminal slides in\nfrom. Default: `top`.",
+      "type": "enum",
+      "values": [
+        "top",
+        "bottom",
+        "left",
+        "right",
+        "center"
+      ]
+    },
+    "enabled": {
+      "default": false,
+      "description": "When false, the Quick Terminal machinery is dormant — no\nglobal hotkey registration, no hidden window. Default: false\n(opt-in).",
+      "type": "bool"
+    },
+    "hotkey": {
+      "default": "",
+      "description": "Global hotkey that toggles visibility — parsed by `awase`.\nEmpty string = no automatic toggle (the Quick Terminal can\nstill be driven via MCP). Default: empty.",
+      "type": "str"
+    },
+    "size_fraction": {
+      "default": 0.4000000059604645,
+      "description": "Fraction of the screen's long-axis size (relative to `edge`)\nthe Quick Terminal occupies. For `top` / `bottom`, this is\nthe height fraction; for `left` / `right`, the width; for\n`center`, both dimensions. Clamped to `[0.1, 1.0]` at\nresolution time. Default: 0.4 (40%).",
+      "type": "float"
+    }
+  },
+  "search": {
+    "background": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    },
+    "foreground": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    },
+    "selected_background": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    },
+    "selected_foreground": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    }
+  },
+  "selection": {
+    "background": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    },
+    "clear_on_copy": {
+      "default": false,
+      "description": "",
+      "type": "bool"
+    },
+    "clear_on_typing": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "foreground": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    },
+    "word_chars": {
+      "default": " \t'\"│`|:;,()[]{}<>$",
+      "description": "Double-click word-snap BOUNDARY set. Non-empty REPLACES the\ndefault rule (any non-alphanumeric/underscore is a boundary):\nlisted characters split words, every other character is\nword-interior. Empty = the default rule.",
+      "type": "str"
+    }
+  },
+  "shaders": {
+    "enabled": {
+      "default": false,
+      "description": "Enable custom shader post-processing.",
+      "type": "bool"
+    },
+    "files": {
+      "default": [],
+      "description": "Paths to WGSL shader files (applied in order).",
+      "type": "array"
+    }
+  },
+  "shell": {
+    "args": {
+      "default": [],
+      "description": "",
+      "type": "array"
+    },
+    "command": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    }
+  },
+  "shell_integration": {
+    "enabled": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "features": {
+      "default": [
+        "cursor",
+        "sudo",
+        "title"
+      ],
+      "description": "",
+      "type": "array"
+    }
+  },
+  "suggestions": {
+    "attention_on_critical": {
+      "default": true,
+      "description": "Ambient signal while the board is closed: a NEW Critical suggestion\nbounces the dock / flashes the taskbar once per issue (the platform\nattention request), so an incident reaches the operator without the\npicker being open. Warm-restart rows never alert.",
+      "type": "bool"
+    },
+    "default_enabled": {
+      "default": false,
+      "description": "Whether a source with no explicit `sources` override runs by default.",
+      "type": "bool"
+    },
+    "enabled": {
+      "default": true,
+      "description": "Master switch. `false` (bare) = no engine, no watchers, no rows.",
+      "type": "bool"
+    },
+    "max_entries": {
+      "default": 200,
+      "description": "Hard cap on total cached suggestions (memory insurance): if exceeded, the\nlowest-ranked / stalest are evicted. The store is already structurally\nbounded for well-behaved sources; this guards a source that stops polling\nwith `ttl_secs = 0` or a mis-set `max_items`. 0 = unbounded.",
+      "type": "int"
+    },
+    "max_visible": {
+      "default": 6,
+      "description": "Max suggestion rows shown in the picker.",
+      "type": "int"
+    },
+    "per_source_cap": {
+      "default": 3,
+      "description": "Cap how many rows a single source may contribute to the visible band, so\none noisy source (20 CrashLoop pods) can't drown your PRs/tickets. The\nband stays diverse. 0 = no cap.",
+      "type": "int"
+    },
+    "persist": {
+      "default": true,
+      "description": "Lazily persist the cache to disk (atomic temp→rename) so a restart\nre-surfaces the last-known tasks instantly while the watchers re-poll.\n`~/.local/share/mado/suggestions.json` (override `MADO_SUGGEST_DB`).",
+      "type": "bool"
+    },
+    "persist_debounce_secs": {
+      "default": 5,
+      "description": "Coalesce disk writes: persist at most once per this many seconds, so the\n27 parallel watchers can't thrash the disk. 0 = persist on every change.",
+      "type": "int"
+    },
+    "reserved_rows": {
+      "default": 3,
+      "description": "Band rows guaranteed INSIDE the picker's render window on the empty\nquery: with many live sessions the band is inserted above the fold\ninstead of appended below it (displaced session rows stay scrollable).\n0 = plain append (the band can fall below the fold).",
+      "type": "int"
+    },
+    "shade_in_ms": {
+      "default": 600,
+      "description": "Fade-in duration (ms) for a newly-arrived suggestion row (the slow\nshade-in). 0 = appear instantly.",
+      "type": "int"
+    },
+    "sources": {
+      "default": [
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "recent-dirs",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "project-marks",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "git-branch-pr",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "tend-repos",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "cargo-warnings",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "todo-backlog",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "github-review-requested",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "github-assigned-issues",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "github-actions-failing",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "jira-sprint",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "jira-assigned",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "confluence-mentions",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "flux-failing",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "k8s-unhealthy",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "breathe-conflict",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "engenho-nodes",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "grafana-alerts",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "grafana-incidents",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "grafana-oncall",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "opsgenie-alerts",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "kurage-agents",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "secret-age",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "google-tasks",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "google-calendar",
+          "max_items": null,
+          "params": {}
+        },
+        {
+          "enabled": true,
+          "interval_secs": null,
+          "kind": "safra",
+          "max_items": null,
+          "params": {}
+        }
+      ],
+      "description": "Per-source overrides, MERGED over the prescribed arm-list by kind slug\n(see [`SuggestionsConfig::effective_sources`]): an entry overrides that\none kind (params, cadence, enabled) and never disarms the others. Kinds\nin neither list follow `default_enabled`.",
+      "type": "array"
+    },
+    "sources_replace": {
+      "default": false,
+      "description": "Escape hatch: `true` makes `sources` REPLACE the prescribed arm-list\nentirely instead of merging over it — an explicit allow-list for an\noperator who wants exactly-these-sources and nothing else.",
+      "type": "bool"
+    },
+    "ttl_secs": {
+      "default": 900,
+      "description": "Global TTL FLOOR (seconds): a suggestion is dropped at least this long\nafter it was last seen. NOT the whole story — each source's items live\nfor `max(3× its poll interval, this floor)`, so a slow (hourly) source\nnever flickers under a fast global TTL. `0` does **not** mean \"never\": it\nremoves the floor, leaving each source's `3× poll interval` fallback in\nforce — items still age out, just per-source.",
+      "type": "int"
+    }
+  },
+  "tear": {
+    "auto_attach": {
+      "default": "auto_switch",
+      "description": "Auto-attach-on-cd — the headline praça automation. When the\n*displayed* session's shell `cd`s into a DIFFERENT project, mado\nauto-switches its pane to that project's session (spawning +\nnaming + binding it if none exists). **Defaults `Off`** — a `cd`\nnever moves the pane until the operator opts in.\n\nAuto-attach drives the runtime switch channel, so any active\nmode (`AutoSwitch` / `Suggest`) additionally REQUIRES\n`session_switching = true`. When `auto_attach != Off` but\n`session_switching == false`, mado logs a one-time warning and\nbehaves as `Off`. See [`AutoAttachMode`].",
+      "type": "enum",
+      "values": [
+        "off",
+        "auto_switch",
+        "suggest"
+      ]
+    },
+    "auto_spawn": {
+      "default": true,
+      "description": "When `true` and the discovery probe finds no live daemon,\nmado spawns one via `Command::new(\"tear\").args([\"daemon\",\n\"--socket\", <socket>])` and waits up to\n`spawn_wait_ms` for it to bind. When `false`, an absent\ndaemon is left absent (Auto falls back; Always errors out).",
+      "type": "bool"
+    },
+    "impose": {
+      "default": null,
+      "description": "Optional TearConfig overrides mado pushes to the daemon\nat attach time (and again on demand during the session).\nImplements the \"mado authors tear's config\" half of the\nM5 destination: mado is the front-end + the canonical\nauthor of tear settings when it's the consumer.\n\n`None` (default) — mado leaves the daemon's config alone.\n`Some(overrides)` — mado fetches the daemon's current\nTearConfig at attach, merges these overrides in (None\nfields leave the daemon value untouched; Some fields\nreplace it), and pushes the result back via `SetConfig`.\nThe daemon's on-disk file is NOT touched; a notify-driven\nor manual `ReloadConfig` reverts to the file.",
+      "type": "unknown"
+    },
+    "mode": {
+      "default": "auto",
+      "description": "How mado interacts with the tear-daemon multiplexer. See\n[`MadoTearConfig`] for the per-mode contract.",
+      "type": "enum",
+      "values": [
+        "auto",
+        "always",
+        "never",
+        "attach"
+      ]
+    },
+    "pane": {
+      "default": null,
+      "description": "Pane id to attach to. Mutually exclusive with\n`session_name`; if both set, `pane` wins. Use this when\nreconnecting to a known long-lived pane.",
+      "type": "nullOrStr"
+    },
+    "runtime": {
+      "default": "embedded",
+      "description": "Where tear's runtime LIVES. `Daemon` (default) talks over\nUnix socket to the tear-daemon process; `Embedded` runs\ntear's PTY+grid in-process via `tear_core::InProcess`. See\n[`TearRuntime`] for the latency/multi-attach tradeoff.",
+      "type": "enum",
+      "values": [
+        "embedded",
+        "daemon",
+        "resident"
+      ]
+    },
+    "session_name": {
+      "default": null,
+      "description": "Session name to attach to / create on first attach. None\n= let mado generate a unique name from the current\ntimestamp.",
+      "type": "nullOrStr"
+    },
+    "session_picker_anchor": {
+      "default": "center",
+      "description": "Where the Ctrl-S session picker overlay is anchored on screen.\n**Defaults [`PickerAnchor::Center`]** — a centred popup (the\nfzf/Telescope feel). `Bottom` rises from the bottom edge (Ctrl-R /\nCtrl-T feel); `Top` drops from the top.",
+      "type": "enum",
+      "values": [
+        "center",
+        "bottom",
+        "top"
+      ]
+    },
+    "session_picker_badges": {
+      "default": "auto",
+      "description": "How the picker badges live vs latent rows. **Prescribed default\n[`BadgeMode::Auto`]** — badges appear ONLY when the list actually\nmixes live + latent (so an all-live picker, the common case, stays\nbyte-identical). `Off` never badges (stripped); `Always` badges\nevery row (● live / ○ latent). The bare tier sets `Off`.",
+      "type": "enum",
+      "values": [
+        "off",
+        "auto",
+        "always"
+      ]
+    },
+    "session_picker_surface_presets": {
+      "default": true,
+      "description": "Whether the Ctrl-S picker surfaces LATENT presets (saved/authored\n`(defsession)` definitions with no live instance) as ○ Instantiate\nrows, interleaved with the live sessions. **Prescribed default\n`true`** — but the catalog is empty until a preset is saved, so the\npicker is unchanged until then. The bare tier sets `false`: the\npicker is strictly live-sessions-only (the stripped legacy flow),\neven if presets exist. A partial yaml gets `true` via [`default_true`].",
+      "type": "bool"
+    },
+    "session_switching": {
+      "default": true,
+      "description": "Runtime single-pane re-attach. **Defaults ON.** When `true`\n(the default) mado polls a switch channel and can re-attach the\ndisplayed pane to a DIFFERENT live in-process tear session at\nruntime — same window, same renderer, fresh terminal — without\ntabs or splits. This is what makes the Ctrl-S session switcher\nactually switch; the `switch_session` MCP tool (forwarded via\nkanshou) posts switch requests. When `false`, mado binds its one\nGUI pane to ONE tear pane for the window's lifetime — the\nbyte-identical legacy one-shot path — and the tool is a typed\nno-op (`switching-disabled`).\n\nEmbedded runtime only for now: the switch targets a pane in\nthe GUI's own `tear_core::InProcess`. Daemon-mode switching is\na later phase (persistence across restarts). A config that omits\nthis key (e.g. a partial mado.yaml) gets `true` via\n[`default_true`], so the switcher works out of the box fleet-wide.",
+      "type": "bool"
+    },
+    "socket": {
+      "default": null,
+      "description": "Explicit UDS path override. `None` (default) → derive from\n`$XDG_RUNTIME_DIR/tear.sock` (or `~/.local/share/tear/\ntear.sock` fallback) — same default the tear daemon binds\nto.",
+      "type": "nullOrStr"
+    },
+    "spawn_wait_ms": {
+      "default": 2000,
+      "description": "Milliseconds to wait for an auto-spawned daemon to bind\nits socket before giving up. Default 2000 — plenty even on\nslow CI hardware.",
+      "type": "int"
+    }
+  },
+  "vigy": {
+    "enabled": {
+      "default": false,
+      "description": "",
+      "type": "bool"
+    }
+  },
+  "window": {
+    "background_image": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    },
+    "decorations": {
+      "default": true,
+      "description": "Show server / window-manager decorations (titlebar, border,\nclose/minimize buttons). Default is **platform-aware**:\n\n* macOS: `true` — preserves the traffic-light buttons.\n  Combined with `platform::apply_native_styling()`'s themed\n  transparent titlebar band ([`TitlebarStyle::Flush`];\n  `FullSizeContentView` only with `titlebar: overlay`), the\n  chrome reads as part of the canvas for a \"minimal but\n  functional\" look. Operators who want a truly chromeless\n  look (no traffic lights) override to `false`.\n* Linux: `true`. A borderless window under Wayland/X11 has\n  no move handle, no resize edges, no maximize/close\n  affordance, and under Wayland no server-side border at\n  all — the operator sees a fixed rectangle they cannot\n  drag or maximize. libdecor (Wayland) and the WM (X11)\n  supply real decorations when this is `true`. Tiling-WM\n  operators who want the borderless look override to\n  `false`; the default matches the majority stack (GNOME/\n  KDE on Wayland or X11).\n* Windows: `false` — pre-existing default; mado is not\n  shipped on Windows today.\n\nThe operator-facing contract: \"give the operator a real\nwindow they can move by default; opt out if you want\nborderless.\" Override in `~/.config/mado/mado.yaml` if you\nwant a specific behavior.",
+      "type": "bool"
+    },
+    "fullscreen": {
+      "default": false,
+      "description": "",
+      "type": "bool"
+    },
+    "inherit_font_size": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "inherit_working_directory": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "macos": {
+      "default": {
+        "appearance": "dark",
+        "native_tabs": false,
+        "titlebar": "flush"
+      },
+      "description": "macOS-specific window-chrome knobs — native window tabbing,\ntitlebar integration, and forced appearance. Defaults bias to\n\"just the terminal\" (no OS tab strip, flush dark titlebar).\nIgnored on Linux/Windows. Authored under `window.macos.*` in\n`~/.config/mado/mado.yaml`.",
+      "type": "object"
+    },
+    "maximize": {
+      "default": false,
+      "description": "",
+      "type": "bool"
+    },
+    "padding_balance": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "split_divider_color": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    },
+    "title": {
+      "default": null,
+      "description": "",
+      "type": "nullOrStr"
+    },
+    "unfocused_split_opacity": {
+      "default": 0.8500000238418579,
+      "description": "",
+      "type": "float"
+    }
+  }
+}

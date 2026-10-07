@@ -63,7 +63,7 @@ use serde::{Deserialize, Serialize};
 /// barely-perceptible axis. `Matte` is THE default (Vellum era): effects
 /// recede to almost nothing. `Whisper`/`Present` are the louder tiers;
 /// `Off` is the literal clean look.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[cfg_attr(test, derive(pleme_allvariants_derive::AllVariants))]
 #[serde(rename_all = "snake_case")]
 pub enum AmbiencePreset {

@@ -183,6 +183,12 @@ enum SubCmd {
     /// the Pillar-12 dual of `TieredConfig`. Replaces mado's prior
     /// hand-rolled `config-show <tier>` so the fleet uses one shape.
     ConfigShow(shikumi::cli::ConfigShowCommand),
+    /// Emit the typed config SCHEMA as JSON — the single source the nix
+    /// option surface (`shikumiTypedGroups`) is generated from, so the Rust
+    /// `MadoConfig` and its nix/yaml surfaces stay 1:1 by construction instead
+    /// of hand-mirrored. Pure stdout JSON; the committed `config.schema.json`
+    /// + a freshness gate diff this output against the tree.
+    ConfigSchema,
     /// Run a `*.scenario.yaml` file in headless mode and exit non-zero
     /// on assertion failure. Used by `tests/scenarios.rs` to dispatch
     /// each scenario as its own process — and by operators to replay
@@ -579,6 +585,16 @@ fn main() -> anyhow::Result<()> {
             // pipes cleanly into `diff` / `yq` / etc.
             cmd.run::<crate::config::MadoConfig>("MADO_TIER")
                 .map_err(|e| anyhow::anyhow!("config-show: {e}"))?;
+            return Ok(());
+        }
+        Some(SubCmd::ConfigSchema) => {
+            // Pure stdout JSON (no tracing) so it diffs cleanly against the
+            // committed artifact. shikumi joins MadoConfig's schemars schema
+            // (types/enums/docs) with its Default values into the
+            // group -> field -> {type,default,description,values?} shape the
+            // nix layer consumes as shikumiTypedGroups.
+            let schema = shikumi::schema::emit::<crate::config::MadoConfig>();
+            println!("{}", serde_json::to_string_pretty(&schema)?);
             return Ok(());
         }
         Some(SubCmd::ScenarioRun { ref path }) => {

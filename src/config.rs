@@ -3,7 +3,14 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, pleme_fleet_themed_derive::FleetThemed)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    schemars::JsonSchema,
+    pleme_fleet_themed_derive::FleetThemed,
+)]
 // ── ★★ EMITTER SUBSTRATE: the FleetThemedConfig impl is DERIVED ──
 // The flagship hand-written `impl FleetThemedConfig` (the fleet-audit
 // reference) is now `#[derive(FleetThemed)]` + per-field `#[fleet(…)]`
@@ -132,6 +139,13 @@ pub struct MadoConfig {
     /// projected onto the Ctrl-S board. **Defaults OFF** — a private config
     /// layer (blackmatter) supplies the environments, SecretRefs, and tuning.
     #[serde(default)]
+    // Excluded from the emitted config schema: `safra` is a deep observability
+    // subtree (environments × data-kinds × GHA filters × cell tuning) that is
+    // NOT one of the generated nix typed groups — it stays raw `extraSettings`
+    // until a fleet consumer arms it (flake.nix note, 2026-07-02). Skipping it
+    // bounds the schema to the generated surface and avoids a JsonSchema cascade
+    // through the whole safra module. serde is untouched (schemars-only skip).
+    #[schemars(skip)]
     pub safra: crate::safra::SafraConfig,
     /// The reactive session-janitor plane (see [`JanitorsConfig`] +
     /// `crate::janitors` + `docs/JANITORS.md`). Prescribed default ON,
@@ -171,7 +185,7 @@ pub struct MadoConfig {
 
 /// Mado's embedded-vigy gate. Defaults the runtime OFF — operators
 /// who want the in-process reconciler set `vigy.enabled = true`.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoVigyConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -192,7 +206,7 @@ pub struct MadoVigyConfig {
 /// load-bearing for hot-reload: `ux::config_apply::diff` compares
 /// the resolved effects section value-wise so an unchanged section
 /// emits zero `set_effects_config` calls.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoEffectsConfig {
     /// THE default-on composed layer (operator design law, 2026-06-13):
     /// ONE barely-perceptible ambience that combines the catalog
@@ -243,7 +257,7 @@ pub struct MadoEffectsConfig {
 /// the preset, and the explicit dials below override the composed
 /// values. Colors always flow from the resolved theme palette — no
 /// hardcoded effect colors (the design law).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoAuroraConfig {
     /// Force aurora on regardless of the ambience preset. Default
     /// `false` — the preset is the default-on path.
@@ -297,7 +311,7 @@ impl Default for MadoAuroraConfig {
 /// resolved in [`MadoConfig::resolved_effects`], the single point
 /// every renderer ingress (both entry points + hot-reload) flows
 /// through.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoColorblindConfig {
     #[serde(default)]
     pub mode: ColorblindMode,
@@ -305,7 +319,7 @@ pub struct MadoColorblindConfig {
 
 /// CRT-look effect knobs — defaults mirror the engawa catalog's
 /// `CrtParams::default()` (the tuned reference values).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoCrtConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -343,7 +357,7 @@ impl Default for MadoCrtConfig {
 
 /// Scanlines effect knobs — defaults mirror the catalog's
 /// `ScanlinesParams::default()`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoScanlinesConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -374,7 +388,7 @@ impl Default for MadoScanlinesConfig {
 
 /// Bloom effect knobs — defaults mirror the catalog's
 /// `BloomParams::default()`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoBloomConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -412,7 +426,7 @@ impl Default for MadoBloomConfig {
 
 /// Glow-on-bell effect knobs — the BEL-driven cursor glow.
 /// Gated to zero nodes by `accessibility.reduce_motion`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoGlowOnBellConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -450,7 +464,7 @@ impl Default for MadoGlowOnBellConfig {
 /// user who sets `enabled = true` forces it on regardless of the preset
 /// and overrides the composed opacity. Defaults mirror the catalog's
 /// `GrainParams::default()` (opacity 1.5 %).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoGrainConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -478,7 +492,7 @@ impl Default for MadoGrainConfig {
 /// edges" frame. The edge tint is fed from the resolved theme (a deeper
 /// shade of the background), so it tracks the theme; these dials shape
 /// the geometry. Defaults mirror the catalog `WindowDepthParams`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoWindowDepthConfig {
     /// Force the vignette on. Default `false` — opt-in depth.
     #[serde(default)]
@@ -521,7 +535,7 @@ impl Default for MadoWindowDepthConfig {
 /// the rect pipeline), so it lives here as a toggle rather than a catalog
 /// effect, but shares the same depth language so the window edges and the
 /// card read as one consistent look. Defaults ON — the card floats.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoPopupElevationConfig {
     /// Cast the soft shadow behind the centred popup card. Default `true`.
     #[serde(default = "default_true")]
@@ -537,7 +551,7 @@ impl Default for MadoPopupElevationConfig {
 /// Snow overlay knobs. Mirrors the engawa catalog `SnowParams` but only
 /// the operator-facing dials; runtime state (time, cursor,
 /// typing_pulse, accumulation drift) is mado-managed.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoSnowConfig {
     /// Master enable. Default `true` — snow is the flagship
     /// effect.
@@ -647,7 +661,7 @@ impl Default for MadoSnowConfig {
 ///   * `Attach` — like `Always` but never auto-spawns. Refuses to
 ///     start if no daemon is reachable. The "I run my tear daemon
 ///     as a service, mado must talk to that instance" mode.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoTearConfig {
     #[serde(default)]
     pub mode: TearMode,
@@ -757,7 +771,9 @@ pub struct MadoTearConfig {
 
 /// How the Ctrl-S union picker badges live vs latent rows — a tiered knob
 /// so the badge surface scales from stripped (`Off`) to always-on.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum BadgeMode {
     /// Never badge — rows show their bare name (the stripped look).
@@ -776,7 +792,7 @@ pub enum BadgeMode {
 /// fully OFF (stripped — picker shows only sessions/presets); prescribed = ON
 /// with a gentle cadence + every implemented source at its default. Per-source
 /// overrides live in `sources` (keyed by kebab `SourceKind` slug).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct SuggestionsConfig {
     /// Master switch. `false` (bare) = no engine, no watchers, no rows.
@@ -968,7 +984,7 @@ impl SuggestionsConfig {
 /// Hot-reload: this section rides the same `EngineCommand::Swap` path as
 /// `suggestions`/`safra` — a config edit rebuilds the janitor runner live,
 /// no restart needed.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct JanitorsConfig {
     /// Master switch. `false` (bare) = no janitors, no findings, no rows.
@@ -1045,7 +1061,7 @@ impl JanitorsConfig {
 }
 
 /// Per-janitor knobs for the ghost-session sweeper.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct GhostSessionJanitorConfig {
     /// Run this janitor at all.
@@ -1066,7 +1082,7 @@ impl Default for GhostSessionJanitorConfig {
 }
 
 /// Per-janitor knobs for the suggestion-source health watcher.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct SuggestHealthJanitorConfig {
     /// Run this janitor at all.
@@ -1100,7 +1116,7 @@ impl Default for SuggestHealthJanitorConfig {
 /// open on a plain (no-drag) click — a URL through the OS opener, a
 /// `file://path:line` through the operator's `$VISUAL`/`$EDITOR`. Tiered:
 /// bare = fully OFF; prescribed = every knob ON.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct MadoLinksConfig {
     /// Master switch. `false` (bare) strips every link affordance.
@@ -1152,7 +1168,7 @@ impl MadoLinksConfig {
 ///
 /// `f32` fields (`default_opacity`, `snap_band`) forbid `Eq` — `PartialEq`
 /// only, the `UxBehavior` precedent.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct BrowserConfig {
     /// Master switch. `false` (bare) means no floating browser surface can
@@ -1243,7 +1259,7 @@ impl BrowserConfig {
 /// Seam auto-tune discovers that panel-vs-framebuffer ratio and snaps the cell
 /// height so every row lands on a whole number of PANEL pixels, so the
 /// downscale has no periodic sub-pixel row structure to amplify.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct DisplayConfig {
     /// Discover the display downscale ratio + snap the cell grid onto integer
@@ -1276,7 +1292,7 @@ impl DisplayConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct FeedbackConfig {
     /// A short selection-overlay flash when `copy_on_select` copies.
@@ -1323,7 +1339,9 @@ impl FeedbackConfig {
 
 /// Which desktop-notification backend mado uses. See
 /// [`crate::platform::notification_dispatcher`] + `docs/NOTIFICATIONS.md`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, schemars::JsonSchema,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum NotifyBackend {
     /// shirase when its socket is live, else native
@@ -1352,7 +1370,9 @@ pub enum NotifyBackend {
 }
 
 /// Focus policy: when a notification is actually delivered.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, schemars::JsonSchema,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum NotifyWhen {
     /// Deliver regardless of focus.
@@ -1365,7 +1385,9 @@ pub enum NotifyWhen {
 
 /// Which sound the audible bell plays. `Beep` is the classic system
 /// alert (`NSBeep`); the rest are named macOS system sounds.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, schemars::JsonSchema,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum BellSound {
     /// The classic system alert beep (`NSBeep`). The default.
@@ -1413,7 +1435,7 @@ impl BellSound {
 /// BEL behaviour: the *audible* bell (native system sound) + the optional
 /// desktop-notification on BEL. (The *visual* bell flash lives in
 /// [`FeedbackConfig::visual_bell`].)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct BellNotifyConfig {
     /// Play the native audible bell on BEL. Off by default — bells are
@@ -1460,7 +1482,9 @@ impl BellNotifyConfig {
 
 /// Urgency level, mirrored from [`tsuuchi::Urgency`] for the config
 /// surface (config must not depend on the exact tsuuchi type layout).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, schemars::JsonSchema,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum NotifyUrgency {
     /// Informational (macOS passive interruption level).
@@ -1485,7 +1509,7 @@ impl From<NotifyUrgency> for tsuuchi::Urgency {
 /// Long-command-completion notification policy — the "✓ `cargo build`
 /// finished in 2m 14s" banner when a slow command completes while mado is
 /// unfocused. Keyed off OSC 133 shell-integration prompt marks.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct CommandCompletionConfig {
     /// Master switch for command-completion notifications.
@@ -1574,7 +1598,7 @@ impl CommandCompletionConfig {
 }
 
 /// Toggles for the terminal desktop-notification escape protocols.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct OscNotifyConfig {
     /// OSC 9 (iTerm2 simple notification).
@@ -1616,7 +1640,7 @@ impl OscNotifyConfig {
 /// The desktop-notification system config. Governs the backend, focus
 /// policy, coalescing/rate-limiting, history, and every notification
 /// source. See `docs/NOTIFICATIONS.md`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct NotificationsConfig {
     /// Master switch. When `false`, no desktop notification is ever
@@ -1700,7 +1724,9 @@ impl NotificationsConfig {
 /// apply time. This is the config-surface twin of
 /// [`crate::motion::EasingKind`]; the `easing_config_covers_every_curve`
 /// test pins them so they cannot drift.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, schemars::JsonSchema,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum EasingConfig {
     /// The identity `t → t` — an even, mechanical fade. Our default.
@@ -1752,7 +1778,7 @@ impl EasingConfig {
 /// The on/off gate is `feedback.visual_bell` (off in the bare tier) +
 /// the accessibility `reduce_motion` floor — this section only shapes the
 /// flash *when it fires*.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct BellFlashConfig {
     /// Flash duration in milliseconds. Our opinion: 200 (gentle + brief;
@@ -1801,7 +1827,7 @@ impl BellFlashConfig {
 /// `ux::scroll_kinetics::ScrollKinetics` momentum integrator; a second
 /// rendered-offset lerp would fight it, a redundant dead knob per solve-once.)
 // `Eq` dropped: `bell_flash.peak_alpha` is an `f32`, so only `PartialEq`.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct MotionConfig {
     /// Ease the cursor blink alpha (smoothstep edges) instead of a hard
@@ -1851,7 +1877,7 @@ impl MotionConfig {
 }
 
 /// Per-source override in [`SuggestionsConfig::sources`].
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SuggestionSourceConfig {
     /// Source kind kebab slug (e.g. `git-branch-pr`). Unknown slugs ignored.
@@ -1896,7 +1922,7 @@ impl SuggestionSourceConfig {
 /// (so a fleet of mado windows agree on prefix / shell / status).
 /// New fields land here as new use cases surface; no breaking
 /// change to existing operators because every field is optional.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoTearImpose {
     #[serde(default)]
     pub prefix: Option<String>,
@@ -1924,7 +1950,7 @@ pub struct MadoTearImpose {
 /// schema one-to-one but every field is optional so partial
 /// overrides land cleanly (operator imposes one knob, daemon
 /// keeps the rest of its own settings).
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoTearScrollbackImpose {
     #[serde(default)]
     pub rows: Option<usize>,
@@ -2032,7 +2058,9 @@ impl Default for MadoTearConfig {
 /// switcher floats in the **center** as a popup — so
 /// [`Center`](PickerAnchor::Center) is the default; `Bottom` (Ctrl-R /
 /// Ctrl-T feel) and `Top` remain available.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum PickerAnchor {
     /// Float the picker in the CENTER of the window as a popup, with a
@@ -2051,7 +2079,9 @@ pub enum PickerAnchor {
 
 /// How mado interacts with the tear-daemon multiplexer. See
 /// [`MadoTearConfig`] for the per-mode contract.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum TearMode {
     /// Try tear; fall back to local PTY on failure. Default.
@@ -2082,7 +2112,9 @@ pub enum TearMode {
 ///   (operator opens mado, types, closes — no one else needs the
 ///   session). See `pleme-io/maestro/stacks/mado-default.yaml`
 ///   for the maestro declaration of this mode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum TearRuntime {
     /// In-process via `tear_core::InProcess` (no IPC, no daemon
@@ -2150,7 +2182,9 @@ impl TearRuntime {
 /// REQUIRES `session_switching = true`. When `auto_attach != Off` but
 /// `session_switching == false`, mado logs a one-time warning and
 /// behaves as `Off` (the switch channel has no drainer to post into).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum AutoAttachMode {
     /// No auto-attach. A displayed-pane `cd` never moves the pane —
@@ -2198,7 +2232,7 @@ fn default_spawn_wait_ms() -> u64 {
 }
 
 /// Font family and rendering configuration (mirrors Ghostty's font-* options).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct FontConfig {
     #[serde(default)]
     pub family_bold: Option<String>,
@@ -2231,7 +2265,7 @@ impl Default for FontConfig {
 }
 
 /// Selection colors and behavior (mirrors Ghostty's selection-* options).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct SelectionConfig {
     #[serde(default)]
     pub foreground: Option<String>,
@@ -2262,7 +2296,7 @@ impl Default for SelectionConfig {
 }
 
 /// Search highlight colors (mirrors Ghostty's search-* options).
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct SearchColorsConfig {
     #[serde(default)]
     pub foreground: Option<String>,
@@ -2275,26 +2309,35 @@ pub struct SearchColorsConfig {
 }
 
 /// Custom keybind entries loaded from config (mirrors Ghostty's keybind option).
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct KeybindConfig {
     #[serde(default)]
     pub custom: Vec<KeybindEntry>,
 }
 
 /// A single keybind mapping from config.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct KeybindEntry {
     pub trigger: String,
     pub action: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct WindowConfig {
+    // width/height/padding default via auto_detect::detect_window_dims_or_fallback()
+    // — SCREEN-ADAPTIVE, so they have no deterministic static default (a GUI host
+    // detects the monitor; a headless process gets the fallback). A computed
+    // default is not a schema default, so they are excluded from the emitted
+    // config schema (and thus the generated nix surface); set them explicitly via
+    // raw settings if a fixed window size is wanted. serde is untouched.
     #[serde(default = "default_width")]
+    #[schemars(skip)]
     pub width: u32,
     #[serde(default = "default_height")]
+    #[schemars(skip)]
     pub height: u32,
     #[serde(default = "default_padding")]
+    #[schemars(skip)]
     pub padding: u32,
     /// Show server / window-manager decorations (titlebar, border,
     /// close/minimize buttons). Default is **platform-aware**:
@@ -2354,7 +2397,7 @@ pub struct WindowConfig {
 /// macOS window-chrome configuration. Every axis defaults to the
 /// minimal "just the terminal" look but is operator-overridable via
 /// shikumi YAML, exactly like every other `MadoConfig` field.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MacosWindowConfig {
     /// macOS-native window tabbing: the `⌘1 / ⌘2 …` tab strip plus the
     /// `+` new-tab button that render as a grey band under the titlebar.
@@ -2382,7 +2425,9 @@ impl Default for MacosWindowConfig {
 }
 
 /// Titlebar integration style on macOS.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum TitlebarStyle {
     /// Keep the titled band but theme it into the canvas: transparent
@@ -2405,7 +2450,9 @@ pub enum TitlebarStyle {
 }
 
 /// Forced `NSAppearance` for the window.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum WindowAppearance {
     /// Force the dark appearance so the titlebar material and the
@@ -2419,14 +2466,14 @@ pub enum WindowAppearance {
     Auto,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ShellConfig {
     pub command: Option<String>,
     #[serde(default)]
     pub args: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct AppearanceConfig {
     #[serde(default = "default_bg")]
     pub background: String,
@@ -2444,7 +2491,7 @@ pub struct AppearanceConfig {
     pub unfocused_split_fill: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CursorStyle {
     Block,
@@ -2459,7 +2506,7 @@ impl Default for CursorStyle {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct CursorConfig {
     #[serde(default)]
     pub style: CursorStyle,
@@ -2477,7 +2524,7 @@ pub struct CursorConfig {
     pub click_to_move: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct BehaviorConfig {
     #[serde(default = "default_scrollback")]
     pub scrollback_lines: usize,
@@ -2564,7 +2611,9 @@ pub struct BehaviorConfig {
     pub selection_autoscroll_max_overshoot: f32,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum MouseShiftCapture {
     #[default]
@@ -2577,7 +2626,9 @@ pub enum MouseShiftCapture {
 /// How a precise (trackpad / Magic Mouse) gesture scrolls — the typed
 /// behavior selector for the precise path of the scroll system
 /// (`ux::scroll::PreciseMode`).
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum PreciseScrollMode {
     /// Ghostty-faithful pixel accumulation: peel whole cells from a carried
@@ -2592,7 +2643,7 @@ pub enum PreciseScrollMode {
     Momentum,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ShellIntegrationConfig {
     #[serde(default = "default_shell_integration_enabled")]
     pub enabled: bool,
@@ -2613,7 +2664,7 @@ impl Default for ShellIntegrationConfig {
 /// hardcoded ← detected ← user precedence chain: `None` means "let
 /// `garasu::adaptive` recommend", `Some(v)` means "operator said so,
 /// no detection override."
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct PerformanceConfig {
     #[serde(default = "default_vsync")]
     pub vsync: bool,
@@ -2673,7 +2724,7 @@ impl PerformanceConfig {
 }
 
 /// Environment configuration for PTY spawning.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EnvironmentConfig {
     /// Extra environment variables to set for spawned processes.
     #[serde(default)]
@@ -2709,7 +2760,7 @@ impl Default for EnvironmentConfig {
 ///     font_size: 16
 ///     font_family: "Fira Code"
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, Default)]
 pub struct ProfileConfig {
     pub font_family: Option<String>,
     pub font_size: Option<f32>,
@@ -2726,7 +2777,7 @@ pub struct ProfileConfig {
 }
 
 /// Custom WGSL shader post-processing configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ShaderConfig {
     /// Enable custom shader post-processing.
     #[serde(default)]
@@ -2746,7 +2797,7 @@ impl Default for ShaderConfig {
 }
 
 /// Accessibility features configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct AccessibilityConfig {
     /// Colorblind simulation mode.
     #[serde(default)]
@@ -2762,7 +2813,9 @@ pub struct AccessibilityConfig {
     pub reduce_motion: bool,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum ColorblindMode {
     #[default]
@@ -2805,7 +2858,9 @@ fn default_font_scale() -> f32 {
 /// `size_fraction * screen_dim`, positioned centered. The other
 /// variants pin to one edge with the perpendicular axis filling
 /// the screen.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum QuickTerminalEdge {
     #[default]
@@ -2818,7 +2873,7 @@ pub enum QuickTerminalEdge {
 
 /// Typed Quick Terminal config — declarative equivalent of ghostty's
 /// `quick-terminal-*` keys.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct QuickTerminalConfig {
     /// When false, the Quick Terminal machinery is dormant — no
     /// global hotkey registration, no hidden window. Default: false
@@ -4545,6 +4600,30 @@ impose:
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── Generated config surface: the freshness gate ───────────
+    // The committed `config.schema.json` is what the nix layer reads to
+    // GENERATE its typed option surface (shikumiTypedGroups). It must equal
+    // what `MadoConfig` emits right now, or the nix surface silently drifts
+    // from the Rust config — the exact class this whole mechanism removes.
+    // Regenerate with `mado config-schema > config.schema.json`.
+    #[test]
+    fn committed_config_schema_matches_the_live_type() {
+        // Read the artifact at RUNTIME (not include_str!): the committed file is
+        // regenerated out of band, and a compile-time embed goes stale against
+        // cargo's incremental cache. CARGO_MANIFEST_DIR resolves to the repo root
+        // at test time, so this always compares the current file.
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/config.schema.json");
+        let committed: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(path).expect("config.schema.json exists"),
+        )
+        .expect("config.schema.json is valid JSON");
+        let live = shikumi::schema::emit::<MadoConfig>();
+        assert_eq!(
+            live, committed,
+            "config.schema.json is STALE — run `mado config-schema > config.schema.json` and commit the result"
+        );
+    }
 
     // ── Config tier model ──────────────────────────────────────
 

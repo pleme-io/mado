@@ -80,7 +80,17 @@ use crate::suggest::{HealthVerdict, SourceHealth, SourceKind, SourceStatus, Urge
 /// How much a janitor may DO about a finding. Findings are published in
 /// every mode; this gates only the remediation arm (the breathe
 /// shadow-first promotion posture, in-process).
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+    schemars::JsonSchema,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum Authority {
     /// Observe + publish only — every remediation is held and reported as

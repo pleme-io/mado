@@ -77,9 +77,13 @@ impl MadoVigyHost {
         // (`host=mado`, the heartbeat) and the unlabelled ones registered
         // from panes or the CLI, and leaves other hosts' (`host=arnes`) to
         // them. It still lists and inspects every vigy in the shared store.
-        let rt = RuntimeHandle::open_with_scope(&db, extensions, Scope::HostAndUnlabelled(VIGY_HOST.into()))
-            .await
-            .with_context(|| format!("open vigy runtime at {}", db.display()))?;
+        let rt = RuntimeHandle::open_with_scope(
+            &db,
+            extensions,
+            Scope::HostAndUnlabelled(VIGY_HOST.into()),
+        )
+        .await
+        .with_context(|| format!("open vigy runtime at {}", db.display()))?;
 
         // Register the default heartbeat (idempotent — same name+program
         // yields the same id, so this is a no-op on subsequent startups

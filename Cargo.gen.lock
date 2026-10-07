@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "c084184607ef21b6c04cb6925daf4011511ae01aa85baed98c4cac21551a0c3a",
+  "cargo_lock_sha256": "0ebd103aa3ef638b2fb384081a6e13be6ec7aa7de2f86c114fa2765afe5e533a",
   "manifest_sha256": {
-    "Cargo.toml": "4c3176c59f9be0c56d213b77c46037ed1ea628da5acb8f8fbed1bf9aa5feeb6b"
+    "Cargo.toml": "70e2d9fe5a6f0578d5a3a7fb4242ec6e28bf25429f06f71df3b69b6ba36dcea9"
   },
   "target_resolves": {
     "base": {
@@ -7358,7 +7358,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1077",
+            "package_key": "shikumi-0.1.1080",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9179,7 +9179,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1077",
+            "package_key": "shikumi-0.1.1080",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16597,6 +16597,7 @@
         "features": [
           "alloc",
           "default",
+          "float_roundtrip",
           "raw_value",
           "std"
         ]
@@ -16948,7 +16949,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1077",
+            "package_key": "shikumi-0.1.1080",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16995,7 +16996,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.1077": {
+      "shikumi-0.1.1080": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17083,6 +17084,16 @@
             "uses_default_features": false,
             "optional": false,
             "target": "cfg(target_os = \"macos\")",
+            "tree": "target"
+          },
+          {
+            "name": "schemars",
+            "package_key": "schemars-1.2.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
             "tree": "target"
           },
           {
@@ -19864,7 +19875,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1077",
+            "package_key": "shikumi-0.1.1080",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20636,7 +20647,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1077",
+            "package_key": "shikumi-0.1.1080",
             "kind": "normal",
             "features": [
               "cli"
@@ -21336,7 +21347,7 @@
           },
           {
             "name": "getrandom",
-            "package_key": "getrandom-0.4.3",
+            "package_key": "getrandom-0.3.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -26807,9 +26818,11 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-0.8.22",
+                "package_key": "schemars-1.2.2",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "derive"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -26831,7 +26844,9 @@
                 "name": "serde_json",
                 "package_key": "serde_json-1.0.151",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "float_roundtrip"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -26859,7 +26874,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1077",
+                "package_key": "shikumi-0.1.1080",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31821,9 +31836,11 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-0.8.22",
+                "package_key": "schemars-1.2.2",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "derive"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -31845,7 +31862,9 @@
                 "name": "serde_json",
                 "package_key": "serde_json-1.0.151",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "float_roundtrip"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -31873,7 +31892,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1077",
+                "package_key": "shikumi-0.1.1080",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35962,9 +35981,11 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-0.8.22",
+                "package_key": "schemars-1.2.2",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "derive"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -35986,7 +36007,9 @@
                 "name": "serde_json",
                 "package_key": "serde_json-1.0.151",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "float_roundtrip"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -36014,7 +36037,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1077",
+                "package_key": "shikumi-0.1.1080",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -40282,9 +40305,11 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-0.8.22",
+                "package_key": "schemars-1.2.2",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "derive"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -40306,7 +40331,9 @@
                 "name": "serde_json",
                 "package_key": "serde_json-1.0.151",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "float_roundtrip"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -40334,7 +40361,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1077",
+                "package_key": "shikumi-0.1.1080",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -45320,9 +45347,11 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-0.8.22",
+                "package_key": "schemars-1.2.2",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "derive"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -45344,7 +45373,9 @@
                 "name": "serde_json",
                 "package_key": "serde_json-1.0.151",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "float_roundtrip"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -45372,7 +45403,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1077",
+                "package_key": "shikumi-0.1.1080",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -49485,9 +49516,11 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-0.8.22",
+                "package_key": "schemars-1.2.2",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "derive"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -49509,7 +49542,9 @@
                 "name": "serde_json",
                 "package_key": "serde_json-1.0.151",
                 "kind": "normal",
-                "features": [],
+                "features": [
+                  "float_roundtrip"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -49537,7 +49572,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1077",
+                "package_key": "shikumi-0.1.1080",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -54079,7 +54114,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.1077": {
+    "shikumi-0.1.1080": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
