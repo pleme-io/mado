@@ -10155,7 +10155,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.180";
+        version = "0.1.181";
         edition = "2024";
         crateBin = [
           {
@@ -10381,7 +10381,8 @@ rec {
           }
           {
             name = "schemars";
-            packageId = "schemars 0.8.22";
+            packageId = "schemars 1.2.2";
+            features = [ "derive" ];
           }
           {
             name = "serde";
@@ -10391,6 +10392,7 @@ rec {
           {
             name = "serde_json";
             packageId = "serde_json";
+            features = [ "float_roundtrip" ];
           }
           {
             name = "serde_yaml_ng";
@@ -21254,7 +21256,7 @@ rec {
           "preserve_order" = [ "indexmap" "std" ];
           "std" = [ "memchr/std" "serde_core/std" ];
         };
-        resolvedDefaultFeatures = [ "alloc" "default" "raw_value" "std" ];
+        resolvedDefaultFeatures = [ "alloc" "default" "float_roundtrip" "raw_value" "std" ];
       };
       "serde_spanned" = rec {
         crateName = "serde_spanned";
@@ -21578,9 +21580,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.1077";
+        version = "0.1.1080";
         edition = "2024";
-        sha256 = "174i8p2w9rmyk25b16inwwq28p1iwafhhkf6cdp4ii1iwxxj5plk";
+        sha256 = "0r4ybxfmjm7ilq2d0msnf2b98b2mf4vpjnl2m6x9s8ji2kdrhsps";
         dependencies = [
           {
             name = "arc-swap";
@@ -21620,6 +21622,10 @@ rec {
             usesDefaultFeatures = false;
             target = { target, features }: ("macos" == target."os" or null);
             features = [ "macos_fsevent" ];
+          }
+          {
+            name = "schemars";
+            packageId = "schemars 1.2.2";
           }
           {
             name = "serde";

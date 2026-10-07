@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "0ebd103aa3ef638b2fb384081a6e13be6ec7aa7de2f86c114fa2765afe5e533a",
+  "cargo_lock_sha256": "364a0c0f4324bcec8add22fc4246c85c09572d59e5511ff6db5e6da3cae5955b",
   "manifest_sha256": {
-    "Cargo.toml": "70e2d9fe5a6f0578d5a3a7fb4242ec6e28bf25429f06f71df3b69b6ba36dcea9"
+    "Cargo.toml": "b87562bf01f4b6b9afa3ca18de8ff22ec7632156824bd544e16416241da244e2"
   },
   "target_resolves": {
     "base": {
@@ -47,7 +47,7 @@
           },
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.60",
+            "package_key": "zerocopy-0.8.61",
             "kind": "normal",
             "features": [
               "simd"
@@ -5310,7 +5310,7 @@
           },
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.60",
+            "package_key": "zerocopy-0.8.61",
             "kind": "normal",
             "features": [
               "derive",
@@ -7283,7 +7283,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.7",
+            "package_key": "todoku-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12081,7 +12081,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.7",
+            "package_key": "todoku-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12311,7 +12311,7 @@
         "runtime_dependencies": [
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.60",
+            "package_key": "zerocopy-0.8.61",
             "kind": "normal",
             "features": [
               "simd"
@@ -21347,7 +21347,7 @@
           },
           {
             "name": "getrandom",
-            "package_key": "getrandom-0.3.4",
+            "package_key": "getrandom-0.4.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -21794,7 +21794,7 @@
           "std"
         ]
       },
-      "todoku-0.1.7": {
+      "todoku-0.1.8": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -24915,11 +24915,11 @@
           "std"
         ]
       },
-      "zerocopy-0.8.60": {
+      "zerocopy-0.8.61": {
         "runtime_dependencies": [
           {
             "name": "zerocopy_derive",
-            "package_key": "zerocopy-derive-0.8.60",
+            "package_key": "zerocopy-derive-0.8.61",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24929,7 +24929,7 @@
           },
           {
             "name": "zerocopy_derive",
-            "package_key": "zerocopy-derive-0.8.60",
+            "package_key": "zerocopy-derive-0.8.61",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24945,7 +24945,7 @@
           "zerocopy-derive"
         ]
       },
-      "zerocopy-derive-0.8.60": {
+      "zerocopy-derive-0.8.61": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -26295,7 +26295,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.180": {
+          "mado-0.1.181": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31362,7 +31362,7 @@
               "system"
             ]
           },
-          "mado-0.1.180": {
+          "mado-0.1.181": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35507,7 +35507,7 @@
               "system"
             ]
           },
-          "mado-0.1.180": {
+          "mado-0.1.181": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39782,7 +39782,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.180": {
+          "mado-0.1.181": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44873,7 +44873,7 @@
               "system"
             ]
           },
-          "mado-0.1.180": {
+          "mado-0.1.181": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49042,7 +49042,7 @@
               "system"
             ]
           },
-          "mado-0.1.180": {
+          "mado-0.1.181": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -53289,7 +53289,7 @@
     "mac_address-1.2.0": {
       "edition": "2018"
     },
-    "mado-0.1.180": {
+    "mado-0.1.181": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54395,7 +54395,7 @@
     "tinyvec-1.13.3": {
       "edition": "2018"
     },
-    "todoku-0.1.7": {
+    "todoku-0.1.8": {
       "edition": "2024",
       "binaries": [
         {
@@ -54808,11 +54808,11 @@
     "zeno-0.3.3": {
       "edition": "2021"
     },
-    "zerocopy-0.8.60": {
+    "zerocopy-0.8.61": {
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "zerocopy-derive-0.8.60": {
+    "zerocopy-derive-0.8.61": {
       "edition": "2021",
       "proc_macro": true
     },
