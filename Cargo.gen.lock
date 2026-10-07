@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "f489a21e9ea5b11c44c0daba5ad2212199d4bcc5359a16a2efe34a9e8b6685b3",
+  "cargo_lock_sha256": "ab4e341107d10d1f364c23f8696c4d3e767dbc396a9abaf766cbb6cfd7bf9500",
   "manifest_sha256": {
-    "Cargo.toml": "dc6aea748cd991f7d72633af1b18e28f3e2325136ca99db4c7fbffdc696e627f"
+    "Cargo.toml": "62ecacec57a5622bbb570b9c093cdeb8fcac7f3ea69d9413af847025d291cd17"
   },
   "target_resolves": {
     "base": {
@@ -4588,7 +4588,7 @@
           },
           {
             "name": "inventory",
-            "package_key": "inventory-0.3.24",
+            "package_key": "inventory-0.3.25",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4670,7 +4670,7 @@
           },
           {
             "name": "inventory",
-            "package_key": "inventory-0.3.24",
+            "package_key": "inventory-0.3.25",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6987,7 +6987,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "inventory-0.3.24": {
+      "inventory-0.3.25": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -7639,7 +7639,7 @@
         "runtime_dependencies": [
           {
             "name": "kanshou_derive",
-            "package_key": "kanshou-derive-0.1.9",
+            "package_key": "kanshou-derive-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7723,7 +7723,7 @@
           "derive"
         ]
       },
-      "kanshou-derive-0.1.9": {
+      "kanshou-derive-0.1.10": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -26295,7 +26295,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.181": {
+          "mado-0.1.182": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31362,7 +31362,7 @@
               "system"
             ]
           },
-          "mado-0.1.181": {
+          "mado-0.1.182": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35507,7 +35507,7 @@
               "system"
             ]
           },
-          "mado-0.1.181": {
+          "mado-0.1.182": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39782,7 +39782,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.181": {
+          "mado-0.1.182": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44873,7 +44873,7 @@
               "system"
             ]
           },
-          "mado-0.1.181": {
+          "mado-0.1.182": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49042,7 +49042,7 @@
               "system"
             ]
           },
-          "mado-0.1.181": {
+          "mado-0.1.182": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -53121,7 +53121,7 @@
       "edition": "2015",
       "build_script": "build.rs"
     },
-    "inventory-0.3.24": {
+    "inventory-0.3.25": {
       "edition": "2021"
     },
     "ipnet-2.12.2": {
@@ -53186,7 +53186,7 @@
     "kanshou-0.1.10": {
       "edition": "2024"
     },
-    "kanshou-derive-0.1.9": {
+    "kanshou-derive-0.1.10": {
       "edition": "2024",
       "proc_macro": true
     },
@@ -53289,7 +53289,7 @@
     "mac_address-1.2.0": {
       "edition": "2018"
     },
-    "mado-0.1.181": {
+    "mado-0.1.182": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",

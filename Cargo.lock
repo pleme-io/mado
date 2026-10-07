@@ -2663,9 +2663,9 @@ dependencies = [
 
 [[package]]
 name = "inventory"
-version = "0.3.24"
+version = "0.3.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4f0c30c76f2f4ccee3fe55a2435f691ca00c0e4bd87abe4f4a851b1d4dac39b"
+checksum = "6928282826c822ad91bf1c9a1cb90a30ba1c26770749929b4656cd6be829cd7c"
 dependencies = [
  "rustversion",
 ]
@@ -2964,9 +2964,9 @@ dependencies = [
 
 [[package]]
 name = "kanshou-derive"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "318268ec1d5ef14ce0fe8e7086204c5f06336959b1ba362242dcfdaa7e2fce89"
+checksum = "0ae7caca588a9b7dbc2d13b18c9ce7c23862962f245d43c7c001ecb3c1c3ffea"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3325,7 +3325,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.181"
+version = "0.1.182"
 dependencies = [
  "anyhow",
  "awase",
