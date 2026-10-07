@@ -52,10 +52,17 @@ pub(crate) static TOTAL_FRAMES_SKIPPED: AtomicU64 = AtomicU64::new(0);
 /// Frames where `needs_frame` said paint and the post-snapshot gate — which
 /// runs later and can see state the cheap peek could not — disagreed. The
 /// frame is painted anyway (the swapchain slot is already acquired by then),
-/// so this is NOT a skip: it is a calibration signal for how conservative
-/// `needs_frame` is being. Split out of `TOTAL_FRAMES_SKIPPED` on 2026-08-21,
+/// so this is NOT a skip. Split out of `TOTAL_FRAMES_SKIPPED` on 2026-08-21,
 /// because summing "skipped" and "painted after all" into one counter is what
 /// let that number read 9,934,969 "skipped" while skipping none of them.
+///
+/// It is NOT a clean misprediction count either: the late gate tests only the
+/// grid, so a forced swapchain scrub, a selection-only paint and an SGR-5
+/// blink paint all land here beside true idle paints (74% of painted frames
+/// on 2026-10-07). Kept unchanged for existing readers;
+/// `crate::perf::RenderMetrics::paints` (`paints` in `frame_perf`) gives every
+/// painted frame exactly one reason, and its `late_idle` is the residue no
+/// reason explains.
 pub(crate) static TOTAL_LATE_IDLE_PAINTS: AtomicU64 = AtomicU64::new(0);
 
 /// Upper bound on how long an OPEN overlay may go unpainted when change
@@ -1274,6 +1281,7 @@ fn snapshot_has_blinking_cell(snap: &Snapshot) -> bool {
 }
 
 struct Snapshot {
+    arrivals: crate::perf::FrameArrivals,
     rows: Vec<Vec<Cell>>,
     /// M2 — the style mapping the cloned rows' `style_id`s resolve
     /// through. A [`StyleSnapshot`] (just the `Vec<Style>`), NOT a
@@ -1955,6 +1963,8 @@ pub struct TerminalRenderer {
     /// prior session, surfacing as the "shadow / copies of the prompt"
     /// afterimage when present() cycles back to it. Counts down to 0.
     force_paint_frames: u8,
+    scrub_reason: crate::perf::PaintReason,
+    metrics: &'static crate::perf::RenderMetrics,
     /// Post-effect config — mirrors `MadoConfig.effects`. The
     /// enabled-effect set (and therefore the graph cache key) is
     /// derived from this each frame.
@@ -2131,6 +2141,27 @@ const EPOCH_FORCE_PAINT_FRAMES: u8 = 3;
 /// is ~300 us, so the worst case is <1 ms of extra work after a quiet edit, and
 /// during continuous output the frames were being painted anyway.
 const CONTENT_FORCE_PAINT_FRAMES: u8 = 3;
+
+#[derive(Debug, Clone, Copy)]
+struct PaintSignals {
+    content: bool,
+    overlay: bool,
+    animation: bool,
+    scrub: Option<crate::perf::PaintReason>,
+}
+
+fn classify_paint(s: PaintSignals) -> crate::perf::PaintReason {
+    use crate::perf::PaintReason;
+    if s.content {
+        PaintReason::Content
+    } else if s.overlay {
+        PaintReason::Overlay
+    } else if s.animation {
+        PaintReason::Animation
+    } else {
+        s.scrub.unwrap_or(PaintReason::LateIdle)
+    }
+}
 
 /// Sealed column-truth for the dense terminal grid.
 ///
@@ -2494,6 +2525,8 @@ impl TerminalRenderer {
             last_overlay_paint_at: f32::NEG_INFINITY,
             last_selection_epoch: SelectionEpoch::default(),
             force_paint_frames: 0,
+            scrub_reason: crate::perf::PaintReason::ForcedScrub,
+            metrics: crate::perf::render_metrics(),
             effects_config: crate::config::MadoEffectsConfig::default(),
             ambience: crate::config::MadoEffectsConfig::default()
                 .ambience
@@ -3853,6 +3886,7 @@ impl TerminalRenderer {
         let sel_anchors = self.selection.lock().unwrap().anchors();
         let term = self.terminal.read();
         let seqno = term.seqno();
+        let arrivals = term.take_arrivals();
         let cursor = *term.cursor();
         let cursor_presentation = term.cursor_presentation();
         let cols = term.cols();
@@ -3938,6 +3972,7 @@ impl TerminalRenderer {
 
         (
             Snapshot {
+                arrivals,
                 rows,
                 styles,
                 palette,
@@ -6044,6 +6079,20 @@ impl TerminalRenderer {
         self.ambience_governor.set_budget_us(budget);
     }
 
+    #[must_use]
+    pub(crate) fn render_metrics(&self) -> &'static crate::perf::RenderMetrics {
+        self.metrics
+    }
+
+    #[cfg(all(test, feature = "gpu_tests"))]
+    pub(crate) fn set_render_metrics(&mut self, metrics: &'static crate::perf::RenderMetrics) {
+        self.metrics = metrics;
+    }
+
+    pub fn set_histograms(&mut self, mode: crate::config::HistogramMode) {
+        self.metrics.set_histograms(mode);
+    }
+
     /// The aurora spectrum stops (green / cyan / violet) in LINEAR rgb,
     /// derived from the active theme palette — NO hardcoded effect
     /// colors (the design law). On Vellum these resolve to
@@ -6418,9 +6467,11 @@ impl RenderCallback for TerminalRenderer {
         //  • MEASURED, live GUI 2026-08-21 (pid 840): a frame that draws the
         //    board costs `last_frame_us` ~4900 against 627 idle — an ~8x
         //    frame, for only +65 rects and +80 text runs. That superlinearity
-        //    is `draw_overlay` re-shaping every picker line from scratch (it
-        //    is the one draw path that bypasses the LRU shape cache), not the
-        //    rect count.
+        //    was `draw_overlay` re-shaping every picker line from scratch, not
+        //    the rect count. It no longer does: `overlay_shapes` caches the
+        //    shaped lines across frames since aa031a2, so ~4900 µs is a
+        //    pre-aa031a2 reading and an open board's frame cost today is
+        //    unmeasured — `frame_perf` with the board open is the baseline.
         //  • NOT measurable on that process: pid 840 execs a binary built at
         //    18:51, and the clause this comment replaces landed at 21:19 the
         //    same evening. It was never in the running image, so the frame
@@ -6778,12 +6829,14 @@ impl RenderCallback for TerminalRenderer {
         // marker, the stale blink phase, or a back-buffer slot showing
         // the prior pane — the "shadow / copies of the prompt"
         // afterimage the operator hit switching back and forth.
-        if peek_epoch != self.last_grid_epoch {
+        let epoch_reset = peek_epoch != self.last_grid_epoch;
+        if epoch_reset {
             self.last_grid_epoch = peek_epoch;
             self.last_seqno = 0;
             self.last_cursor_on = false;
             self.sync_output_deferred_since = None;
             self.force_paint_frames = EPOCH_FORCE_PAINT_FRAMES;
+            self.scrub_reason = crate::perf::PaintReason::EpochScrub;
         }
         // While forcing post-reset frames, never defer on synchronized
         // output — every swapchain slot must be repainted with the new
@@ -6796,6 +6849,7 @@ impl RenderCallback for TerminalRenderer {
             let now = Instant::now();
             let since = *self.sync_output_deferred_since.get_or_insert(now);
             if now.duration_since(since) < SYNC_OUTPUT_MAX_DEFER {
+                self.metrics.declined_after_acquire().inc();
                 return;
             }
             // Defer cap exceeded — fall through and render whatever
@@ -6810,6 +6864,8 @@ impl RenderCallback for TerminalRenderer {
         // above is the synchronized-output defer, which is bypassed
         // while forcing). Count down the post-epoch forced-paint budget
         // so each swapchain slot gets exactly one clean repaint.
+        let forced = self.force_paint_frames > 0;
+        let scrub_reason = self.scrub_reason;
         self.force_paint_frames = self.force_paint_frames.saturating_sub(1);
         let search_active_peek = self.search.lock().unwrap().active;
         // P28 — cursor_on is a 1–4 Hz boolean (default 4 Hz at 500 ms
@@ -6927,6 +6983,9 @@ impl RenderCallback for TerminalRenderer {
         }
 
         let snapshot_start = Instant::now();
+        let prev_seqno = self.last_seqno;
+        let text_blink_flip =
+            self.saw_blinking_cell && self.blink_phase_on(ctx.elapsed) != self.last_text_blink_on;
         let (mut snap, seqno) = self.snapshot();
         let snapshot_us = snapshot_start.elapsed().as_micros() as u64;
         // Memoise cursor_on for the next-frame peek's flip detection.
@@ -6956,6 +7015,11 @@ impl RenderCallback for TerminalRenderer {
         // the opposite defect (a terminal that never idles).
         if seqno != self.last_seqno {
             self.force_paint_frames = self.force_paint_frames.max(CONTENT_FORCE_PAINT_FRAMES);
+            self.scrub_reason = if epoch_reset {
+                crate::perf::PaintReason::EpochScrub
+            } else {
+                crate::perf::PaintReason::ForcedScrub
+            };
         }
         self.last_seqno = seqno;
 
@@ -6968,7 +7032,9 @@ impl RenderCallback for TerminalRenderer {
         // order: any mutation the draw path itself makes lands after the
         // snapshot and so reads as a change next frame — a redundant paint,
         // never a missed one.
-        self.last_overlay_snapshot = self.overlay_snapshot();
+        let overlay_now = self.overlay_snapshot();
+        let overlay_changed = overlay_now != self.last_overlay_snapshot;
+        self.last_overlay_snapshot = overlay_now;
         self.last_overlay_paint_at = ctx.elapsed;
 
         // ★ The selection's half of the same memo. Recording it here (and
@@ -6978,7 +7044,19 @@ impl RenderCallback for TerminalRenderer {
         // Taken BEFORE Pass 2 draws the highlight — a mutation the draw
         // path itself makes lands after the read and so reads as a change
         // next frame (a redundant paint, never a missed one).
-        self.last_selection_epoch = self.selection.lock().unwrap().epoch();
+        let selection_epoch = self.selection.lock().unwrap().epoch();
+        let selection_changed = selection_epoch != self.last_selection_epoch;
+        self.last_selection_epoch = selection_epoch;
+        let paint_reason = classify_paint(PaintSignals {
+            content: prev_seqno == 0 || seqno != prev_seqno,
+            overlay: overlay_active_peek
+                || overlay_changed
+                || selection_changed
+                || search_active_peek
+                || self.overlay_motion.closing(),
+            animation: blink_flip || bell_active || text_blink_flip,
+            scrub: forced.then_some(scrub_reason),
+        });
 
         // Build rect instances (cell backgrounds + cursor + decorations).
         // The selection was already resolved into snap.selection_span
@@ -7539,6 +7617,8 @@ impl RenderCallback for TerminalRenderer {
         LAST_FRAME_TEXT.store(text_count as u64, Ordering::Relaxed);
         LAST_FRAME_SHAPE_CACHE.store(shape_cache_len as u64, Ordering::Relaxed);
         TOTAL_FRAMES.fetch_add(1, Ordering::Relaxed);
+        self.metrics.paints().inc(paint_reason);
+        self.metrics.presented(snap.arrivals, crate::perf::now_ns());
 
         tracing::debug!(
             frame_us,
@@ -7626,6 +7706,54 @@ mod render_invariants {
         elapsed: 0.0,
         dt: 0.0,
     };
+
+    #[test]
+    fn a_painted_frame_takes_the_strongest_reason_it_has() {
+        use crate::perf::PaintReason as R;
+        let none = PaintSignals {
+            content: false,
+            overlay: false,
+            animation: false,
+            scrub: None,
+        };
+        let all = PaintSignals {
+            content: true,
+            overlay: true,
+            animation: true,
+            scrub: Some(R::ForcedScrub),
+        };
+        assert_eq!(classify_paint(all), R::Content);
+        assert_eq!(
+            classify_paint(PaintSignals {
+                content: false,
+                ..all
+            }),
+            R::Overlay
+        );
+        assert_eq!(
+            classify_paint(PaintSignals {
+                content: false,
+                overlay: false,
+                ..all
+            }),
+            R::Animation
+        );
+        assert_eq!(
+            classify_paint(PaintSignals {
+                scrub: Some(R::ForcedScrub),
+                ..none
+            }),
+            R::ForcedScrub
+        );
+        assert_eq!(
+            classify_paint(PaintSignals {
+                scrub: Some(R::EpochScrub),
+                ..none
+            }),
+            R::EpochScrub
+        );
+        assert_eq!(classify_paint(none), R::LateIdle);
+    }
 
     /// Drive the renderer to the settled state a real one reaches after its
     /// first paint: `last_seqno` matching the terminal, epoch matching, no
@@ -11840,13 +11968,13 @@ mod render_gpu_invariants {
     }
 
     /// Observability contract: every successful render bumps
-    /// `TOTAL_FRAMES`; every "would-have-skipped" render (now
-    /// always full-renders to fix the swapchain stale-slot bug,
-    /// but still counted) bumps `TOTAL_FRAMES_SKIPPED`.
-    ///
-    /// `frame_perf` MCP surfaces both counters; this pins the
-    /// contract so operators interpreting the numbers see what
-    /// they expect.
+    /// `TOTAL_FRAMES` and exactly one paint reason. A skip is counted where
+    /// the skip happens — `needs_frame`, pinned by
+    /// `a_skipped_frame_is_counted_as_a_skipped_frame` — so driving `render`
+    /// directly never moves `TOTAL_FRAMES_SKIPPED`; the two repeat renders
+    /// below land in `TOTAL_LATE_IDLE_PAINTS` instead, which is exactly the
+    /// ambiguity the per-reason split resolves: they are the forced scrub of
+    /// the content render before them.
     #[test]
     fn frame_perf_counters_increment_correctly() {
         use std::sync::atomic::Ordering;
@@ -11854,45 +11982,310 @@ mod render_gpu_invariants {
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let target = HeadlessTarget::new(&gpu, 96, 32, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 4);
+        let metrics = fresh_metrics(&mut r);
 
-        // Snapshot the counters before driving any renders — the
-        // tests run in parallel so we can't assume they start at
-        // zero; assert deltas instead.
         let frames_before = TOTAL_FRAMES.load(Ordering::Relaxed);
-        let skipped_before = TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed);
+        let late_before = TOTAL_LATE_IDLE_PAINTS.load(Ordering::Relaxed);
 
-        // Render 1: fresh state, triggers a full render via the
-        // last_seqno=0 path (no skip).
         t.write().feed(b"observability test");
-        let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
-        // Render 2: no state change, the gate "would have" skipped
-        // (last_seqno != 0, no blink-flip, no bell, no search).
-        // Post-fix we still full-render, but the counter ticks.
-        let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
-        // Render 3: same as #2.
-        let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        for _ in 0..3 {
+            let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        }
 
         let frames_after = TOTAL_FRAMES.load(Ordering::Relaxed);
-        let skipped_after = TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed);
-
-        // TOTAL_FRAMES bumps after EVERY full-render path
-        // completion. With damage-gate-skip removed entirely, all
-        // three of our renders complete the full path, so the
-        // delta is ≥ 3.
+        let late_after = TOTAL_LATE_IDLE_PAINTS.load(Ordering::Relaxed);
         assert!(
             frames_after - frames_before >= 3,
             "TOTAL_FRAMES delta = {}; expected ≥ 3",
             frames_after - frames_before
         );
-        // TOTAL_FRAMES_SKIPPED bumps on the "would have skipped"
-        // path, which fires whenever (last_seqno != 0 && no
-        // semantic delta). Renders 2 and 3 both qualify; render 1
-        // doesn't (last_seqno was 0). So delta ≥ 2.
         assert!(
-            skipped_after - skipped_before >= 2,
-            "TOTAL_FRAMES_SKIPPED delta = {}; expected ≥ 2",
-            skipped_after - skipped_before
+            late_after - late_before >= 2,
+            "TOTAL_LATE_IDLE_PAINTS delta = {}; expected ≥ 2",
+            late_after - late_before
         );
+        let paints = metrics.paints();
+        assert_eq!(paints.total(), 3);
+        assert_eq!(paints.get(crate::perf::PaintReason::Content), 1);
+        assert_eq!(paints.get(crate::perf::PaintReason::ForcedScrub), 2);
+    }
+
+    fn fresh_metrics(r: &mut TerminalRenderer) -> &'static crate::perf::RenderMetrics {
+        let metrics: &'static crate::perf::RenderMetrics =
+            Box::leak(Box::new(crate::perf::RenderMetrics::new()));
+        r.set_render_metrics(metrics);
+        metrics
+    }
+
+    #[test]
+    fn every_painted_frame_has_exactly_one_reason() {
+        use crate::perf::PaintReason as R;
+        use kanshou::metrics::Label;
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target = HeadlessTarget::new(&gpu, 96, 32, SURFACE_FORMAT);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 4);
+        let metrics = fresh_metrics(&mut r);
+        let reasons = || {
+            R::ALL
+                .iter()
+                .map(|&k| metrics.paints().get(k))
+                .collect::<Vec<_>>()
+        };
+        let mut rendered = 0u64;
+
+        t.write().feed(b"first");
+        for _ in 0..5 {
+            let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            rendered += 1;
+        }
+        assert_eq!(
+            reasons(),
+            vec![1, 3, 0, 0, 0, 1],
+            "content, three scrubs, one idle"
+        );
+
+        t.write().reset();
+        t.write().feed(b"after a switch");
+        for _ in 0..4 {
+            let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            rendered += 1;
+        }
+        assert_eq!(
+            reasons(),
+            vec![2, 3, 3, 0, 0, 1],
+            "a reset's scrub frames are epoch scrubs, not content scrubs"
+        );
+
+        t.write().feed(b"\x1b[?2026h");
+        let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        rendered += 1;
+        assert_eq!(metrics.declined_after_acquire().get(), 1);
+        assert_eq!(
+            metrics.paints().total(),
+            rendered - 1,
+            "a declined frame paints nothing"
+        );
+
+        t.write().feed(b"\x1b[?2026l");
+        let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        rendered += 1;
+        assert_eq!(
+            metrics.paints().total() + metrics.declined_after_acquire().get(),
+            rendered,
+            "every render is a paint with one reason or a decline"
+        );
+    }
+
+    struct Echo(std::sync::Mutex<Option<std::sync::mpsc::Receiver<Vec<u8>>>>);
+
+    impl engate_attach::Producer for Echo {
+        type Item = Vec<u8>;
+        type Snap = tear_types::engate_wrap::PaneSnapshotWrap;
+        fn snapshot(&self) -> Result<Self::Snap, engate_types::AttachError> {
+            Err(engate_types::AttachError::SnapshotFailed("unused".into()))
+        }
+        fn subscribe(
+            &self,
+        ) -> Result<std::sync::mpsc::Receiver<Vec<u8>>, engate_types::AttachError> {
+            Ok(self.0.lock().unwrap().take().expect("subscribed once"))
+        }
+    }
+
+    type StampedChunk = crate::stream_watch::Stamped<Vec<u8>>;
+
+    struct KeyEcho {
+        gpu: GpuContext,
+        target: HeadlessTarget,
+        r: TerminalRenderer,
+        term: SharedTerminal,
+        text: TextLayerStack,
+        metrics: &'static crate::perf::RenderMetrics,
+        engine: crate::ux::InputEngine,
+        from_tear: std::sync::mpsc::Receiver<StampedChunk>,
+        sink: crate::engate_consumer::TerminalSink<StampedChunk>,
+        _watch: crate::stream_watch::StreamWatch<Echo>,
+    }
+
+    impl KeyEcho {
+        fn new() -> Self {
+            let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+            let target = HeadlessTarget::new(&gpu, 320, 96, SURFACE_FORMAT);
+            let (mut r, term, text) = build_gpu_renderer(&gpu, 40, 6);
+            let metrics = fresh_metrics(&mut r);
+            let (shell_tx, shell_rx) = std::sync::mpsc::channel::<Vec<u8>>();
+            let (watch, _ended) =
+                crate::stream_watch::StreamWatch::new(Echo(std::sync::Mutex::new(Some(shell_rx))));
+            let from_tear = engate_attach::Producer::subscribe(&watch).expect("subscribe");
+            let sink = crate::engate_consumer::TerminalSink::stamped(
+                Arc::clone(&term),
+                Arc::new(|_: &[u8]| {}),
+            );
+            let config = crate::config::MadoConfig::default();
+            let engine = crate::ux::InputEngine::attach_to_renderer(
+                &mut r,
+                crate::ux::InputEngineParams {
+                    terminal: Arc::clone(&term),
+                    pty: Box::new(move |bytes: &[u8]| {
+                        let _ = shell_tx.send(bytes.to_vec());
+                    }),
+                    resize: Box::new(|_: u16, _: u16| {}),
+                    shared: crate::ux::SharedUxState::fresh(),
+                    clipboard: Arc::new(hasami::MockClipboard::new()),
+                    keybinds: crate::keybind::KeybindManager::with_mado_defaults(),
+                    behavior: crate::ux::UxBehavior::from(&config),
+                    links: config.links.clone(),
+                    cursor_keys_mode: Box::new(|| false),
+                    default_font_size: 14.0,
+                    padding: 0.0,
+                    session_picker_bridge: None,
+                    suggest_attention: false,
+                },
+            );
+            Self {
+                gpu,
+                target,
+                r,
+                term,
+                text,
+                metrics,
+                engine,
+                from_tear,
+                sink,
+                _watch: watch,
+            }
+        }
+
+        fn frames(&mut self, n: usize) {
+            for _ in 0..n {
+                let _ =
+                    render_one_frame_headless(&self.gpu, &mut self.r, &mut self.text, &self.target);
+            }
+        }
+
+        fn dispatch(&mut self, event: &madori::AppEvent, mut chunk: Option<StampedChunk>) {
+            let engine = &mut self.engine;
+            let sink = &mut self.sink;
+            let mut handler =
+                crate::perf::ui_dispatch(|e: &madori::AppEvent, r: &mut TerminalRenderer| {
+                    if let madori::AppEvent::Key(k) = e {
+                        let _ = engine.on_key(k, r);
+                    } else if let Some(c) = chunk.take() {
+                        engate_attach::Consumer::consume(sink, c);
+                    }
+                    madori::EventResponse::default()
+                });
+            let _ = handler(event, &mut self.r);
+        }
+
+        fn key(&mut self, ch: char) {
+            let key = madori::KeyEvent {
+                key: madori::event::KeyCode::Char(ch),
+                pressed: true,
+                modifiers: madori::event::Modifiers::default(),
+                text: Some(ch.to_string()),
+            };
+            self.dispatch(&madori::AppEvent::Key(key), None);
+        }
+
+        fn echo(&mut self) {
+            let chunk = self
+                .from_tear
+                .recv_timeout(std::time::Duration::from_secs(5))
+                .expect("the shell echoes the key");
+            self.dispatch(&madori::AppEvent::RedrawRequested, Some(chunk));
+        }
+
+        fn inputs(&self) -> u64 {
+            self.metrics.latency().input_to_present().count()
+        }
+
+        fn shows(&self, ch: char) -> bool {
+            self.term
+                .read()
+                .visible_rows()
+                .any(|row| row.iter().any(|c| c.ch == ch))
+        }
+    }
+
+    #[test]
+    fn a_scripted_key_produces_exactly_one_input_to_present_sample() {
+        let mut rig = KeyEcho::new();
+        rig.term.write().feed(b"$ ");
+        rig.frames(5);
+        assert_eq!(rig.inputs(), 0, "no key yet");
+
+        rig.key('a');
+        rig.frames(2);
+        assert_eq!(
+            rig.inputs(),
+            0,
+            "frames before the echo arrives present nothing of the key"
+        );
+
+        rig.echo();
+        rig.frames(6);
+        assert_eq!(
+            rig.inputs(),
+            1,
+            "one key, one echo: the content frame closes the sample and its three scrubs add none"
+        );
+        assert_eq!(rig.metrics.latency().byte_to_present().count(), 1);
+        let parse = rig.metrics.parse_bytes_per_tick().snapshot();
+        assert_eq!(
+            (parse.count, parse.sum),
+            (1, 1),
+            "the echo's dispatch parsed its one byte on the UI thread"
+        );
+        assert!(rig.shows('a'));
+    }
+
+    #[test]
+    fn histograms_off_by_hot_reload_stops_every_histogram_and_on_resumes_them() {
+        use crate::config::HistogramMode;
+
+        let mut rig = KeyEcho::new();
+        let mut applier =
+            crate::ux::config_apply::ConfigApplier::new(crate::config::MadoConfig::default());
+        let mut config = crate::config::MadoConfig::default();
+        rig.term.write().feed(b"$ ");
+        rig.frames(5);
+        let paints_before = rig.metrics.paints().total();
+
+        rig.key('a');
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        config.performance.histograms = HistogramMode::Off;
+        assert_eq!(applier.apply_delta(&config, &mut rig.r), 1);
+        assert_eq!(rig.metrics.histograms(), HistogramMode::Off);
+        rig.echo();
+        rig.frames(6);
+        assert!(rig.shows('a'));
+        assert!(
+            rig.metrics.paints().total() > paints_before,
+            "paints keep counting with histograms off"
+        );
+        assert_eq!(rig.inputs(), 0);
+        assert_eq!(rig.metrics.latency().byte_to_present().count(), 0);
+        assert_eq!(rig.metrics.parse_bytes_per_tick().count(), 0);
+
+        config.performance.histograms = HistogramMode::On;
+        assert_eq!(applier.apply_delta(&config, &mut rig.r), 1);
+        let second_key_at = crate::perf::now_ns();
+        rig.key('b');
+        rig.echo();
+        rig.frames(6);
+        let since_second_key_us = (crate::perf::now_ns() - second_key_at) / 1_000;
+        assert!(rig.shows('b'));
+        let input = rig.metrics.latency().input_to_present().snapshot();
+        assert_eq!(input.count, 1);
+        assert!(
+            input.max.unwrap() <= since_second_key_us,
+            "the sample ({:?} us) is the second key's, not the key armed before off ({since_second_key_us} us since the second)",
+            input.max
+        );
+        assert_eq!(rig.metrics.latency().byte_to_present().count(), 1);
+        let parse = rig.metrics.parse_bytes_per_tick().snapshot();
+        assert_eq!((parse.count, parse.sum), (1, 1));
     }
 
     /// L3 (golden): a canned input sequence + a recorded frame

@@ -142,6 +142,7 @@ pub enum ActionOutcome {
 pub struct InputEngine {
     terminal: SharedTerminal,
     pty: Box<dyn PtySink>,
+    metrics: &'static crate::perf::RenderMetrics,
     resize: Box<dyn ResizeSink>,
     selection: Arc<Mutex<Selection>>,
     search: Arc<Mutex<SearchState>>,
@@ -329,6 +330,7 @@ impl InputEngine {
         Self {
             terminal: params.terminal,
             pty: params.pty,
+            metrics: renderer.render_metrics(),
             resize: params.resize,
             selection: params.shared.selection,
             search: params.shared.search,
@@ -1546,6 +1548,7 @@ impl InputEngine {
             self.scroll.stop();
             self.terminal.write().scroll_to_bottom();
         }
+        self.metrics.input_written();
         self.pty.write(bytes);
     }
 

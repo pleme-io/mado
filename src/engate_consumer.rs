@@ -26,6 +26,7 @@
 //! (daemon mode) is a one-line config branch in `gui_tear_attach`;
 //! the Consumer impl below is identical for both.
 
+use std::marker::PhantomData;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -98,12 +99,60 @@ impl ProbeCounters {
 /// Now also owns a `ResponseWriter` callback: after every `feed`
 /// the VT response queue is drained and pushed back through the
 /// writer. Shells that send DSR/DA/OSC queries get answers.
-pub struct TerminalSink {
+pub struct TerminalSink<I = Vec<u8>> {
     inner: Arc<RwLock<Terminal>>,
     writer: ResponseWriter,
     probes: Arc<ProbeCounters>,
+    item: PhantomData<fn(I)>,
 }
 
+pub trait Chunk: Send + 'static {
+    fn into_parts(self) -> (Vec<u8>, Option<u64>);
+}
+
+impl Chunk for Vec<u8> {
+    fn into_parts(self) -> (Vec<u8>, Option<u64>) {
+        (self, None)
+    }
+}
+
+impl Chunk for crate::stream_watch::Stamped<Vec<u8>> {
+    fn into_parts(self) -> (Vec<u8>, Option<u64>) {
+        let (bytes, at) = crate::stream_watch::Stamped::into_parts(self);
+        (bytes, Some(at))
+    }
+}
+
+impl TerminalSink<crate::stream_watch::Stamped<Vec<u8>>> {
+    #[must_use]
+    pub fn stamped(terminal: Arc<RwLock<Terminal>>, writer: ResponseWriter) -> Self {
+        Self::build(terminal, writer, Arc::new(ProbeCounters::default()))
+    }
+}
+
+impl<I> TerminalSink<I> {
+    fn build(
+        terminal: Arc<RwLock<Terminal>>,
+        writer: ResponseWriter,
+        probes: Arc<ProbeCounters>,
+    ) -> Self {
+        Self {
+            inner: terminal,
+            writer,
+            probes,
+            item: PhantomData,
+        }
+    }
+
+    /// The sink's probe counters (clone of the shared handle).
+    #[cfg(test)]
+    #[must_use]
+    pub fn probes(&self) -> Arc<ProbeCounters> {
+        Arc::clone(&self.probes)
+    }
+}
+
+#[cfg(test)]
 impl TerminalSink {
     /// Construct a sink with an explicit VT-response writeback path.
     /// Pass a closure that forwards the response bytes to the
@@ -124,17 +173,7 @@ impl TerminalSink {
         writer: ResponseWriter,
         probes: Arc<ProbeCounters>,
     ) -> Self {
-        Self {
-            inner: terminal,
-            writer,
-            probes,
-        }
-    }
-
-    /// The sink's probe counters (clone of the shared handle).
-    #[must_use]
-    pub fn probes(&self) -> Arc<ProbeCounters> {
-        Arc::clone(&self.probes)
+        Self::build(terminal, writer, probes)
     }
 
     /// Backwards-compat constructor that drops VT responses on the
@@ -145,14 +184,20 @@ impl TerminalSink {
     pub fn new_without_writeback(terminal: Arc<RwLock<Terminal>>) -> Self {
         Self::new(terminal, Arc::new(|_: &[u8]| {}))
     }
+}
 
+impl<I> TerminalSink<I> {
     /// Helper: feed bytes + drain any VT response back through
     /// the writer in one atomic step. Used by `consume` + `replay`.
     /// Feed bytes that arrived LIVE from the pty, and answer any query in
     /// them. The only path that may write to the pty.
-    fn feed_and_answer(&self, bytes: &[u8]) {
+    fn feed_and_answer(&self, bytes: &[u8], received_at: Option<u64>) {
         let mut term = self.inner.write();
         term.feed(bytes);
+        if let Some(at) = received_at {
+            term.note_arrival(at);
+        }
+        crate::perf::note_parsed(bytes.len());
         // Drain inside the write-lock so we don't race with another
         // feed populating response_bytes between drop and re-grab.
         if let Some(resp) = term.take_response() {
@@ -194,6 +239,7 @@ impl TerminalSink {
     fn feed_silent(&self, bytes: &[u8]) {
         let mut term = self.inner.write();
         term.feed(bytes);
+        crate::perf::note_parsed(bytes.len());
         // Drain and DROP. Draining still matters: leaving the answer in the
         // buffer would let the next LIVE feed emit it, which is the same bug
         // one step later.
@@ -207,8 +253,8 @@ impl TerminalSink {
     }
 }
 
-impl Consumer for TerminalSink {
-    type Item = Vec<u8>;
+impl<I: Chunk> Consumer for TerminalSink<I> {
+    type Item = I;
     type Snap = PaneSnapshotWrap;
 
     fn replay(&mut self, snapshot: Self::Snap) {
@@ -224,7 +270,8 @@ impl Consumer for TerminalSink {
     fn consume(&mut self, item: Self::Item) {
         // Live items are raw PTY bytes (or, in embedded mode, the
         // bytes the InProcess::subscribe_pane_bytes channel emits).
-        self.feed_and_answer(&item);
+        let (bytes, received_at) = item.into_parts();
+        self.feed_and_answer(&bytes, received_at);
     }
 }
 
@@ -399,5 +446,25 @@ mod tests {
             "replay wrote to the pty — a query already answered live got a \
              SECOND answer, which is the ^[[31;24R^[[31;24R the operator saw"
         );
+    }
+
+    #[test]
+    fn every_byte_a_sink_parses_is_counted_and_a_ui_tick_records_its_own() {
+        std::thread::spawn(|| {
+            let term = Arc::new(RwLock::new(Terminal::with_scrollback(80, 24, 100)));
+            let (w, _) = collecting_writer();
+            let mut sink = TerminalSink::new(Arc::clone(&term), w);
+            let metrics = crate::perf::RenderMetrics::new();
+            let total_before = crate::perf::PARSED_BYTES.get();
+            let dispatch = crate::perf::UiDispatch::begin();
+            sink.consume(b"hello".to_vec());
+            sink.consume(b", world".to_vec());
+            dispatch.end(&metrics);
+            assert!(crate::perf::PARSED_BYTES.get() - total_before >= 12);
+            let tick = metrics.parse_bytes_per_tick().snapshot();
+            assert_eq!((tick.count, tick.sum), (1, 12));
+        })
+        .join()
+        .unwrap();
     }
 }

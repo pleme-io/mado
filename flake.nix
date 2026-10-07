@@ -196,6 +196,12 @@
             default = null;
             description = "Upper bound when on battery.";
           };
+          histograms = {
+            type = "enum";
+            values = [ "on" "off" ];
+            default = "on";
+            description = "Latency and size histograms in frame_perf (input→present, byte→present, parse bytes per tick). off stops recording them; every counter and gauge keeps counting.";
+          };
         };
 
         # Floating & snapping browser surfaces (theory/BROWSER.md).

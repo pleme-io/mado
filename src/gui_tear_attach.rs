@@ -39,6 +39,8 @@ use crate::session_switch::SwitchRequests;
 use crate::tear_discovery::{DiscoveryOutcome, discover};
 use crate::terminal::{Color as TermColor, Terminal};
 
+type LiveSink = crate::engate_consumer::TerminalSink<crate::stream_watch::Stamped<Vec<u8>>>;
+
 /// The pane the per-pane closures (input/resize/response/cursor-keys)
 /// currently target.
 ///
@@ -114,6 +116,7 @@ pub enum TearDefaultOutcome {
 /// This is the `mado tear-attach --gpu <pane>` path.
 pub fn run(pane_id: PaneId, socket_path: PathBuf) -> Result<()> {
     let config = crate::config::load(&None).unwrap_or_default();
+    let ui = crate::perf::UiThread::mark();
 
     // ── Tear control connection — discovery-driven ────────────
     let tear_cfg = MadoTearConfig {
@@ -125,8 +128,8 @@ pub fn run(pane_id: PaneId, socket_path: PathBuf) -> Result<()> {
         },
         ..config.tear.clone()
     };
-    let (client, _resolved_socket) = match discover(&tear_cfg) {
-        DiscoveryOutcome::Attached(c, p) => (Arc::new(c), p),
+    let (tear, _resolved_socket) = match discover(&tear_cfg) {
+        DiscoveryOutcome::Attached(c, p) => (crate::perf::Counted::new(Arc::new(c)), p),
         DiscoveryOutcome::Required(msg) => {
             return Err(anyhow::anyhow!("{msg}"));
         }
@@ -141,13 +144,13 @@ pub fn run(pane_id: PaneId, socket_path: PathBuf) -> Result<()> {
         }
     };
 
-    impose_if_any(&client, &tear_cfg);
+    impose_if_any(&tear, &tear_cfg);
     // CLI `mado tear-attach <pane>` is attaching to a session
     // somebody else created — don't kill it on our close. No
     // kanshou server runs on this path, so no injection queue and
     // no config watcher (config was a one-shot load above).
     run_against_pane(
-        client,
+        tear,
         pane_id,
         None,
         socket_path,
@@ -156,6 +159,7 @@ pub fn run(pane_id: PaneId, socket_path: PathBuf) -> Result<()> {
         None,
         None,
         None,
+        &ui,
     )
 }
 
@@ -171,6 +175,7 @@ pub fn try_run_default(
     shell: String,
     kanshou_state: std::sync::Arc<crate::kanshou_state::MadoAppState>,
     reload: Option<crate::ux::ConfigReloadSource>,
+    ui: &crate::perf::UiThread,
 ) -> TearDefaultOutcome {
     if matches!(config.tear.mode, TearMode::Never) {
         return TearDefaultOutcome::Unavailable;
@@ -183,7 +188,7 @@ pub fn try_run_default(
     // need the daemon; embedded is for the default
     // single-window case the operator opens 99% of the time.
     if matches!(config.tear.runtime, TearRuntime::Embedded) {
-        return try_run_default_embedded(config, shell, kanshou_state, reload);
+        return try_run_default_embedded(config, shell, kanshou_state, reload, ui);
     }
     // Daemon path keeps a handle on the kanshou-published injection
     // queue so `simulate_chord` works in both tear runtimes.
@@ -192,8 +197,8 @@ pub fn try_run_default(
     // with the program they declared it for). Minted once here; the
     // refusal cases log themselves at mint time.
     let spawn = config.shell_spawn(&shell);
-    let (client, socket_path) = match discover(&config.tear) {
-        DiscoveryOutcome::Attached(c, p) => (Arc::new(c), p),
+    let (tear, socket_path) = match discover(&config.tear) {
+        DiscoveryOutcome::Attached(c, p) => (crate::perf::Counted::new(Arc::new(c)), p),
         DiscoveryOutcome::Fallback => return TearDefaultOutcome::Unavailable,
         DiscoveryOutcome::Required(msg) => {
             return TearDefaultOutcome::Error(anyhow::anyhow!("{msg}"));
@@ -203,7 +208,7 @@ pub fn try_run_default(
 
     // Impose ASAP — before the session exists, so the new pane
     // inherits prefix/shell/scrollback knobs the operator declared.
-    impose_if_any(&client, &config.tear);
+    impose_if_any(&tear, &config.tear);
 
     // Session name: the ONE boot naming decision (fleet authority),
     // rendered as the single-width GLYPH form — this is the tear registry
@@ -260,7 +265,7 @@ pub fn try_run_default(
         // The env rides ON the request: a resident daemon serves every
         // window, so a global env would let two windows swap directories.
         // A daemon without `spawn-env` refuses here, typed, before sending.
-        client.new_session_in(
+        tear.new_session_in(
             &session_name,
             spawn.program(),
             spawn.args(),
@@ -269,10 +274,10 @@ pub fn try_run_default(
             &spawn_env,
         )
     } else {
-        if let Err(e) = client.set_spawn_env(&spawn_env) {
+        if let Err(e) = tear.set_spawn_env(&spawn_env) {
             tracing::warn!(error = %e, "tear set_spawn_env failed; daemon child may lack truecolor env");
         }
-        client.new_session_with_source_and_size(
+        tear.new_session_with_source_and_size(
             &session_name,
             spawn.program(),
             spawn.args(),
@@ -297,7 +302,7 @@ pub fn try_run_default(
         }
     };
 
-    let session = match client.get_session(session_id) {
+    let session = match tear.get_session(session_id) {
         Ok(s) => s,
         Err(e) => {
             tracing::warn!(error = %e, "tear get_session failed; falling back");
@@ -335,11 +340,11 @@ pub fn try_run_default(
     // the window, so a signal simply ends mado and the session keeps
     // running in the daemon, one Ctrl-S away from the next window.
     if !resident {
-        let reap_client = Arc::clone(&client);
+        let reap_tear = tear.clone();
         let sid = session_id;
         ctrlc::set_handler(move || {
             tracing::info!(session = %sid, "signal received — reaping owned tear session");
-            let _ = reap_client.kill_session(sid);
+            let _ = reap_tear.kill_session(sid);
             std::process::exit(130); // 128 + SIGINT
         })
         .ok(); // ok() — second mado in the same process would
@@ -363,7 +368,7 @@ pub fn try_run_default(
             build_session_picker_bridge(
                 &config,
                 &kanshou_state,
-                Arc::clone(&client) as Arc<dyn tear_types::MultiplexerControl>,
+                tear.as_dyn(),
                 switch.clone(),
                 None,
                 session_id,
@@ -382,7 +387,7 @@ pub fn try_run_default(
     };
 
     match run_against_pane(
-        client,
+        tear,
         pane_id,
         owned_session,
         socket_path,
@@ -391,6 +396,7 @@ pub fn try_run_default(
         reload,
         switch_requests,
         session_picker_bridge,
+        ui,
     ) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
@@ -519,7 +525,7 @@ fn displayed_pane_fate(
 
 fn run_against_pane_unified<P, C>(
     producer: P,
-    control: Arc<C>,
+    control: Arc<crate::perf::Counted<C>>,
     pane_id: PaneId,
     snapshot_cols: usize,
     snapshot_rows: usize,
@@ -549,6 +555,7 @@ fn run_against_pane_unified<P, C>(
     // auto-attach; `None` keeps Ctrl-S an inert "switching disabled"
     // hint (mirrors the `switch_session` MCP tool).
     session_picker_bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
+    _ui: &crate::perf::UiThread,
 ) -> Result<()>
 where
     P: engate_attach::Producer<Item = Vec<u8>, Snap = tear_types::engate_wrap::PaneSnapshotWrap>
@@ -648,6 +655,7 @@ where
     // it resolves against `None` like main.rs.
     let effective_fps = config.performance.resolve_target_fps(None);
     renderer.set_ambience_budget_fps(effective_fps);
+    renderer.set_histograms(config.performance.histograms);
     // Theme parity (FIX 2, operator report 2026-06-12): the SAME
     // shared theme-application point main.rs uses. This path previously
     // applied NO theme — it never called `Terminal::apply_theme`, so
@@ -704,18 +712,11 @@ where
     let build_attach_live = move |producer: P,
                                   response_writer: crate::engate_consumer::ResponseWriter|
           -> Result<(
-        engate_attach::Attach<
-            engate_types::Live,
-            crate::stream_watch::StreamWatch<P>,
-            crate::engate_consumer::TerminalSink,
-        >,
+        engate_attach::Attach<engate_types::Live, crate::stream_watch::StreamWatch<P>, LiveSink>,
         crate::stream_watch::StreamEnded,
     )> {
         let (producer, ended) = crate::stream_watch::StreamWatch::new(producer);
-        let consumer = crate::engate_consumer::TerminalSink::new(
-            Arc::clone(&terminal_for_attach),
-            response_writer,
-        );
+        let consumer = LiveSink::stamped(Arc::clone(&terminal_for_attach), response_writer);
         let attach_builder = engate_attach::Attach::builder()
             .producer(producer)
             .consumer(consumer)
@@ -747,11 +748,7 @@ where
     //     subscriber (dropping the cell unsubscribes; it does not EOF
     //     the PTY).
     let mut live_cell: Option<
-        engate_attach::Attach<
-            engate_types::Live,
-            crate::stream_watch::StreamWatch<P>,
-            crate::engate_consumer::TerminalSink,
-        >,
+        engate_attach::Attach<engate_types::Live, crate::stream_watch::StreamWatch<P>, LiveSink>,
     > = None;
     let mut live_ended: Option<crate::stream_watch::StreamEnded> = None;
     if switch.is_none() {
@@ -975,7 +972,7 @@ where
         // main.rs. Same string on both paths so the embedded-tear window
         // (default render mode) matches the launcher too.
         .app_id("mado")
-        .on_event(move |event, renderer| -> EventResponse {
+        .on_event(crate::perf::ui_dispatch(move |event, renderer| -> EventResponse {
             // ── Auto-attach-on-cd (the headline praça automation) ──
             // BEFORE servicing the switch channel: observe the displayed
             // terminal's OSC-7 cwd. On an actual cross-project change the
@@ -1368,7 +1365,7 @@ where
             // fills an empty `set_title` slot — an exit/title set by
             // the event itself wins.
             with_title(response, drained_title)
-        })
+        }))
         .run()
         .map_err(|e| anyhow::anyhow!("madori::App run: {e}"))?;
     Ok(())
@@ -1412,6 +1409,7 @@ fn try_run_default_embedded(
     shell: String,
     kanshou_state: std::sync::Arc<crate::kanshou_state::MadoAppState>,
     reload: Option<crate::ux::ConfigReloadSource>,
+    ui: &crate::perf::UiThread,
 ) -> TearDefaultOutcome {
     use std::sync::Arc;
     use tear_core::InProcess;
@@ -1431,6 +1429,7 @@ fn try_run_default_embedded(
     // …and to the janitor plane, so the ghost-session sweeper observes
     // the SAME live registry (see crate::janitors).
     crate::janitors::set_tear_inproc(inproc.clone());
+    let tear = crate::perf::Counted::new(inproc);
     crate::perf::log_phase("tear_inproc_constructed");
 
     // ── Spawn-env projection (FIX 2 + FIX 3) ──────────────────────
@@ -1454,7 +1453,7 @@ fn try_run_default_embedded(
             .boot_spawn_cwd()
             .map(|d| d.to_string_lossy().into_owned()),
     );
-    inproc.set_spawn_env(spawn_env.clone());
+    tear.set_spawn_env(spawn_env.clone());
 
     // The ONE boot naming decision (fleet authority), minted ONCE here.
     // `session_name` is the single-width GLYPH projection — the tear
@@ -1489,7 +1488,7 @@ fn try_run_default_embedded(
     // cwd is a typed per-spawn arg now, not a mutation of the whole
     // process. (Daemon mode spawns children in the DAEMON's cwd — same
     // documented gap; the SpawnEnv seam lives on InProcess only.)
-    let session_id = match inproc.new_session_with_source_and_size(
+    let session_id = match tear.new_session_with_source_and_size(
         &session_name,
         spawn.program(),
         // The operator's `shell.args`, as the child's argv[1..] — the same
@@ -1505,7 +1504,7 @@ fn try_run_default_embedded(
             return TearDefaultOutcome::Unavailable;
         }
     };
-    let pane_id = match inproc.with_registry(|r| {
+    let pane_id = match tear.with_registry(|r| {
         r.sessions
             .get(&session_id)
             .and_then(|s| s.windows.values().next().map(|w| w.active_pane))
@@ -1560,7 +1559,7 @@ fn try_run_default_embedded(
                         .unwrap_or_else(|| std::path::Path::new(".")),
                 );
                 Some(crate::auto_attach::AutoAttachDriver::new(
-                    Arc::clone(&inproc),
+                    tear.clone(),
                     kanshou_state.switch.clone(),
                     config.tear.auto_attach.policy(),
                     ishou_tokens::SessionNameStyle::Emoji,
@@ -1607,7 +1606,7 @@ fn try_run_default_embedded(
             build_session_picker_bridge(
                 &config,
                 &kanshou_state,
-                Arc::clone(&inproc) as Arc<dyn tear_types::MultiplexerControl>,
+                tear.as_dyn(),
                 switch.clone(),
                 auto_attach.as_ref().map(|driver| driver.shared_praca()),
                 session_id,
@@ -1618,7 +1617,7 @@ fn try_run_default_embedded(
         });
 
     match run_against_embedded_pane(
-        inproc,
+        tear,
         pane_id,
         config,
         Some(kanshou_state.injected.clone()),
@@ -1626,6 +1625,7 @@ fn try_run_default_embedded(
         switch_requests,
         auto_attach,
         session_picker_bridge,
+        ui,
     ) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
@@ -1644,7 +1644,7 @@ fn try_run_default_embedded(
 fn build_session_picker_bridge(
     config: &MadoConfig,
     kanshou_state: &crate::kanshou_state::MadoAppState,
-    control: Arc<dyn tear_types::MultiplexerControl>,
+    control: crate::perf::Counted<dyn tear_types::MultiplexerControl>,
     switch: SwitchRequests,
     shared_praca: Option<Arc<std::sync::Mutex<praca::Praca>>>,
     boot_session: tear_types::SessionId,
@@ -1730,7 +1730,7 @@ fn build_session_picker_bridge(
 /// the control plane already knows.
 #[allow(clippy::too_many_arguments)]
 fn run_against_embedded_pane(
-    inproc: std::sync::Arc<tear_core::InProcess>,
+    tear: crate::perf::Counted<tear_core::InProcess>,
     pane_id: PaneId,
     config: MadoConfig,
     injected: Option<crate::action_injection::InjectedActions>,
@@ -1738,24 +1738,23 @@ fn run_against_embedded_pane(
     switch_requests: Option<SwitchRequests>,
     auto_attach: Option<crate::auto_attach::AutoAttachDriver>,
     session_picker_bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
+    ui: &crate::perf::UiThread,
 ) -> Result<()> {
-    let snapshot = inproc
+    let snapshot = tear
         .pane_snapshot(pane_id)
         .with_context(|| format!("inproc.pane_snapshot({pane_id})"))?;
-    let producer = tear_core::engate_producer::PaneProducer::new(Arc::clone(&inproc), pane_id);
+    let producer = tear.producer(pane_id);
     let switch = switch_requests.map(|requests| {
-        let inproc_for_factory = Arc::clone(&inproc);
+        let tear_for_factory = tear.clone();
         SwitchDriver {
             requests,
             current: Arc::new(RwLock::new(pane_id)),
-            build_producer: Box::new(move |pane| {
-                tear_core::engate_producer::PaneProducer::new(Arc::clone(&inproc_for_factory), pane)
-            }),
+            build_producer: Box::new(move |pane| tear_for_factory.producer(pane)),
         }
     });
     run_against_pane_unified(
         producer,
-        inproc,
+        Arc::new(tear),
         pane_id,
         snapshot.cols,
         snapshot.rows,
@@ -1767,6 +1766,7 @@ fn run_against_embedded_pane(
         switch,
         auto_attach,
         session_picker_bridge,
+        ui,
     )
 }
 
@@ -1808,17 +1808,17 @@ fn resolve_boot_name(
 /// daemon's current TearConfig, merge in the overrides, and push
 /// the result back via SetConfig. Errors are logged + non-fatal —
 /// failing to impose shouldn't break attach.
-fn impose_if_any(client: &Arc<tear_client::Client>, tear_cfg: &MadoTearConfig) {
+fn impose_if_any(tear: &crate::perf::Counted<tear_client::Client>, tear_cfg: &MadoTearConfig) {
     let Some(impose) = tear_cfg.impose.as_ref() else {
         return;
     };
     if !impose.has_any_override() {
         return;
     }
-    match client.get_config() {
+    match tear.get_config() {
         Ok(mut current) => {
             impose.apply_to(&mut current);
-            if let Err(e) = client.set_config(&current) {
+            if let Err(e) = tear.set_config(&current) {
                 tracing::warn!(error = %e, "set_config (impose) failed");
             } else {
                 tracing::info!("imposed mado-authored TearConfig overrides on daemon");
@@ -1842,7 +1842,7 @@ fn impose_if_any(client: &Arc<tear_client::Client>, tear_cfg: &MadoTearConfig) {
 /// reap path for the owned session.
 #[allow(clippy::too_many_arguments)]
 fn run_against_pane(
-    client: Arc<tear_client::Client>,
+    tear: crate::perf::Counted<tear_client::Client>,
     pane_id: PaneId,
     owned_session_id: Option<tear_types::SessionId>,
     _socket_path: PathBuf,
@@ -1851,30 +1851,26 @@ fn run_against_pane(
     reload: Option<crate::ux::ConfigReloadSource>,
     switch_requests: Option<SwitchRequests>,
     session_picker_bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
+    ui: &crate::perf::UiThread,
 ) -> Result<()> {
-    let snapshot = client
+    let snapshot = tear
         .pane_snapshot(pane_id)
         .with_context(|| format!("pane_snapshot({pane_id})"))?;
-    let producer = tear_client::engate_producer::PaneProducer::new(Arc::clone(&client), pane_id);
+    let producer = tear.producer(pane_id);
     // Runtime re-attach over the daemon: the same SwitchDriver the embedded
     // runtime uses, with the pump rebuilt from the CLIENT's producer — so a
     // switch re-subscribes this window to any pane the daemon holds.
     let switch = switch_requests.map(|requests| {
-        let client_for_factory = Arc::clone(&client);
+        let tear_for_factory = tear.clone();
         SwitchDriver {
             requests,
             current: Arc::new(RwLock::new(pane_id)),
-            build_producer: Box::new(move |pane| {
-                tear_client::engate_producer::PaneProducer::new(
-                    Arc::clone(&client_for_factory),
-                    pane,
-                )
-            }),
+            build_producer: Box::new(move |pane| tear_for_factory.producer(pane)),
         }
     });
     run_against_pane_unified(
         producer,
-        client,
+        Arc::new(tear),
         pane_id,
         snapshot.cols,
         snapshot.rows,
@@ -1891,6 +1887,7 @@ fn run_against_pane(
         // the GUI's own InProcess registry.
         None,
         session_picker_bridge,
+        ui,
     )
 }
 

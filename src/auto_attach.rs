@@ -126,7 +126,7 @@ pub struct AutoAttachDriver {
     /// The live in-process tear control plane. The session source +
     /// spawn target for `SpawnNew`, and the registry the
     /// SessionId↔PaneId translation reads.
-    inproc: Arc<tear_core::InProcess>,
+    tear: crate::perf::Counted<tear_core::InProcess>,
     /// The shared switch channel the switchable attach drains. A
     /// decided action posts the target pane here; the event loop's
     /// switch block does the teardown/rebuild.
@@ -168,7 +168,7 @@ impl AutoAttachDriver {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(
-        inproc: Arc<tear_core::InProcess>,
+        tear: crate::perf::Counted<tear_core::InProcess>,
         switch: SwitchRequests,
         policy: praca::AttachPolicy,
         name_style: ishou_tokens::SessionNameStyle,
@@ -201,7 +201,7 @@ impl AutoAttachDriver {
         let _ = boot_pane;
         Self {
             praca,
-            inproc,
+            tear,
             switch,
             current_session: boot_session,
             last_cwd: None,
@@ -245,7 +245,7 @@ impl AutoAttachDriver {
     /// decisions need before they can drive the PaneId switch channel.
     #[must_use]
     pub fn first_pane_of(&self, session: SessionId) -> Option<PaneId> {
-        self.inproc.with_registry(|r| {
+        self.tear.with_registry(|r| {
             r.sessions
                 .get(&session)
                 .and_then(|s| s.windows.values().next().map(|w| w.active_pane))
@@ -322,9 +322,9 @@ impl AutoAttachDriver {
             .spawn_env_base
             .clone()
             .with_cwd(Some(root.to_string_lossy().into_owned()));
-        self.inproc.set_spawn_env(spawn_env);
+        self.tear.set_spawn_env(spawn_env);
 
-        let session = match self.inproc.new_session_with_source_and_size(
+        let session = match self.tear.new_session_with_source_and_size(
             &name,
             &self.shell,
             // `&[]`: a cd-driven auto-attach spawns a bare interactive shell at
@@ -480,7 +480,7 @@ mod tests {
         )
         .to_string();
         let driver = AutoAttachDriver::new(
-            inproc,
+            crate::perf::Counted::new(inproc),
             switch.clone(),
             mode.policy(),
             ishou_tokens::SessionNameStyle::Emoji,
@@ -510,7 +510,7 @@ mod tests {
         switch.attach_sink();
         let authoritative = "🌑 rime".to_owned();
         let driver = AutoAttachDriver::new(
-            inproc,
+            crate::perf::Counted::new(inproc),
             switch,
             AutoAttachMode::AutoSwitch.policy(),
             ishou_tokens::SessionNameStyle::Emoji,

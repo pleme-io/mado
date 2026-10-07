@@ -268,8 +268,11 @@ pub fn spawn(
                 match reader.read(&mut buf).await {
                     Ok(0) => break,
                     Ok(n) => {
+                        let received_at = crate::perf::now_ns();
                         let mut t = terminal_for_pty.write();
                         t.feed(&buf[..n]);
+                        t.note_arrival(received_at);
+                        crate::perf::note_parsed(n);
                         if let Some(response) = t.take_response() {
                             drop(t);
                             let _ = response_tx.send(PtyWrite::VtAnswer(response));

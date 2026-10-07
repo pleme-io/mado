@@ -776,6 +776,7 @@ fn main() -> anyhow::Result<()> {
     // Apply active profile if set — same resolution the hot-reload
     // source performs on every reload (config.rs::with_active_profile).
     let config = config.with_active_profile();
+    let ui = crate::perf::UiThread::mark();
 
     tracing::debug!("mado starting with config: {:?}", config);
     tracing::info!(
@@ -836,6 +837,7 @@ fn main() -> anyhow::Result<()> {
         shell.clone(),
         std::sync::Arc::clone(&kanshou_state),
         Some(config_reload_source.clone()),
+        &ui,
     ) {
         gui_tear_attach::TearDefaultOutcome::Ran => return Ok(()),
         gui_tear_attach::TearDefaultOutcome::Error(e) => return Err(e),
@@ -932,6 +934,7 @@ fn main() -> anyhow::Result<()> {
     // shrinks it. The local-PTY path's fps; the embedded-tear path
     // budgets identically inside gui_tear_attach.
     renderer.set_ambience_budget_fps(effective_fps);
+    renderer.set_histograms(config.performance.histograms);
 
     // Selection/search/dir-picker renderer hooks are wired by
     // InputEngine::attach_to_renderer below — the engine is the only
@@ -1105,7 +1108,7 @@ fn main() -> anyhow::Result<()> {
         // favourited launcher, instead of showing a separate generic
         // icon beside it. See madori's `AppBuilder::app_id` rustdoc.
         .app_id("mado")
-        .on_event(move |event, renderer| -> EventResponse {
+        .on_event(crate::perf::ui_dispatch(move |event, renderer| -> EventResponse {
             // Check if PTY has exited — request window close
             if pane_for_events.any_exited() {
                 return exit_response(confirm_close, &pending_close);
@@ -1287,7 +1290,7 @@ fn main() -> anyhow::Result<()> {
                 }
                 _ => EventResponse::ignored(),
             }
-        })
+        }))
         .run()
         .map_err(|e| anyhow::anyhow!("madori error: {e}"))?;
 

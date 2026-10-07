@@ -2682,6 +2682,28 @@ pub struct PerformanceConfig {
     /// is wired now so config schemas don't churn later.
     #[serde(default)]
     pub battery_fps_cap: Option<u32>,
+    #[serde(default)]
+    #[schemars(
+        description = "Latency and size histograms in frame_perf (input→present, byte→present, parse bytes per tick). off stops recording them; every counter and gauge keeps counting."
+    )]
+    pub histograms: HistogramMode,
+}
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum HistogramMode {
+    #[default]
+    On,
+    Off,
+}
+
+impl HistogramMode {
+    #[must_use]
+    pub fn records(self) -> bool {
+        matches!(self, Self::On)
+    }
 }
 
 impl Default for PerformanceConfig {
@@ -2691,6 +2713,7 @@ impl Default for PerformanceConfig {
             target_fps: None,
             fps_cap: None,
             battery_fps_cap: None,
+            histograms: HistogramMode::On,
         }
     }
 }
@@ -3423,6 +3446,7 @@ impl MadoConfig {
                 target_fps: None,
                 fps_cap: None,
                 battery_fps_cap: None,
+                histograms: HistogramMode::On,
             },
             // ── Environment ──────────────────────────────────────
             environment: EnvironmentConfig {
@@ -6304,6 +6328,7 @@ window:
             target_fps: Some(144),
             fps_cap: Some(60),
             battery_fps_cap: None,
+            histograms: HistogramMode::On,
         };
         // Posture present, but user-set value preempts.
         let posture = make_posture_with_refresh(Some(120));
@@ -6317,6 +6342,7 @@ window:
             target_fps: None,
             fps_cap: None,
             battery_fps_cap: None,
+            histograms: HistogramMode::On,
         };
         let posture = make_posture_with_refresh(Some(120));
         assert_eq!(p.resolve_target_fps(Some(&posture)), 120);
@@ -6329,6 +6355,7 @@ window:
             target_fps: None,
             fps_cap: Some(90),
             battery_fps_cap: None,
+            histograms: HistogramMode::On,
         };
         let posture = make_posture_with_refresh(Some(240));
         assert_eq!(p.resolve_target_fps(Some(&posture)), 90);
@@ -6415,6 +6442,7 @@ window:
             target_fps: Some(120),
             fps_cap: Some(240),
             battery_fps_cap: Some(60),
+            histograms: HistogramMode::On,
         };
         let json = serde_json::to_string(&p).unwrap();
         let back: PerformanceConfig = serde_json::from_str(&json).unwrap();
@@ -6443,6 +6471,7 @@ window:
             target_fps: None,
             fps_cap: Some(120),
             battery_fps_cap: Some(30),
+            histograms: HistogramMode::On,
         };
         let posture = make_posture_with_refresh(Some(144));
         // Without force_battery_mode, fps_cap (120) clamps, not battery_fps_cap.
@@ -6460,6 +6489,7 @@ window:
             target_fps: Some(0),
             fps_cap: None,
             battery_fps_cap: None,
+            histograms: HistogramMode::On,
         };
         let posture = make_posture_with_refresh(Some(120));
         assert_eq!(p.resolve_target_fps(Some(&posture)), 0);
@@ -6518,6 +6548,7 @@ window:
                     target_fps: Some(240),
                     fps_cap: None,
                     battery_fps_cap: None,
+                    histograms: HistogramMode::On,
                 }),
                 ..ProfileConfig::default()
             },
@@ -7223,6 +7254,7 @@ mod coverage {
         "notifications.when",
         "performance.battery_fps_cap",
         "performance.fps_cap",
+        "performance.histograms",
         "performance.target_fps",
         "performance.vsync",
         "quick_terminal.animation_ms",

@@ -407,35 +407,15 @@ impl MadoMcp {
     }
 
     #[tool(
-        description = "Get the most recent render-loop frame timing snapshot from the LIVE GUI mado. When a GUI is running, this forwards via kanshou to the GUI's render atomics (last_frame_us, last_frame_rects, last_frame_text, last_frame_shape_cache, total_frames, total_frames_skipped). When no GUI is reachable, returns zeros from the MCP server's process-local atomics (which are never updated by the MCP-only process)."
+        description = "Render and latency instrumentation from the LIVE GUI mado, forwarded via kanshou: the last frame's CPU time and sizes, frame totals, painted frames by reason (content, forced_scrub, epoch_scrub, overlay, animation, late_idle — they sum to total_frames), declined_after_acquire, tear calls made on the UI thread per method, the stream-watch queue's depth and the subscribe relay's chunks per wake (whose peak bounds that channel's depth from above), bytes parsed on the UI thread per event-loop tick, and input→present / byte→present histograms in microseconds (count, sum, min, max, p50, p90, p99, buckets). When no GUI is reachable the answer is outcome=blind with ok=false — never zeros, because this MCP process renders nothing."
     )]
     async fn frame_perf(&self) -> String {
-        let value = kanshou::mcp::forward(
-            "mado",
-            &kanshou::Query::field(["frame_perf"]),
-            || {
-                use std::sync::atomic::Ordering;
-                Ok(serde_json::json!({
-                    "last_frame_us": crate::render::LAST_FRAME_US.load(Ordering::Relaxed),
-                    "last_frame_rects": crate::render::LAST_FRAME_RECTS.load(Ordering::Relaxed),
-                    "last_frame_text": crate::render::LAST_FRAME_TEXT.load(Ordering::Relaxed),
-                    "last_frame_shape_cache": crate::render::LAST_FRAME_SHAPE_CACHE.load(Ordering::Relaxed),
-                    "total_frames": crate::render::TOTAL_FRAMES.load(Ordering::Relaxed),
-                    "total_frames_skipped": crate::render::TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed),
-                    "total_late_idle_paints": crate::render::TOTAL_LATE_IDLE_PAINTS.load(Ordering::Relaxed),
-                }))
-            },
+        frame_perf_answer(
+            kanshou::mcp::forward_status("mado", &kanshou::Query::field(["frame_perf"]), || {
+                Ok(serde_json::Value::Null)
+            })
+            .await,
         )
-        .await
-        .unwrap_or_else(|e| serde_json::json!({ "error": e.to_string() }));
-        let merged = match value {
-            serde_json::Value::Object(mut m) => {
-                m.insert("ok".into(), serde_json::Value::Bool(true));
-                serde_json::Value::Object(m)
-            }
-            other => other,
-        };
-        merged.to_string()
     }
 
     #[tool(
@@ -2477,6 +2457,29 @@ where
             [format!("a valid {label}")],
         ),
     })
+}
+
+fn frame_perf_answer(outcome: kanshou::mcp::ForwardOutcome) -> String {
+    match outcome {
+        kanshou::mcp::ForwardOutcome::Live { pid, value } => {
+            let mut fields = match value {
+                serde_json::Value::Object(m) => m,
+                other => {
+                    let mut m = serde_json::Map::new();
+                    m.insert("value".into(), other);
+                    m
+                }
+            };
+            fields.insert("live_gui_pid".into(), serde_json::json!(pid));
+            ok_json(serde_json::Value::Object(fields))
+        }
+        kanshou::mcp::ForwardOutcome::LiveError { pid, error } => err_json(format!(
+            "live GUI mado (pid {pid}) could not answer frame_perf: {error}"
+        )),
+        kanshou::mcp::ForwardOutcome::Fallback { .. } => err_json(
+            "no live GUI mado is reachable via kanshou; this MCP process renders no frames",
+        ),
+    }
 }
 
 /// `{"ok": true, ...extra}` — terminal-state response for tools that
@@ -4949,6 +4952,48 @@ mod tests {
         let s = ok_json(serde_json::json!([1, 2, 3]));
         let v: serde_json::Value = serde_json::from_str(&s).unwrap();
         assert_eq!(v, serde_json::json!({ "outcome": "found", "ok": true }));
+    }
+
+    #[test]
+    fn frame_perf_with_no_gui_is_blind_never_zeros() {
+        let v: serde_json::Value =
+            serde_json::from_str(&frame_perf_answer(kanshou::mcp::ForwardOutcome::Fallback {
+                value: serde_json::Value::Null,
+            }))
+            .unwrap();
+        assert_eq!(v["outcome"], "blind");
+        assert_eq!(v["ok"], false);
+        for absent in ["total_frames", "last_frame_us", "paints", "latency_us"] {
+            assert!(
+                v.get(absent).is_none(),
+                "a blind answer carries no {absent}"
+            );
+        }
+    }
+
+    #[test]
+    fn frame_perf_from_a_live_gui_is_found_with_its_pid() {
+        let live = crate::perf::frame_perf();
+        let v: serde_json::Value =
+            serde_json::from_str(&frame_perf_answer(kanshou::mcp::ForwardOutcome::Live {
+                pid: 4242,
+                value: live,
+            }))
+            .unwrap();
+        assert_eq!(v["outcome"], "found");
+        assert_eq!(v["ok"], true);
+        assert_eq!(v["live_gui_pid"], 4242);
+        assert!(v["paints"].is_object());
+        assert!(v["latency_us"]["input_to_present"]["count"].is_u64());
+        let refused: serde_json::Value = serde_json::from_str(&frame_perf_answer(
+            kanshou::mcp::ForwardOutcome::LiveError {
+                pid: 4242,
+                error: kanshou::QueryError::unknown_field("frame_perf"),
+            },
+        ))
+        .unwrap();
+        assert_eq!(refused["outcome"], "blind");
+        assert_eq!(refused["ok"], false);
     }
 
     #[test]

@@ -2085,6 +2085,8 @@ pub struct Terminal {
     // Damage tracking
     seqno: u64,
 
+    arrivals: crate::perf::Arrivals,
+
     /// Grid-geometry generation — bumped by every effective
     /// [`Self::resize`] (rewrap or truncate; both renumber absolute
     /// rows). Consumers caching absolute grid rows (the search
@@ -2469,6 +2471,7 @@ impl Terminal {
             sgr_mouse: false,
             scroll_offset: 0,
             seqno: 0,
+            arrivals: crate::perf::Arrivals::default(),
             grid_generation: 0,
             grid_epoch: 0,
             selection_span_memo: std::sync::Mutex::new(None),
@@ -3118,6 +3121,15 @@ impl Terminal {
     #[must_use]
     pub fn seqno(&self) -> u64 {
         self.seqno
+    }
+
+    pub fn note_arrival(&self, at: u64) {
+        self.arrivals.note(at);
+    }
+
+    #[must_use]
+    pub fn take_arrivals(&self) -> crate::perf::FrameArrivals {
+        self.arrivals.take()
     }
 
     /// RIS / content-reset epoch — bumped once per full terminal reset

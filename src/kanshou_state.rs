@@ -9,7 +9,6 @@
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::OnceLock;
-use std::sync::atomic::Ordering;
 
 use kanshou::{Introspect, Query, QueryError, QueryResult};
 
@@ -98,15 +97,7 @@ impl Introspect for MadoAppState {
             return Err(QueryError::unknown_field(String::new()));
         };
         match first {
-            "frame_perf" => Ok(serde_json::json!({
-                "last_frame_us": crate::render::LAST_FRAME_US.load(Ordering::Relaxed),
-                "last_frame_rects": crate::render::LAST_FRAME_RECTS.load(Ordering::Relaxed),
-                "last_frame_text": crate::render::LAST_FRAME_TEXT.load(Ordering::Relaxed),
-                "last_frame_shape_cache": crate::render::LAST_FRAME_SHAPE_CACHE.load(Ordering::Relaxed),
-                "total_frames": crate::render::TOTAL_FRAMES.load(Ordering::Relaxed),
-                "total_frames_skipped": crate::render::TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed),
-                "total_late_idle_paints": crate::render::TOTAL_LATE_IDLE_PAINTS.load(Ordering::Relaxed),
-            })),
+            "frame_perf" => Ok(crate::perf::frame_perf()),
             // ── ★ S4: WHAT THE CLIENT BELIEVES ABOUT ITS OWN GEOMETRY ────
             //
             // The other half of a size disagreement. omoya publishes the

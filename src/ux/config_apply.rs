@@ -86,6 +86,7 @@ pub enum SetterCall {
     /// (Hot-reload resolves against `None` posture, mirroring boot — the
     /// live madori posture wire is the M1 follow-up.)
     AmbienceBudgetFps(u32),
+    Histograms(crate::config::HistogramMode),
 }
 
 /// The executor seam: every setter the config diff can decide to
@@ -109,6 +110,7 @@ pub trait ConfigSetters {
     fn set_reduce_motion(&mut self, v: bool);
     fn set_effects_config(&mut self, v: MadoEffectsConfig);
     fn set_ambience_budget_fps(&mut self, v: u32);
+    fn set_histograms(&mut self, v: crate::config::HistogramMode);
 }
 
 impl ConfigSetters for TerminalRenderer {
@@ -163,6 +165,9 @@ impl ConfigSetters for TerminalRenderer {
     fn set_ambience_budget_fps(&mut self, v: u32) {
         TerminalRenderer::set_ambience_budget_fps(self, v);
     }
+    fn set_histograms(&mut self, v: crate::config::HistogramMode) {
+        TerminalRenderer::set_histograms(self, v);
+    }
 }
 
 /// The render-facing values a config resolves to — the same
@@ -202,6 +207,7 @@ struct Resolved {
     /// can perform without a live madori posture). Drives the ambience
     /// governor's frame budget.
     ambience_budget_fps: u32,
+    histograms: crate::config::HistogramMode,
 }
 
 // `u32 → f32` padding: operator padding is single-digit logical px;
@@ -254,6 +260,7 @@ fn resolve(config: &MadoConfig) -> Resolved {
         // resolves the explicit target / caps / fallback exactly like
         // boot's `None`-posture call (the live posture wire is M1).
         ambience_budget_fps: config.performance.resolve_target_fps(None),
+        histograms: config.performance.histograms,
     }
 }
 
@@ -349,6 +356,9 @@ pub fn diff(old: &MadoConfig, new: &MadoConfig) -> Vec<SetterCall> {
     if o.ambience_budget_fps != n.ambience_budget_fps {
         calls.push(SetterCall::AmbienceBudgetFps(n.ambience_budget_fps));
     }
+    if o.histograms != n.histograms {
+        calls.push(SetterCall::Histograms(n.histograms));
+    }
     calls
 }
 
@@ -374,6 +384,7 @@ pub fn execute<T: ConfigSetters>(target: &mut T, calls: Vec<SetterCall>) {
             SetterCall::ReduceMotion(v) => target.set_reduce_motion(v),
             SetterCall::Effects(v) => target.set_effects_config(v),
             SetterCall::AmbienceBudgetFps(v) => target.set_ambience_budget_fps(v),
+            SetterCall::Histograms(v) => target.set_histograms(v),
         }
     }
 }
@@ -570,6 +581,9 @@ mod tests {
         fn set_ambience_budget_fps(&mut self, _: u32) {
             self.calls.push("set_ambience_budget_fps");
         }
+        fn set_histograms(&mut self, _: crate::config::HistogramMode) {
+            self.calls.push("set_histograms");
+        }
     }
 
     fn call_kind(c: &SetterCall) -> &'static str {
@@ -590,6 +604,7 @@ mod tests {
             SetterCall::ReduceMotion(_) => "ReduceMotion",
             SetterCall::Effects(_) => "Effects",
             SetterCall::AmbienceBudgetFps(_) => "AmbienceBudgetFps",
+            SetterCall::Histograms(_) => "Histograms",
         }
     }
 
@@ -843,6 +858,22 @@ mod tests {
         assert_eq!(applier.apply_delta(&new, &mut counter2), 0);
     }
 
+    #[test]
+    fn histograms_off_hot_reloads_without_touching_anything_else() {
+        let old = MadoConfig::default();
+        let mut new = old.clone();
+        new.performance.histograms = crate::config::HistogramMode::Off;
+        let calls = diff(&old, &new);
+        assert_eq!(
+            calls,
+            vec![SetterCall::Histograms(crate::config::HistogramMode::Off)]
+        );
+        let mut applier = ConfigApplier::new(old);
+        let mut counter = CountingSetters::default();
+        assert_eq!(applier.apply_delta(&new, &mut counter), 1);
+        assert_eq!(counter.calls, vec!["set_histograms"]);
+    }
+
     /// Resolves the REPORTED CONFLICT ("live theme switching already
     /// works via the delta path" vs "`ConfigSetters` has no theme
     /// entry"). Both observations are true and they do not conflict:
@@ -872,6 +903,7 @@ mod tests {
             "ReduceMotion",
             "Effects",
             "AmbienceBudgetFps",
+            "Histograms",
         ] {
             assert!(
                 !kind.to_ascii_lowercase().contains("theme"),

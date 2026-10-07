@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "364a0c0f4324bcec8add22fc4246c85c09572d59e5511ff6db5e6da3cae5955b",
+  "cargo_lock_sha256": "f489a21e9ea5b11c44c0daba5ad2212199d4bcc5359a16a2efe34a9e8b6685b3",
   "manifest_sha256": {
-    "Cargo.toml": "b87562bf01f4b6b9afa3ca18de8ff22ec7632156824bd544e16416241da244e2"
+    "Cargo.toml": "dc6aea748cd991f7d72633af1b18e28f3e2325136ca99db4c7fbffdc696e627f"
   },
   "target_resolves": {
     "base": {
@@ -7635,7 +7635,7 @@
           "v1_32"
         ]
       },
-      "kanshou-0.1.9": {
+      "kanshou-0.1.10": {
         "runtime_dependencies": [
           {
             "name": "kanshou_derive",
@@ -20906,7 +20906,7 @@
           },
           {
             "name": "kanshou",
-            "package_key": "kanshou-0.1.9",
+            "package_key": "kanshou-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26550,7 +26550,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.9",
+                "package_key": "kanshou-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31617,7 +31617,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.9",
+                "package_key": "kanshou-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35762,7 +35762,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.9",
+                "package_key": "kanshou-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40037,7 +40037,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.9",
+                "package_key": "kanshou-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45128,7 +45128,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.9",
+                "package_key": "kanshou-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49297,7 +49297,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.9",
+                "package_key": "kanshou-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53183,7 +53183,7 @@
     "kanchi-0.1.3": {
       "edition": "2024"
     },
-    "kanshou-0.1.9": {
+    "kanshou-0.1.10": {
       "edition": "2024"
     },
     "kanshou-derive-0.1.9": {

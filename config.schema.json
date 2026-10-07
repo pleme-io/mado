@@ -656,6 +656,15 @@
       "description": "Upper bound on the adaptive recommendation. `None` = no ceiling.\nUse e.g. `240` to prevent a 360Hz panel from pushing too high.",
       "type": "int"
     },
+    "histograms": {
+      "default": "on",
+      "description": "Latency and size histograms in frame_perf (input→present, byte→present, parse bytes per tick). off stops recording them; every counter and gauge keeps counting.",
+      "type": "enum",
+      "values": [
+        "on",
+        "off"
+      ]
+    },
     "target_fps": {
       "default": null,
       "description": "Explicit frame-rate target. `None` (the default) defers to\n`garasu::adaptive::recommend` — typically the primary display's\nrefresh rate. Set explicitly to override detection.",

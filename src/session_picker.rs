@@ -52,7 +52,7 @@ use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
 use ishou_tokens::{FleetSessionNames, SessionName};
-use tear_types::{DefinitionId, PaneId, SessionId, SessionSource};
+use tear_types::{DefinitionId, MultiplexerControl, PaneId, SessionId, SessionSource};
 
 use crate::suggest::{StoredSuggestion, SuggestionId, SuggestionStore};
 
@@ -237,7 +237,7 @@ pub struct PracaPickerBridge {
     praca: Arc<Mutex<praca::Praca>>,
     /// The window's tear control plane — the `SessionId` → first pane
     /// translation + the spawn target.
-    control: Arc<dyn tear_types::MultiplexerControl>,
+    control: crate::perf::Counted<dyn tear_types::MultiplexerControl>,
     /// The shared switch channel the switchable attach drains — the SAME
     /// channel auto-attach + the `switch_session` MCP tool post to.
     switch: crate::session_switch::SwitchRequests,
@@ -285,7 +285,7 @@ impl PracaPickerBridge {
     #[must_use]
     pub fn new(
         praca: Arc<Mutex<praca::Praca>>,
-        control: Arc<dyn tear_types::MultiplexerControl>,
+        control: crate::perf::Counted<dyn tear_types::MultiplexerControl>,
         switch: crate::session_switch::SwitchRequests,
         shell: crate::config::ShellSpawn,
         spawn_env_base: tear_types::SpawnEnv,
@@ -367,7 +367,7 @@ impl PracaPickerBridge {
         let Some(def) = def else {
             return false;
         };
-        let live = match praca::instantiate(&def, self.control.as_ref()) {
+        let live = match praca::instantiate(&def, &self.control) {
             Ok(l) => l,
             Err(_) => return false,
         };
@@ -645,7 +645,7 @@ impl PracaPickerBridge {
         // for a bare suggestion.
         if !prewarm.is_empty() {
             let mut penv = SessionPrewarmEnv {
-                control: self.control.as_ref(),
+                control: &self.control,
                 pane,
             };
             let _ = crate::prewarm::apply(&prewarm, &mut penv);
@@ -994,7 +994,7 @@ impl SessionPickerBridge for PracaPickerBridge {
     }
 
     fn save_as_preset(&self, session: SessionId, now: u64) -> bool {
-        capture_preset(self.control.as_ref(), &self.praca, session, now)
+        capture_preset(&self.control, &self.praca, session, now)
     }
 
     fn rename_session(&self, session: SessionId, new_name: &str, now: u64) -> bool {
@@ -1022,7 +1022,7 @@ impl SessionPickerBridge for PracaPickerBridge {
     }
 
     fn delete_session(&self, session: SessionId) -> bool {
-        delete_session(self.control.as_ref(), &self.praca, session)
+        delete_session(&self.control, &self.praca, session)
     }
 
     fn delete_preset(&self, def_id: DefinitionId) -> bool {
@@ -1032,7 +1032,7 @@ impl SessionPickerBridge for PracaPickerBridge {
     fn refresh(&self, now: u64) {
         use crate::picker::reconcile::IndexReconciler;
         let reconciler =
-            crate::picker::reconcile::ControlSessionReconciler::new(Arc::clone(&self.control));
+            crate::picker::reconcile::ControlSessionReconciler::new(Arc::new(self.control.clone()));
         let mut praca = self.praca();
         reconciler.reconcile(&mut praca, now);
     }
@@ -1167,7 +1167,7 @@ mod tests {
         switch.attach_sink();
         PracaPickerBridge::new(
             Arc::new(Mutex::new(praca::Praca::new())),
-            inproc,
+            crate::perf::Counted::new(inproc),
             switch,
             cfg.shell_spawn(command),
             tear_types::SpawnEnv::none(),
@@ -1249,7 +1249,7 @@ mod tests {
         switch.attach_sink();
         PracaPickerBridge::new(
             Arc::new(Mutex::new(praca)),
-            inproc,
+            crate::perf::Counted::new(inproc),
             switch,
             crate::config::ShellSpawn::bare("/bin/sh"),
             tear_types::SpawnEnv::none(),
@@ -1274,7 +1274,7 @@ mod tests {
         switch.attach_sink();
         PracaPickerBridge::new(
             Arc::new(Mutex::new(praca)),
-            inproc,
+            crate::perf::Counted::new(inproc),
             switch,
             crate::config::ShellSpawn::bare("/bin/sh"),
             tear_types::SpawnEnv::none(),
@@ -1855,7 +1855,7 @@ mod tests {
         switch.attach_sink();
         let bridge = PracaPickerBridge::new(
             Arc::new(Mutex::new(praca)),
-            inproc.clone(),
+            crate::perf::Counted::new(inproc.clone()),
             switch,
             crate::config::ShellSpawn::bare("/bin/sh"),
             tear_types::SpawnEnv::none(),
@@ -2580,7 +2580,7 @@ mod tests {
         ));
         let bridge = PracaPickerBridge::new(
             Arc::new(Mutex::new(praca)),
-            Arc::clone(&control),
+            crate::perf::Counted::new(Arc::clone(&control)),
             switch,
             crate::config::ShellSpawn::bare("/bin/sh"),
             tear_types::SpawnEnv::none(),
@@ -2617,5 +2617,35 @@ mod tests {
             bridge.praca().index.get(sid).is_none(),
             "mado's praça record survived"
         );
+    }
+
+    #[test]
+    fn a_picker_refresh_on_the_ui_thread_counts_its_session_list() {
+        let calls: &'static crate::perf::TearCalls =
+            Box::leak(Box::new(kanshou::metrics::Family::new()));
+        let inproc = Arc::new(tear_core::InProcess::new());
+        let switch = crate::session_switch::SwitchRequests::default();
+        switch.attach_sink();
+        let bridge = PracaPickerBridge::new(
+            Arc::new(Mutex::new(praca::Praca::new())),
+            crate::perf::Counted::counting_into(inproc, calls),
+            switch,
+            crate::config::ShellSpawn::bare("/bin/sh"),
+            tear_types::SpawnEnv::none(),
+            true,
+            crate::config::BadgeMode::Auto,
+            None,
+            0,
+            0,
+            0,
+        );
+        let _ui = crate::perf::UiThread::mark();
+        bridge.refresh(1000);
+        assert_eq!(
+            calls.get(crate::perf::TearCall::ListSessions),
+            1,
+            "the reconciler's list_sessions runs on the UI thread and is counted"
+        );
+        assert_eq!(calls.total(), 1);
     }
 }
