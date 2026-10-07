@@ -8069,9 +8069,9 @@ rec {
       };
       "inventory" = rec {
         crateName = "inventory";
-        version = "0.3.24";
+        version = "0.3.25";
         edition = "2021";
-        sha256 = "16y3vbab2ld8ykjap1xxwk001jliyqsj8np57zpcrx7jfq6c7w54";
+        sha256 = "0z6d57l6pkan8sdr4j87fwk1rfih1awir6hwpy8ss8n84ql2ha39";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -8900,9 +8900,9 @@ rec {
       };
       "kanshou-derive" = rec {
         crateName = "kanshou-derive";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2024";
-        sha256 = "12ff5xzamzfw88i3dfmib5lk61jz9hh8cw4fzvh4rway3pn6i0ii";
+        sha256 = "1spzqg0v7v01q33l6p945yb64f62wyf8rc8k5ny7v6wab35cmrqa";
         procMacro = true;
         libName = "kanshou_derive";
         authors = [
@@ -10155,7 +10155,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.182";
+        version = "0.1.183";
         edition = "2024";
         crateBin = [
           {
