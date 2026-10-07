@@ -6070,10 +6070,11 @@ impl TerminalRenderer {
     /// Re-budget the ambience governor to the resolved effective frame
     /// rate (`config.performance.resolve_target_fps`). Called once after
     /// construction (stop discarding the resolved fps) and again on a
-    /// hot-reload of the performance config — so a 120 Hz high-refresh
-    /// panel budgets aurora quality against the 8.3 ms frame it actually has,
-    /// and a battery-capped target shrinks the budget with it, instead of
-    /// the hardcoded 60 Hz floor. `fps == 0` keeps the 60 Hz floor.
+    /// hot-reload of the performance config. The budget is one frame of
+    /// `fps` (120 → 8.3 ms); every caller resolves against no display
+    /// posture today, so `fps` is the operator's `target_fps`, else
+    /// `FALLBACK_FPS` (60) whatever the panel's refresh rate.
+    /// `fps == 0` keeps the 60 Hz floor.
     pub(crate) fn set_ambience_budget_fps(&mut self, fps: u32) {
         let budget = crate::ux::ambience_governor::budget_us_for_fps(fps);
         self.ambience_governor.set_budget_us(budget);

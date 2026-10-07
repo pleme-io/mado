@@ -85,9 +85,11 @@ pub(crate) const CALM_FRAC: f32 = 0.60;
 /// The default frame budget in microseconds — one 60 Hz frame
 /// (16.67 ms). The pre-resolution FLOOR only: the governor is re-budgeted
 /// to the resolved effective fps (`set_budget_us`) as soon as
-/// `config.performance.resolve_target_fps` is known, so on a 120 Hz
-/// high-refresh panel the budget is 8.3 ms and on battery it shrinks with
-/// `battery_fps_cap`. The FSM logic is budget-relative either way.
+/// `config.performance.resolve_target_fps` is known. That resolves
+/// against no display posture today, so it is the operator's
+/// `target_fps`, else 60: a 120 Hz panel gets 8.3 ms only from
+/// `target_fps: 120`, and `battery_fps_cap` does not act. The FSM logic
+/// is budget-relative either way.
 pub(crate) const DEFAULT_BUDGET_US: u64 = 16_667;
 
 /// The frame budget (microseconds) for a target frame rate — one frame's
@@ -232,9 +234,9 @@ impl AmbienceGovernor {
     }
 
     /// Re-budget a live governor to a new effective fps (the resolved
-    /// `config.performance.resolve_target_fps` — a 120 Hz high-refresh
-    /// panel gets an 8.3 ms budget, a `battery_fps_cap` shrinks it; a hot-reload
-    /// of any of those, or a battery-state change, re-budgets here).
+    /// `config.performance.resolve_target_fps`, which without a display
+    /// posture is `target_fps` or 60; a hot-reload of the performance
+    /// config re-budgets here).
     /// Streaks are untouched — only the budget the next frames classify
     /// against moves. The classifier's fractions are budget-relative, so
     /// the over/calm thresholds track the REAL frame the operator sees.

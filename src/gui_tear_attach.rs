@@ -181,9 +181,11 @@ pub fn try_run_default(
         return TearDefaultOutcome::Unavailable;
     }
     // M3c.1 — branch on TearRuntime. Embedded skips the daemon
-    // entirely; tear's PTY+grid live in-process inside mado.
-    // ghostty-class latency (no Unix socket hop, no second VT
-    // parser, no inter-process rwlock contention). Multi-attach
+    // entirely; tear's PTY+grid live in-process inside mado (no Unix
+    // socket hop, no inter-process rwlock contention). It still parses
+    // every byte twice: tear's `PaneGrid` feeds each chunk before
+    // fanning it out, and mado's mirror `Terminal` parses it again
+    // (tear PERFORMANCE R38 removes the second parse). Multi-attach
     // scenarios (ayatsuri overlay, namimado debug, remote ssh)
     // need the daemon; embedded is for the default
     // single-window case the operator opens 99% of the time.
@@ -649,10 +651,12 @@ where
     renderer.apply_effects_and_accessibility(&config);
     // Budget the ambience governor against the resolved effective frame
     // rate — identical to the local-PTY path (main.rs), so the embedded
-    // and local render modes scale aurora quality against the SAME real
-    // frame budget instead of the hardcoded 60 Hz floor. No madori
-    // posture is available here yet (winit owns monitor enumeration), so
-    // it resolves against `None` like main.rs.
+    // and local render modes scale aurora quality against the SAME frame
+    // budget. No madori posture is available here yet (winit owns monitor
+    // enumeration), so it resolves against `None` like main.rs: the
+    // operator's `performance.target_fps`, else `FALLBACK_FPS` (60). With
+    // `target_fps` null this path therefore runs `Capped(60)` whatever
+    // the panel's refresh rate.
     let effective_fps = config.performance.resolve_target_fps(None);
     renderer.set_ambience_budget_fps(effective_fps);
     renderer.set_histograms(config.performance.histograms);
@@ -681,16 +685,21 @@ where
     // loop: when the shell (frost, frostmourne, bash, zsh) sends
     // `\x1b[6n` (cursor position query) etc., mado's VT engine
     // generates the response, and this writer forwards it back to
-    // the tear pane's PTY. Without this, reedline-based shells
-    // (frost) time out with "cursor position could not be read".
+    // the tear pane's PTY. Without this, every cursor report a
+    // reedline-based shell (frost) asks for times out after
+    // crossterm's 2 s.
     let control_for_response_writer = Arc::clone(&control);
     let current_pane_for_response = current_pane.clone();
     let response_writer: crate::engate_consumer::ResponseWriter = Arc::new(
         move |bytes: &[u8]| {
-            // A dropped VT-query answer kills reedline-based shells (fatal
-            // CPR timeout) — never swallow this error silently. After a
-            // runtime switch this re-targets the new pane automatically
-            // (Fixed → register load on the legacy path).
+            // A dropped VT-query answer stalls the asking shell — never
+            // swallow this error silently. frost builds against pleme-io's
+            // reedline fork, whose painter falls back after a failed cursor
+            // report, so there a dropped answer costs a 2 s stall per cursor
+            // report (crossterm's timeout), not the shell; upstream reedline
+            // treats the same timeout as fatal. After a runtime switch this
+            // re-targets the new pane automatically (Fixed → register load
+            // on the legacy path).
             let pane_id = current_pane_for_response.get();
             if let Err(e) = control_for_response_writer.send_keys(pane_id, bytes) {
                 tracing::warn!(
@@ -1400,6 +1409,10 @@ fn with_title(
 /// delivers PTY bytes directly to mado's TerminalSink Consumer
 /// without crossing a process boundary; latency drops from
 /// ~25-45ms (daemon path) to ~16ms (ghostty-class single-process).
+/// It is not a single parse: tear's `PaneGrid` parses every chunk
+/// before handing it on, and mado's mirror `Terminal` parses it
+/// again on the main thread, so each byte is parsed twice until tear
+/// PERFORMANCE R38 deletes the mirror.
 ///
 /// Trade-off: single-attach only. ayatsuri overlays, namimado-debug,
 /// and remote ssh-mux scenarios require the daemon. Operator opts

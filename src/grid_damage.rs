@@ -11,6 +11,10 @@
 //! into today's whole-frame renderer would be a second grid-adjacent
 //! touch with no consumer.
 //!
+//! That sequencing is the local-PTY runtime's. In the tear runtimes the
+//! consumer is tear's PERFORMANCE R31 (a renderer that redraws what
+//! changed), not M7.
+//!
 //! The one rule the M7 implementer inherits: damage is tracked
 //! per-PHYSICAL-row (viewport coordinates), `union`ed across parser
 //! batches, and drained exactly once per frame by the renderer via

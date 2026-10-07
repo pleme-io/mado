@@ -1,19 +1,30 @@
 # Grid ↔ Threading Contract (M2 Stream G — consumed at M7)
 
 > **Status.** Types shaped in the single M2 grid touch
-> (REMEDIATION-PLAN.md §M2, fold-in from Stream G); implementation
-> lands at M7. `DirtyRegion` ships concretely in `src/grid_damage.rs`
-> with bitset unit tests; `ParseMailbox`/`Backpressure` are the typed
-> sketch below. Cell/Grid/SharedTerminal are **never restructured
-> again** after M2 — M7 consumes this contract, it does not re-open
-> the grid.
+> (REMEDIATION-PLAN.md §M2, fold-in from Stream G). `DirtyRegion` and
+> `GridDamage` ship in `src/grid_damage.rs` with bitset unit tests,
+> under `#![allow(dead_code)]`: nothing consumes them yet.
+> `ParseMailbox`/`Backpressure` are the typed sketch below and are not
+> implemented. On the **local-PTY path** M7 consumes this contract and
+> does not re-open Cell/Grid/SharedTerminal. On the **tear path** the
+> render decouple, the damage and the mailbox belong to tear's
+> [`docs/PERFORMANCE.md`](https://github.com/pleme-io/tear/blob/main/docs/PERFORMANCE.md)
+> instead: R13 (the UI thread holds only a link), R30 (mado reads one
+> frame, which turns the rows into `Arc<Line>` with a row id and a
+> version) and R31 (a renderer that redraws what changed). M7 keeps the
+> local-PTY path until PERFORMANCE R38 makes it an embedded tear pane.
 
-> **The tear runtimes.** The tear ↔ mado path — the UI thread, the wake
-> path, frame pacing, the view lane, attach and switch — is measured and
-> planned in tear's
-> [`docs/PERFORMANCE.md`](https://github.com/pleme-io/tear/blob/main/docs/PERFORMANCE.md).
-> Where this contract and that plan disagree about the tear runtimes, the
-> plan is current; its §10 lists the corrections this document is owed.
+> **Two runtimes.** Everything below about a PTY reader describes the
+> **local-PTY runtime** (`tear.mode: never`, or `auto` when tear is
+> unreachable), where mado's own reader owns the PTY. In the **tear
+> runtimes** (`tear.runtime`: `embedded`, the default, `daemon` and
+> `resident`) tear owns the PTY and its reader — in `embedded` that
+> reader is a tear-core thread inside mado's process, otherwise it is
+> in the tear daemon or a holder — and mado's mirror `Terminal` parses
+> what tear forwards on the AppKit main thread; see
+> [the tear runtimes](#the-tear-runtimes) below. The tear ↔ mado path —
+> the UI thread, the wake path, frame pacing, the view lane, attach and
+> switch — is measured and planned in PERFORMANCE.md.
 
 ## Why this exists
 
@@ -103,8 +114,9 @@ pub struct PtyChunk {
 pub enum Backpressure {
     /// Stop reading the PTY fd — the kernel buffer (and ultimately
     /// the foreground process via blocked write()) absorbs the
-    /// flood. The terminal NEVER drops bytes (correctness floor:
-    /// dropped bytes = corrupted escape sequences = wrong grid).
+    /// flood. The parser that owns the PTY NEVER drops bytes
+    /// (correctness floor: dropped bytes = corrupted escape
+    /// sequences = wrong grid).
     PauseReader,
 }
 
@@ -121,14 +133,50 @@ Contract points:
   design: pausing the reader is the only correct response (the
   kernel PTY buffer blocks the writer — the same flow control every
   real terminal relies on). Coalescing/dropping *bytes* is
-  unrepresentable; only *redraws* coalesce.
+  unrepresentable; only *redraws* coalesce. The rule binds the
+  **authority**, the parser that owns the PTY: mado's `Terminal` in
+  the local-PTY runtime, tear's `PaneGrid` in the tear runtimes. A
+  view of an authority may skip bytes and resync from it, as
+  PERFORMANCE R22 and R34 specify.
 - The mailbox owns `pending_damage`, so the renderer takes the lock
   for `drain_damage()` + row reads only — not for the whole parse.
 
+## The tear runtimes
+
+In the tear runtimes the PTY reader is tear's, not mado's event
+loop's:
+
+- **embedded** (the default): tear-core's `tear-pty-reader` thread,
+  inside mado's process (`tear-core/src/pty.rs`), reads the PTY and
+  feeds every chunk to the pane's `PaneGrid` under its mutex before
+  fanning it out to subscribers (`tear-core/src/inproc.rs`, the pane
+  callback). That thread is the authority's reader and the place
+  `PauseReader` pauses.
+- **daemon** and **resident**: the reader is in the tear daemon or the
+  pane's holder, and no PTY is open in mado's process.
+
+In all three, chunks reach the window from a tear subscription over
+unbounded channels, and its event loop drains them on the AppKit main
+thread, up to 4,096 messages a tick (`gui_tear_attach.rs`, the
+`poll_one` loop), each one VT-parsed again into mado's mirror
+`Terminal` before the frame. That second parse is on the main thread,
+not off it, and the mailbox above is not the next step for it:
+
+- backpressure is implemented at the source, in tear's PTY reader,
+  where `PauseReader` is the only arm (PERFORMANCE R21, whose local
+  half — the in-process source embedded uses — lands first);
+- subscriber queues become bounded, and a lagging view resyncs from
+  the authority instead of queueing without bound (R22, R34);
+- the parse leaves the UI thread for a view-lane thread (R13), and the
+  renderer reads an immutable frame (R30) and redraws only changed
+  rows (R31), consuming this document's damage vocabulary.
+
 ## Why the render decouple defers to M7
 
-The riskiest piece — moving rendering off the thread that owns the
-event loop — **fights madori's `RenderCallback` ownership** (the
+This section is about the local-PTY runtime; on the tear path the
+decouple is PERFORMANCE R13. The riskiest piece — moving rendering
+off the thread that owns the event loop — **fights madori's
+`RenderCallback` ownership** (the
 render closure is called by the platform layer with `&mut` access on
 the main thread). Re-architecting that boundary now would couple the
 M2 grid touch to a windowing-layer refactor with its own incident

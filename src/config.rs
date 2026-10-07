@@ -665,10 +665,11 @@ impl Default for MadoSnowConfig {
 pub struct MadoTearConfig {
     #[serde(default)]
     pub mode: TearMode,
-    /// Where tear's runtime LIVES. `Daemon` (default) talks over
-    /// Unix socket to the tear-daemon process; `Embedded` runs
-    /// tear's PTY+grid in-process via `tear_core::InProcess`. See
-    /// [`TearRuntime`] for the latency/multi-attach tradeoff.
+    /// Where tear's runtime LIVES. `Embedded` (default) runs tear's
+    /// PTY+grid in-process via `tear_core::InProcess`; `Daemon` talks
+    /// over Unix socket to the tear-daemon process; `Resident` does the
+    /// same with sessions that outlive the window. See [`TearRuntime`]
+    /// for the latency/multi-attach tradeoff.
     #[serde(default)]
     pub runtime: TearRuntime,
     /// Explicit UDS path override. `None` (default) → derive from
@@ -2100,18 +2101,20 @@ pub enum TearMode {
 /// is about discovery / fallback semantics): `TearRuntime` picks
 /// IPC topology.
 ///
-/// * `Daemon` (default for safety / backwards-compat) — talk to the
-///   tear-daemon over a Unix socket. ~5-10ms IPC hop per render
-///   frame; required for multi-attach scenarios where ≥2 consumers
-///   (ayatsuri overlay, namimado debug inspector, remote ssh)
-///   share the same session.
-///
-/// * `Embedded` — run tear's PTY+grid in-process inside mado via
-///   `tear_core::InProcess`. Zero IPC, ~16ms ghostty-class
+/// * `Embedded` (the default) — run tear's PTY+grid in-process inside
+///   mado via `tear_core::InProcess`. Zero IPC, ~16ms ghostty-class
 ///   latency. The right choice for the default single-window case
 ///   (operator opens mado, types, closes — no one else needs the
 ///   session). See `pleme-io/maestro/stacks/mado-default.yaml`
 ///   for the maestro declaration of this mode.
+///
+/// * `Daemon` — talk to the tear-daemon over a Unix socket. ~5-10ms
+///   IPC hop per render frame; required for multi-attach scenarios
+///   where ≥2 consumers (ayatsuri overlay, namimado debug inspector,
+///   remote ssh) share the same session. The window owns its session.
+///
+/// * `Resident` — like `Daemon`, but the session resides in the daemon
+///   and outlives every window; closing the window detaches.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
 )]
@@ -2669,8 +2672,9 @@ pub struct PerformanceConfig {
     #[serde(default = "default_vsync")]
     pub vsync: bool,
     /// Explicit frame-rate target. `None` (the default) defers to
-    /// `garasu::adaptive::recommend` — typically the primary display's
-    /// refresh rate. Set explicitly to override detection.
+    /// `garasu::adaptive::recommend` when a display posture is known, else
+    /// to `FALLBACK_FPS` (60). No window path passes a posture yet, so
+    /// today `None` means 60. `0` means uncapped.
     #[serde(default)]
     pub target_fps: Option<u32>,
     /// Upper bound on the adaptive recommendation. `None` = no ceiling.

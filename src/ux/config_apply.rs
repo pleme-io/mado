@@ -81,10 +81,10 @@ pub enum SetterCall {
     Effects(MadoEffectsConfig),
     /// Resolved effective frame rate (`performance.resolve_target_fps`)
     /// → `set_ambience_budget_fps`. A hot-reload of `target_fps` /
-    /// `fps_cap` / `battery_fps_cap` re-budgets the ambience governor so
-    /// aurora quality scales against the real frame, not the 60 Hz floor.
-    /// (Hot-reload resolves against `None` posture, mirroring boot — the
-    /// live madori posture wire is the M1 follow-up.)
+    /// `fps_cap` / `battery_fps_cap` re-budgets the ambience governor to
+    /// the re-resolved fps. (Hot-reload resolves against `None` posture,
+    /// mirroring boot, so only `target_fps` changes the result today —
+    /// the live madori posture wire is the M1 follow-up.)
     AmbienceBudgetFps(u32),
     Histograms(crate::config::HistogramMode),
 }

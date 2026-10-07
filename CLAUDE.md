@@ -168,11 +168,18 @@ Config <-- shikumi (hot-reload, ArcSwap) <-- ~/.config/mado/mado.yaml
 
 ### Threading Model
 
-Current: two threads.
+Current:
 ```
-Main thread:    madori event loop --> winit --> GPU render (60fps)
-PTY thread:     tokio runtime --> reader (PTY->Terminal) + writer (input->PTY) + resize
+Local PTY (tear.mode never; auto without tear):
+  Main thread:  madori event loop --> winit --> GPU render
+  PTY thread:   tokio runtime --> reader (PTY->Terminal) + writer (input->PTY) + resize
+Tear (embedded, the default; daemon; resident):
+  PTY reader:   embedded: a tear-core thread in mado (PTY->PaneGrid); else daemon/holder
+  Main thread:  drain <=4,096 chunks/tick --> VT parse (mirror Terminal)
+                --> GPU render; tear calls block here
 ```
+Pacing: `Capped(target_fps)`, 60 when null. Tear-path plan: tear's
+`docs/PERFORMANCE.md`.
 
 Target (Ghostty-inspired four-thread model):
 ```
@@ -182,7 +189,7 @@ Read thread:    Blocking PTY reads (avoids blocking I/O thread)
 Render thread:  GPU rendering at native refresh rate, decoupled from I/O
 ```
 
-The current two-thread model works but couples rendering to the main thread.
+Both shapes couple rendering (and, on tear, parsing) to the main thread.
 Separating rendering onto its own thread eliminates frame drops during heavy
 I/O (e.g., `cat` of large files). The I/O/read thread split prevents PTY
 write stalls from blocking parse progress.
@@ -647,7 +654,7 @@ Quick Terminal, native menus.
 > Two items were struck 2026-07-31: **daemon mode (tsunagu)** is SUPERSEDED by
 > tear — do not re-introduce that edge — and the **MCP server SHIPPED** (rmcp,
 > 63 tools), so it is not a future phase. The four-thread model remains a
-> genuine target; today the VT/render data path is two threads, and
+> genuine target; today's data paths are under Threading Model, and
 > `src/grid_damage.rs`'s `DirtyRegion` types are built but deliberately
 > unwired pending it.
 

@@ -929,9 +929,11 @@ fn main() -> anyhow::Result<()> {
     renderer.apply_effects_and_accessibility(&config);
 
     // Budget the ambience governor against the resolved effective frame
-    // rate (no longer discarded) instead of the hardcoded 60 Hz floor —
-    // a ProMotion 120 Hz panel gets the 8.3 ms budget, a battery cap
-    // shrinks it. The local-PTY path's fps; the embedded-tear path
+    // rate (no longer discarded): the operator's `performance.target_fps`,
+    // else `FALLBACK_FPS` (60). `runtime_posture` is `None` above, so
+    // neither the panel's refresh rate nor `fps_cap` / `battery_fps_cap`
+    // reaches it: with `target_fps` null a 120 Hz panel budgets 16.7 ms
+    // like any other. The local-PTY path's fps; the embedded-tear path
     // budgets identically inside gui_tear_attach.
     renderer.set_ambience_budget_fps(effective_fps);
     renderer.set_histograms(config.performance.histograms);
@@ -1093,8 +1095,10 @@ fn main() -> anyhow::Result<()> {
     // prompt redraws at ~297 Hz, burning ~10% of a core presenting identical
     // frames — and `performance.target_fps` reads like it caps the frame rate
     // while only budgeting the ambience governor. `FramePacing::Capped` makes
-    // the knob mean what it says; `0` stays uncapped, matching
-    // `resolve_target_fps`'s own sentinel, so the default is unchanged.
+    // the knob mean what it says; `0` stays uncapped (`Continuous`), matching
+    // `resolve_target_fps`'s own sentinel. The default did change: a null
+    // `target_fps` resolves to `FALLBACK_FPS` (60) here, because no posture
+    // is passed, so the default is `Capped(60)`, not the old `Poll`.
     //
     // The twin builder in gui_tear_attach.rs carries the same call and BOTH
     // matter: embedded-tear is the default render mode, so pacing only this

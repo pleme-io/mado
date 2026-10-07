@@ -667,7 +667,7 @@
     },
     "target_fps": {
       "default": null,
-      "description": "Explicit frame-rate target. `None` (the default) defers to\n`garasu::adaptive::recommend` — typically the primary display's\nrefresh rate. Set explicitly to override detection.",
+      "description": "Explicit frame-rate target. `None` (the default) defers to\n`garasu::adaptive::recommend` when a display posture is known, else\nto `FALLBACK_FPS` (60). No window path passes a posture yet, so\ntoday `None` means 60. `0` means uncapped.",
       "type": "int"
     },
     "vsync": {
@@ -1086,7 +1086,7 @@
     },
     "runtime": {
       "default": "embedded",
-      "description": "Where tear's runtime LIVES. `Daemon` (default) talks over\nUnix socket to the tear-daemon process; `Embedded` runs\ntear's PTY+grid in-process via `tear_core::InProcess`. See\n[`TearRuntime`] for the latency/multi-attach tradeoff.",
+      "description": "Where tear's runtime LIVES. `Embedded` (default) runs tear's\nPTY+grid in-process via `tear_core::InProcess`; `Daemon` talks\nover Unix socket to the tear-daemon process; `Resident` does the\nsame with sessions that outlive the window. See [`TearRuntime`]\nfor the latency/multi-attach tradeoff.",
       "type": "enum",
       "values": [
         "embedded",
