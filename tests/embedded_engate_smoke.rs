@@ -101,7 +101,11 @@ fn embedded_engate_attach_drains_snapshot_and_live() {
     // Replay alone should give us at LEAST the ANSI prelude
     // (`\x1b[0m\x1b[2J\x1b[H...`) plus per-row CSI cursor positioning
     // plus the prompt characters.
-    assert!(observed_bytes.starts_with(b"\x1b[0m\x1b[2J\x1b[H"));
+    let prelude = b"\x1b[0m\x1b[2J\x1b[H";
+    assert!(
+        observed_bytes.windows(prelude.len()).any(|w| w == prelude),
+        "the replay carries the grid's reset, clear and home, after the modes it restores"
+    );
     let s = String::from_utf8_lossy(&observed_bytes);
     // The macOS /bin/sh prompt is "sh-3.2$ ". The replay must
     // include those characters in the byte stream.
