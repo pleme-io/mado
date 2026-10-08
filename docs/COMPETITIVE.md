@@ -162,7 +162,7 @@ Pinned-but-holed (graded pinned, named holes worth closing): scrollback ring
 cap never asserted (`terminal.rs:442` eviction loop — "not tested here for
 brevity"); wide-char overwrite orphaning unpinned (overwrite one half →
 partner cell must clear); glyph-atlas growth fully delegated to glyphon with
-zero mado-side pressure tests; APC_MAX 8 MiB bound has no direct memory test.
+zero mado-side pressure tests; the feeder's 8 MiB APC bound (tear-core) has no mado-side memory test.
 
 ---
 

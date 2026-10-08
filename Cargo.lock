@@ -3138,9 +3138,9 @@ dependencies = [
 
 [[package]]
 name = "kukaku"
-version = "0.1.34"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d438076ff1f80f847e9a1333e5c340e22f2274dfdecacbe4f645b29fb28fafdb"
+checksum = "a911db90d4cb61b8eeaff4545395e7dd2bac261b01fe812c8cb93fd32492c432"
 dependencies = [
  "serde",
 ]
@@ -4902,9 +4902,9 @@ dependencies = [
 
 [[package]]
 name = "praca"
-version = "0.1.34"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac85407d91386f5c43339c4a28eebfab8798e91893643f11494a0a09870fdde0"
+checksum = "d23df538c9b058a1afc36da207a5728947a01e3ed9902b4cf6b0d3611a9c9730"
 dependencies = [
  "ishou-tokens",
  "serde",
@@ -6932,9 +6932,9 @@ dependencies = [
 
 [[package]]
 name = "tear-client"
-version = "0.1.34"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ea96fcdae508c94624823bf32d5e7850906a3ca63c6bd737fd1bf7bfb399364"
+checksum = "26ea94cdb198496d06015364a7caacb70d3545e4498bef8ff3a41b8983946e2c"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -6946,9 +6946,9 @@ dependencies = [
 
 [[package]]
 name = "tear-config"
-version = "0.1.34"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b27b80e579c4379224c7fb97df21673fb483c2535c316a0d4dc14dabd4479cee"
+checksum = "3cc4f0d3871232be88365978df4f0df532f57579aac9d4cfb9ccb8854ab5ad51"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -6966,15 +6966,16 @@ dependencies = [
 
 [[package]]
 name = "tear-core"
-version = "0.1.34"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3da93e5f6e8c293606932cecf7fe7aa2c6c4f2f066e4dcf4cd2313be96b76cbd"
+checksum = "2c4e8a431f20f7ff2b2b15c7ea20d1a52e116fb93022d99f6110fc671dc6d636"
 dependencies = [
  "anyhow",
  "blake3",
  "engate-attach",
  "engate-types",
  "ishou-tokens",
+ "memchr",
  "once_cell",
  "parking_lot",
  "portable-pty",
@@ -6992,9 +6993,9 @@ dependencies = [
 
 [[package]]
 name = "tear-daemon"
-version = "0.1.34"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f222e5ed29ff915fd3334a27e158cafecd15ac67cbc71af828abcb326f898657"
+checksum = "430fabbcbadaf3e22883939ff62b2913238418b81f6e475b0c9ab6231070147d"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7017,9 +7018,9 @@ dependencies = [
 
 [[package]]
 name = "tear-makimono"
-version = "0.1.34"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e04677cda939b6b278e8c995bc2e9e3fcd622ba09d99a6e6435ea5328691923c"
+checksum = "9e7216cb2fb8b7c4af4c1b227911d62a914ad3c9170d568bcdf9387b65899d22"
 dependencies = [
  "serde",
  "serde_json",
@@ -7030,9 +7031,9 @@ dependencies = [
 
 [[package]]
 name = "tear-tamotsu"
-version = "0.1.34"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d44407c5bf6e21e9da71d2a65ad1750ee417c83db1b1326c87dc1627d12654d7"
+checksum = "cd422407231996c9f8acac81440cbe2533ffea2dbd9ad258bbc269c7b5625f09"
 dependencies = [
  "anyhow",
  "ciborium",
@@ -7046,9 +7047,9 @@ dependencies = [
 
 [[package]]
 name = "tear-types"
-version = "0.1.34"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "752406c571e4712e1e782e4f1bba47b81326a31fae7d6835a7cf09b81bf2d3f7"
+checksum = "e48ff6225998cbf795472d53f656902446e0d295ae9ed7ce070e8d88d871077c"
 dependencies = [
  "anyhow",
  "blake3",

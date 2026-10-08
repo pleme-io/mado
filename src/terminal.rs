@@ -11,6 +11,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 
+use tear_core::feeder::Segment;
 use unicode_width::UnicodeWidthChar;
 
 use crate::config::CursorStyle;
@@ -1810,25 +1811,6 @@ enum DcsHandler {
     Sixel,
 }
 
-/// A lone `ESC` carried across a [`Terminal::feed`] boundary.
-///
-/// mado intercepts APC (`ESC _ … ST`) in `feed()` before vte sees it,
-/// so the two-byte `ESC _` introducer and `ESC \` ST terminator must
-/// be reassembled when a `feed()` chunk ends exactly on the `ESC`.
-/// The variant records the context the trailing `ESC` appeared in so
-/// the next feed's first byte can complete (or reject) the pair.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum PendingEsc {
-    /// No carried ESC.
-    None,
-    /// A trailing `ESC` in ground state — could begin `ESC _` (APC
-    /// start) or any other ESC-initiated sequence vte owns.
-    Ground,
-    /// A trailing `ESC` while inside the APC accumulator — could begin
-    /// the `ESC \` ST terminator, or be literal APC payload.
-    InApc,
-}
-
 /// Accumulator for multi-chunk Kitty image transmissions.
 struct KittyPending {
     params: HashMap<u8, String>,
@@ -1887,55 +1869,6 @@ fn parse_kitty_params(payload: &[u8]) -> (HashMap<u8, String>, Vec<u8>) {
     };
 
     (params, decoded)
-}
-
-/// Length of an incomplete UTF-8 sequence at the END of `bytes`.
-///
-/// Returns the number of trailing bytes that form the start of a
-/// multi-byte UTF-8 codepoint whose continuation bytes have not all
-/// arrived yet (so `bytes[..len - tail]` is valid UTF-8 up to a
-/// codepoint boundary, or up to an *invalid* byte we leave for vte to
-/// turn into a replacement char). Returns `0` when `bytes` ends on a
-/// complete codepoint or on an invalid byte (vte handles those in the
-/// same advance() call). A lead byte indicates its own length via its
-/// high bits; we only treat the tail as incomplete when fewer
-/// continuation bytes than the lead promises are present. Caps the
-/// scan at the last 3 bytes — no UTF-8 codepoint exceeds 4 bytes.
-fn incomplete_utf8_tail_len(bytes: &[u8]) -> usize {
-    // Walk back over continuation bytes (0b10xx_xxxx) to find the lead.
-    let n = bytes.len();
-    let mut cont = 0usize;
-    while cont < 3 && cont < n && (bytes[n - 1 - cont] & 0b1100_0000) == 0b1000_0000 {
-        cont += 1;
-    }
-    if cont == n {
-        // The whole (short) buffer is continuation bytes with no lead —
-        // not our incomplete-tail case (vte emits replacements). Leave it.
-        return 0;
-    }
-    let lead_idx = n - 1 - cont;
-    let lead = bytes[lead_idx];
-    // Expected total length encoded by the lead byte's high bits.
-    let expected = if lead & 0b1000_0000 == 0 {
-        1 // ASCII — complete.
-    } else if lead & 0b1110_0000 == 0b1100_0000 {
-        2
-    } else if lead & 0b1111_0000 == 0b1110_0000 {
-        3
-    } else if lead & 0b1111_1000 == 0b1111_0000 {
-        4
-    } else {
-        // Not a valid lead byte (stray continuation / 0xF8+) — let vte
-        // emit the replacement char; nothing incomplete to hold.
-        return 0;
-    };
-    let have = cont + 1; // continuation bytes + the lead.
-    if have < expected {
-        // Incomplete: hold the lead + the continuation bytes we have.
-        have
-    } else {
-        0
-    }
 }
 
 /// Whether a raw-format image payload is long enough for the geometry it
@@ -2308,7 +2241,7 @@ pub struct Terminal {
     // Set once a sixel DCS payload passes SIXEL_DCS_MAX in `put()`:
     // the partial buffer is dropped and every further byte no-ops
     // until `unhook` rejects the whole sequence with a typed trace.
-    // Mirrors the kitty APC_MAX guard — an unterminated/giant sixel
+    // Mirrors the feeder's kitty APC bound — an unterminated/giant sixel
     // must not grow `sixel_buffer` without bound (review 2026-06-12,
     // critic-1). Cleared at hook time for the next sequence.
     sixel_buffer_overflow: bool,
@@ -2316,39 +2249,11 @@ pub struct Terminal {
     // `hook` time so `unhook` can build icy_sixel's DcsSettings faithfully.
     sixel_dcs_params: (Option<u16>, Option<u16>, Option<u16>),
 
-    // APC sequence accumulator (ESC _ ... ST)
-    apc_buf: Option<Vec<u8>>,
-
-    // Carried-over ESC state across feed() boundaries. mado intercepts
-    // APC (ESC _ … ST) BEFORE vte sees it (vte silently swallows APC
-    // content), so the two-byte introducer (ESC _) and the two-byte
-    // ST terminator (ESC \) must survive a feed() split. A lone ESC at
-    // the end of a feed can't peek its successor — we record which
-    // context it appeared in and resolve it on the next feed's first
-    // byte. Without this, a multi-byte char (e.g. an em-dash) that
-    // follows a split ESC \ ST gets swallowed into the never-terminated
-    // APC buffer. See split_esc_st_across_feeds regression test.
-    pending_esc: PendingEsc,
-
-    // Incomplete trailing UTF-8 bytes carried across feed() boundaries.
-    // vte 0.15's own partial-UTF-8 completion (advance_partial_utf8)
-    // silently DROPS any valid bytes that follow the completed
-    // codepoint inside its 4-byte window — e.g. feeding `C2 A1 41` after
-    // a partial `C2` completes `¡` but discards the `A`. We sidestep
-    // that by never leaving a partial codepoint inside vte: feed() holds
-    // back any incomplete UTF-8 tail of a ground run and prepends it to
-    // the next feed, so vte always receives whole codepoints in one
-    // advance() and never enters the lossy partial path. ESC/APC bytes
-    // are never part of a multi-byte sequence, so a held tail is always
-    // pure ground content safe to prepend. See
-    // split_multibyte_char_across_feeds + the well-formed proptest.
-    utf8_tail: Vec<u8>,
-
     // DCS handler state
     dcs_handler: Option<DcsHandler>,
 
-    // VT parser
-    parser: vte::Parser,
+    feeder: tear_core::feeder::Feeder,
+    parser: tear_core::feeder::Parser,
 }
 
 impl fmt::Debug for Terminal {
@@ -2516,11 +2421,9 @@ impl Terminal {
             sixel_buffer: None,
             sixel_buffer_overflow: false,
             sixel_dcs_params: (None, None, None),
-            apc_buf: None,
-            pending_esc: PendingEsc::None,
-            utf8_tail: Vec::new(),
             dcs_handler: None,
-            parser: vte::Parser::new(),
+            feeder: tear_core::feeder::Feeder::new(),
+            parser: tear_core::feeder::Parser::new(),
         }
     }
 
@@ -2664,204 +2567,20 @@ impl Terminal {
     // ── Public API ──────────────────────────────────────────────────
 
     pub fn feed(&mut self, input: &[u8]) {
-        // Intercept APC sequences (ESC _ G ... ST) for Kitty graphics.
-        // vte swallows APC content without dispatching, so we parse it manually.
-        let mut i = 0;
-        let mut parser = std::mem::replace(&mut self.parser, vte::Parser::new());
-
-        // Prepend any incomplete UTF-8 tail held back from the previous
-        // feed() so vte sees whole codepoints (see `utf8_tail`). A held
-        // tail is pure ground content (ESC/APC bytes are never UTF-8
-        // continuations), so this prepend can't disturb the APC/ESC
-        // index logic below. utf8_tail and pending_esc are mutually
-        // exclusive — a trailing ESC can't be a UTF-8 continuation byte —
-        // so we never need to combine the two carries.
-        let combined: Vec<u8>;
-        let bytes: &[u8] = if self.utf8_tail.is_empty() {
-            input
-        } else {
-            combined = self
-                .utf8_tail
-                .drain(..)
-                .chain(input.iter().copied())
-                .collect();
-            &combined
-        };
-
-        // Resolve any ESC carried from the previous feed() against this
-        // chunk's first byte. A lone trailing ESC is ambiguous until its
-        // successor arrives — `ESC _` (APC start) and `ESC \` (APC ST)
-        // are the two pairs mado reassembles itself; anything else
-        // belongs to vte. Without this, a split `ESC \` ST never
-        // terminates the APC and silently eats whatever follows (e.g. a
-        // multi-byte char). See split_esc_st_across_feeds.
-        // An empty chunk can't disambiguate a carried ESC — keep the
-        // carry untouched and return. (Common: a flush with no new PTY
-        // bytes must not force-resolve the pending ESC.)
-        if bytes.is_empty() {
-            self.parser = parser;
-            return;
-        }
-        match self.pending_esc {
-            PendingEsc::None => {}
-            PendingEsc::InApc => {
-                self.pending_esc = PendingEsc::None;
-                if bytes[0] == b'\\' {
-                    // Carried ESC + `\` = ST — terminate the APC now.
-                    if let Some(buf) = self.apc_buf.take() {
-                        self.handle_apc(&buf);
-                    }
-                    i = 1;
-                } else {
-                    // Anywhere-ESC rule (DEC/vte state machine): ESC followed
-                    // by anything but `\` ABORTS the string sequence — it is
-                    // never literal payload. Treating it as payload turned an
-                    // unterminated APC into a permanent black hole that
-                    // swallowed every later byte (including `ESC[6n` cursor
-                    // queries — the shell-killing class; see the CPR-liveness
-                    // test). Kitty APC payloads are base64/key-value and
-                    // never contain raw ESC, so aborting loses nothing real.
-                    self.apc_buf = None;
-                    // The carried ESC belongs to vte (or starts a new APC if
-                    // byte 0 is `_` — the ground path below handles both).
-                    if bytes[0] == b'_' {
-                        self.apc_buf = Some(Vec::new());
-                        i = 1;
-                    } else {
-                        parser.advance(self, &[0x1b]);
-                    }
-                }
-            }
-            PendingEsc::Ground => {
-                self.pending_esc = PendingEsc::None;
-                if bytes[0] == b'_' {
-                    // Carried ESC + `_` = APC introducer.
-                    self.apc_buf = Some(Vec::new());
-                    i = 1;
-                } else {
-                    // The ESC belongs to vte — hand it over so vte's own
-                    // (chunk-boundary-preserving) parser resolves it.
-                    parser.advance(self, &[0x1b]);
-                }
-            }
-        }
-
-        while i < bytes.len() {
-            // If we're inside an APC sequence, accumulate until ST
-            if let Some(ref mut buf) = self.apc_buf {
-                // ST = ESC \ (0x1b 0x5c) or 0x9c
-                if bytes[i] == 0x9c {
-                    let payload = std::mem::take(buf);
-                    self.apc_buf = None;
-                    self.handle_apc(&payload);
-                    i += 1;
-                    continue;
-                }
-                if bytes[i] == 0x1b {
-                    if i + 1 < bytes.len() {
-                        if bytes[i + 1] == b'\\' {
-                            let payload = std::mem::take(buf);
-                            self.apc_buf = None;
-                            self.handle_apc(&payload);
-                            i += 2;
-                            continue;
-                        }
-                        // Anywhere-ESC rule: ESC + non-`\` ABORTS the APC —
-                        // it is never literal payload (see the carried-ESC
-                        // arm above for the full rationale). Reprocess the
-                        // ESC in ground state without consuming it.
-                        self.apc_buf = None;
-                        continue;
-                    }
-                    // Trailing ESC inside the APC — carry it; the next
-                    // feed decides whether it completes the `ESC \` ST.
-                    self.pending_esc = PendingEsc::InApc;
-                    i += 1;
-                    continue;
-                }
-                // Bound the payload: an APC whose ST never arrives must not
-                // accumulate without limit (kitty image payloads are large
-                // but chunked; 8 MiB is far beyond any legitimate chunk).
-                const APC_MAX: usize = 8 * 1024 * 1024;
-                if buf.len() >= APC_MAX {
-                    tracing::warn!(
-                        len = buf.len(),
-                        "APC payload exceeded bound — aborting sequence"
-                    );
-                    self.apc_buf = None;
-                    continue;
-                }
-                buf.push(bytes[i]);
-                i += 1;
-                continue;
-            }
-
-            // Detect APC start: ESC _ (0x1b 0x5f)
-            if bytes[i] == 0x1b {
-                if i + 1 < bytes.len() {
-                    if bytes[i + 1] == b'_' {
-                        self.apc_buf = Some(Vec::new());
-                        i += 2;
-                        continue;
-                    }
-                    // ESC + non-`_`: a vte-owned sequence. Fall through
-                    // to the ground scan below, which begins AT this ESC
-                    // and hands the run (ESC + payload) to vte.
-                } else {
-                    // Trailing ESC in ground — carry it; the next feed
-                    // decides whether it begins an `ESC _` APC start.
-                    self.pending_esc = PendingEsc::Ground;
-                    i += 1;
-                    continue;
-                }
-            }
-
-            // Accumulate a ground run for vte. The run always includes
-            // the current byte (which may be a vte-owned ESC we just
-            // cleared as a non-APC introducer) and extends until the
-            // NEXT ESC, which the loop head re-examines (peeking its
-            // successor for `ESC _`, or carrying it across the feed
-            // boundary). Starting the scan one byte in guarantees forward
-            // progress even when `bytes[i]` is itself an ESC.
-            let start = i;
-            i += 1;
-            while i < bytes.len() && bytes[i] != 0x1b {
-                i += 1;
-            }
-
-            // Feed the non-APC portion to vte. vte 0.15 SIMD-fast-paths
-            // printable-ASCII runs internally (advance_ground via memchr)
-            // and preserves mid-CSI state across advance() calls because
-            // we reuse the same Parser. Chunk-boundary independence is
-            // the load-bearing invariant: a styled line whose SGR intro
-            // splits across two feed() calls must render identically to
-            // the whole-stream feed. See the split_csi_* /
-            // split_esc_st_across_feeds tests + the well-formed proptest.
-            //
-            // If this run ran to the end of the chunk (not cut by an ESC)
-            // and ends on an incomplete UTF-8 lead, hold those tail bytes
-            // back for the next feed rather than letting vte buffer them:
-            // vte's advance_partial_utf8 DROPS valid bytes that trail the
-            // completed codepoint inside its 4-byte window (e.g. the `A`
-            // in `C2 A1 41`). Holding the tail at this layer keeps every
-            // codepoint whole within a single advance() so vte never
-            // enters that lossy path. An ESC-terminated run is always
-            // complete (ESC is never a UTF-8 continuation), so we only
-            // trim when the run reaches the chunk end.
-            let mut run_end = i;
-            if i == bytes.len() {
-                let tail = incomplete_utf8_tail_len(&bytes[start..run_end]);
-                if tail > 0 {
-                    self.utf8_tail
-                        .extend_from_slice(&bytes[run_end - tail..run_end]);
-                    run_end -= tail;
-                }
-            }
-            if start < run_end {
-                parser.advance(self, &bytes[start..run_end]);
-            }
-        }
-
+        let mut parser = std::mem::take(&mut self.parser);
+        let mut feeder = std::mem::take(&mut self.feeder);
+        feeder.feed(input, |segment| match segment {
+            Segment::Text(chunk) => parser.advance(self, chunk),
+            Segment::Apc {
+                payload,
+                cut: false,
+            } => self.handle_apc(payload),
+            Segment::Apc { payload, cut: true } => tracing::warn!(
+                len = payload.len(),
+                "APC payload exceeded the feeder's bound — dropped"
+            ),
+        });
+        self.feeder = feeder;
         self.parser = parser;
     }
 
@@ -3686,7 +3405,7 @@ impl Terminal {
     /// processes + reaper threads in one drain, a fork-bomb-adjacent
     /// `DoS` that freezes the host. The cap (drop-oldest, keep newest)
     /// makes the queue length input-rate-independent, mirroring the
-    /// kitty `APC_MAX` / sixel DCS bounds.
+    /// feeder's kitty APC / sixel DCS bounds.
     fn push_notification(&mut self, notification: PendingNotification) {
         const MAX_PENDING_NOTIFICATIONS: usize = 64;
         if self.pending_notifications.len() >= MAX_PENDING_NOTIFICATIONS {
@@ -6385,7 +6104,7 @@ impl vte::Perform for Terminal {
         // (icy_sixel caps decoded dims well below this), so passing it
         // means a misbehaving stream — drop the partial, poison the
         // sequence, and let `unhook` reject it (review 2026-06-12,
-        // critic-1; mirrors APC_MAX).
+        // critic-1; mirrors the feeder's APC bound).
         const SIXEL_DCS_MAX: usize = 8 * 1024 * 1024;
         match self.dcs_handler {
             Some(DcsHandler::Decrqss(ref mut buf)) => buf.push(byte),
@@ -10237,10 +9956,10 @@ mod tests {
     fn split_multibyte_char_across_feeds_renders_one_grapheme() {
         // A multi-byte UTF-8 char split at every internal byte boundary
         // across two feed() calls must render as the single correct
-        // grapheme. vte 0.15's `partial_utf8` buffer survives between
-        // advance() calls because feed() reuses the same Parser — this
-        // pins that invariant for 3-byte (em-dash) and 4-byte (emoji)
-        // codepoints.
+        // grapheme. The feeder holds the incomplete codepoint and hands
+        // vte the whole of it with the next feed, so vte 0.15's lossy
+        // `partial_utf8` path is never entered — this pins that for
+        // 3-byte (em-dash) and 4-byte (emoji) codepoints.
         for s in ["—", "😀", "本"] {
             let raw = s.as_bytes();
             let expected = s.chars().next().unwrap();
@@ -10258,14 +9977,35 @@ mod tests {
     }
 
     #[test]
+    fn a_run_of_lead_bytes_past_the_feeders_hold_renders_the_same_however_it_is_split() {
+        let mut stream = vec![0xc3u8; tear_core::feeder::HOLD_MAX + 1];
+        stream.extend_from_slice(b"\xa3 \xe2\x82\xac!");
+        let mut whole = Terminal::new(80, 24);
+        whole.feed(&stream);
+        let mut split = Terminal::new(80, 24);
+        split.feed(&stream[..1]);
+        split.feed(&stream[1..]);
+        let row =
+            |t: &Terminal, r: usize| (0..t.cols()).map(|c| t.cell(r, c).ch).collect::<String>();
+        assert!(
+            (0..whole.rows()).any(|r| row(&whole, r).contains("ã €!")),
+            "the stream ends `ã €!` fed whole"
+        );
+        for r in 0..whole.rows() {
+            assert_eq!(row(&whole, r), row(&split, r), "row {r}");
+        }
+    }
+
+    #[test]
     fn split_esc_st_across_feeds_terminates_apc_and_renders_next_char() {
         // ─── REGRESSION GUARD (Base-1 chunk-boundary crack) ──────────
         // An APC sequence whose `ESC \` ST terminator splits across two
         // feed() calls (the `ESC` ends chunk 1, the `\` begins chunk 2)
         // must still terminate the APC — otherwise the never-closed APC
         // buffer silently swallows everything after it, including the
-        // following printable char. Before the pending_esc carry fix the
-        // em-dash below rendered as a blank cell.
+        // following printable char. Before the carried-ESC fix (now the
+        // shared `tear_core::feeder::Feeder`) the em-dash below rendered
+        // as a blank cell.
         let stream = b"\x1b_Gfoo\x1b\\\xe2\x80\x94"; // APC `Gfoo` + ST + em-dash
         let split = 7; // chunk 1 ends on the ST's ESC: [ESC _ G f o o ESC]
         let mut whole = Terminal::new(80, 24);
@@ -13537,16 +13277,15 @@ mod proptests {
         ///
         /// Scope: the 7-bit range (ASCII + C0 controls + ESC) — where
         /// the P33 / SGR-leak bug lived. The multi-byte UTF-8 + APC-ST
-        /// split class (the Base-1 crack now fixed by [`PendingEsc`]) is
-        /// guarded by the dedicated, well-formed-input properties below
-        /// (`valid_multibyte_*` / `apc_st_split_*`) plus the
+        /// split class (the Base-1 crack, fixed by the carried ESC and
+        /// UTF-8 tail that `tear_core::feeder::Feeder` now owns for both
+        /// parsers) is guarded by the well-formed-input property below,
+        /// by `any_bytes_render_the_same_however_they_are_split` — which
+        /// widens to `any::<u8>()`: no chunk the feeder hands vte ends
+        /// where the next byte continues a character, the only split
+        /// vte 0.15's partial-character completion gets wrong — and by the
         /// `split_esc_st_across_feeds` / `split_multibyte_char` unit
-        /// regressions. The generator is deliberately NOT widened to
-        /// `any::<u8>()`: arbitrary *invalid* UTF-8 split at a boundary
-        /// can legitimately differ in vte 0.15's replacement-character
-        /// resync (a maximal-subpart property of the third-party
-        /// streaming decoder, not mado's `feed()` layer), so a full-byte
-        /// generator would assert a property the decoder does not hold.
+        /// regressions.
         #[test]
         fn parsing_is_chunk_boundary_independent(
             stream in proptest::collection::vec(0x00u8..=0x7Fu8, 0..512),
@@ -13573,7 +13312,7 @@ mod proptests {
         /// UTF-8 + APC sequences) are chunk-boundary independent at the
         /// FULL byte level.**
         ///
-        /// This is the property the [`PendingEsc`] carry fix makes hold:
+        /// This is the property the shared feeder's carries make hold:
         /// any stream built from printable ASCII chars, arbitrary VALID
         /// multi-byte codepoints, and complete `ESC _ … ESC \` APC
         /// sequences renders identically whether fed whole or split at
@@ -13621,6 +13360,30 @@ mod proptests {
                     );
                 }
             }
+        }
+
+        #[test]
+        fn any_bytes_render_the_same_however_they_are_split(
+            stream in proptest::collection::vec(any::<u8>(), 0..1024),
+            cuts in proptest::collection::vec(any::<proptest::sample::Index>(), 0..8),
+        ) {
+            let mut cuts: Vec<usize> = cuts.iter().map(|c| c.index(stream.len() + 1)).collect();
+            cuts.sort_unstable();
+            let mut whole = Terminal::new(40, 12);
+            whole.feed(&stream);
+            let mut split = Terminal::new(40, 12);
+            let mut from = 0;
+            for cut in cuts {
+                split.feed(&stream[from..cut]);
+                from = cut;
+            }
+            split.feed(&stream[from..]);
+            for r in 0..whole.rows() {
+                for c in 0..whole.cols() {
+                    prop_assert_eq!(whole.cell(r, c).ch, split.cell(r, c).ch, "cell ({},{})", r, c);
+                }
+            }
+            prop_assert_eq!(whole.take_response(), split.take_response());
         }
 
         /// **Invariant: parser never panics, cursor stays in bounds.**

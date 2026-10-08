@@ -216,14 +216,11 @@ tsuuchi = "0.1"
 # byte stream + stream it to stdout for now; future Phase 3.1
 # renders it in the GPU window). Phase 3 MVP of the mado⇄tear
 # de-overlap roadmap — see theory/MADO-TEAR-M5.md.
-# Pinned to the reap-on-exit rev (tear main, f9b1f39 — tear-core
-# reaps fully-exited unwatched sessions, the session-leak fix; also
-# carries the SpawnEnv seam mado's gui_tear_attach uses:
-# `from_overrides` / `with_cwd` / `inproc.set_spawn_env` for the
-# env-projection + PWD cwd-handshake). Rev is on tear main, so it
-# resolves on CI + for downstream consumers.
+# From crates.io. tear-core is held at 0.1.36 or later, the release that
+# ships `tear_core::feeder`, which `Terminal::feed` runs every byte through
+# (tear PERFORMANCE R7).
 tear-types = { version = "0.1", features = ["engate"] }
-tear-core = { version = "0.1", features = ["engate"] }
+tear-core = { version = "0.1.36", features = ["engate"] }
 tear-client = { version = "0.1", features = ["engate"] }
 tear-config = "0.1"
 
@@ -520,10 +517,9 @@ tokio = { version = "1", features = ["test-util", "macros", "rt-multi-thread", "
 #   - tests/mcp_cross_process.rs (mado bin spawned as `mado mcp`)
 #   - tear_discovery::tests::discovers_a_real_in_process_daemon
 # The binary itself only needs tear-types + tear-client.
-# Same SpawnEnv-seam rev as the runtime deps above — a single tear
-# git source so cargo unifies the crate identities (a divergent rev
-# would split tear-types into two crates and break the trait unify).
-tear-core = "0.1"
+# The same registry requirement as the runtime tear-core above, so cargo
+# resolves one tear-core.
+tear-core = "0.1.36"
 tear-daemon = "0.1"
 # Cross-process MCP integration test (tests/mcp_cross_process.rs)
 # uses the rmcp client + child-process transport. Those features now
