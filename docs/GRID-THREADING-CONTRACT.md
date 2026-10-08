@@ -156,11 +156,16 @@ loop's:
   pane's holder, and no PTY is open in mado's process.
 
 In all three, chunks reach the window from a tear subscription over
-unbounded channels, and its event loop drains them on the AppKit main
-thread, up to 4,096 messages a tick (`gui_tear_attach.rs`, the
-`poll_one` loop), each one VT-parsed again into mado's mirror
-`Terminal` before the frame. That second parse is on the main thread,
-not off it, and the mailbox above is not the next step for it:
+unbounded channels. Each chunk, and the stream's end, rings the
+window's doorbell (madori's coalescing waker, PERFORMANCE R10), and
+with `tear.session_switching` on (the default) the event loop drains
+them on the AppKit main thread on that wake and on every redraw, up to
+4,096 messages a drain (`pane_stream.rs`, `PaneStream::drain`), each
+one VT-parsed again into mado's mirror `Terminal` before the frame;
+with switching off, a dedicated thread drains and parses them and
+rings the window after each chunk. That second parse is on the main
+thread on the default path, not off it, and the mailbox above is not
+the next step for it:
 
 - backpressure is implemented at the source, in tear's PTY reader,
   where `PauseReader` is the only arm (PERFORMANCE R21, whose local

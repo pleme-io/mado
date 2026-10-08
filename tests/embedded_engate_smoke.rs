@@ -73,7 +73,7 @@ fn embedded_engate_attach_drains_snapshot_and_live() {
     std::thread::sleep(Duration::from_millis(200));
 
     let observed = Arc::new(Mutex::new(Vec::<u8>::new()));
-    let producer = PaneProducer::new(Arc::clone(&inproc), pane);
+    let producer = PaneProducer::new(Arc::clone(&inproc), pane, std::task::Waker::noop().clone());
     let consumer = RecordingConsumer(observed.clone());
 
     // Full engate typestate transition — the same shape mado runs
@@ -131,7 +131,7 @@ fn embedded_engate_producer_snapshot_then_subscribe_ordering() {
                 .and_then(|s| s.windows.values().next().map(|w| w.active_pane))
         })
         .expect("pane");
-    let producer = PaneProducer::new(Arc::clone(&inproc), pane);
+    let producer = PaneProducer::new(Arc::clone(&inproc), pane, std::task::Waker::noop().clone());
 
     // Per engate contract: subscribe() must succeed even when called
     // before any output has been produced. Returns a fresh receiver

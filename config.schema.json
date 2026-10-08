@@ -1063,6 +1063,11 @@
       "description": "When `true` and the discovery probe finds no live daemon,\nmado spawns one via `Command::new(\"tear\").args([\"daemon\",\n\"--socket\", <socket>])` and waits up to\n`spawn_wait_ms` for it to bind. When `false`, an absent\ndaemon is left absent (Auto falls back; Always errors out).",
       "type": "bool"
     },
+    "fate_backstop_secs": {
+      "default": 30,
+      "description": "Under pane_fate: edge, seconds between backstop reads of the displayed pane's fate while its stream stays open. 0 turns the backstop off.",
+      "type": "int"
+    },
     "impose": {
       "default": null,
       "description": "Optional TearConfig overrides mado pushes to the daemon\nat attach time (and again on demand during the session).\nImplements the \"mado authors tear's config\" half of the\nM5 destination: mado is the front-end + the canonical\nauthor of tear settings when it's the consumer.\n\n`None` (default) — mado leaves the daemon's config alone.\n`Some(overrides)` — mado fetches the daemon's current\nTearConfig at attach, merges these overrides in (None\nfields leave the daemon value untouched; Some fields\nreplace it), and pushes the result back via `SetConfig`.\nThe daemon's on-disk file is NOT touched; a notify-driven\nor manual `ReloadConfig` reverts to the file.",
@@ -1083,6 +1088,15 @@
       "default": null,
       "description": "Pane id to attach to. Mutually exclusive with\n`session_name`; if both set, `pane` wins. Use this when\nreconnecting to a known long-lived pane.",
       "type": "nullOrStr"
+    },
+    "pane_fate": {
+      "default": "edge",
+      "description": "When the window reads the displayed pane's fate (exited, deleted or running). edge reads it when the pane's byte stream ends, which tear signals on exit and on kill, plus a backstop every fate_backstop_secs; poll reads it on every idle event-loop tick, one get_pane RPC per tick, as before tear PERFORMANCE R10.",
+      "type": "enum",
+      "values": [
+        "edge",
+        "poll"
+      ]
     },
     "runtime": {
       "default": "embedded",

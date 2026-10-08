@@ -176,6 +176,17 @@
             default = "auto_switch";
             description = "Auto-attach-on-cd (praca automation): when the displayed session cds into a different project — off = never move the pane (Rust default); auto_switch = switch to that project's session, spawning one if needed (fleet default); suggest = surface the decision, never move the pane. Requires session_switching = true.";
           };
+          pane_fate = {
+            type    = "enum";
+            values  = [ "edge" "poll" ];
+            default = "edge";
+            description = "When the window reads the displayed pane's fate: edge = when its byte stream ends (tear ends it on exit and on kill) plus a backstop every fate_backstop_secs; poll = on every idle event-loop tick, one get_pane RPC per tick, as before tear PERFORMANCE R10.";
+          };
+          fate_backstop_secs = {
+            type = "int";
+            default = 30;
+            description = "Under pane_fate = edge, seconds between backstop reads of the displayed pane's fate while its stream stays open. 0 turns the backstop off.";
+          };
         };
 
         # Performance / pacing — null fields defer to garasu::adaptive.

@@ -70,7 +70,7 @@ impl Consumer for RecordingConsumer {
 type LiveAttach = Attach<engate_types::Live, PaneProducer, RecordingConsumer>;
 
 fn attach_to(inproc: &Arc<InProcess>, pane: PaneId, model: RecordingConsumer) -> LiveAttach {
-    let producer = PaneProducer::new(Arc::clone(inproc), pane);
+    let producer = PaneProducer::new(Arc::clone(inproc), pane, std::task::Waker::noop().clone());
     let attach = Attach::builder().producer(producer).consumer(model).build();
     let (attach, history) = attach.subscribe().expect("subscribe");
     let attach = attach.replay(history).expect("replay");

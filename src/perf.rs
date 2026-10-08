@@ -125,7 +125,7 @@ pub static TEAR_WRITE_FAILURES: TearWrites = Family::new();
 static TEAR_WRITE_LOGGED_AT: TearWriteLogSlots = [const { AtomicU64::new(0) }; TearWrite::COUNT];
 const TEAR_WRITE_LOG_EVERY_NS: u64 = 1_000_000_000;
 pub static PARSED_BYTES: Counter = Counter::new();
-pub static STREAM_QUEUE: StreamQueue = StreamQueue::new();
+pub static DRAINED_PER_WAKE: Gauge = Gauge::new();
 
 static CLOCK: OnceLock<Instant> = OnceLock::new();
 static RENDER: RenderMetrics = RenderMetrics::new();
@@ -447,58 +447,51 @@ pub fn render_metrics() -> &'static RenderMetrics {
     &RENDER
 }
 
-#[derive(Debug, Default)]
-pub struct StreamQueue {
-    items: Gauge,
-    bytes: Gauge,
-    relayed_per_wake: Gauge,
+#[must_use]
+pub fn window_bell(window: std::task::Waker) -> std::task::Waker {
+    #[cfg(feature = "bench-probes")]
+    return faults::bell_for(window, faults::armed().contains(&faults::Fault::WakeOff));
+    #[cfg(not(feature = "bench-probes"))]
+    window
 }
 
-impl StreamQueue {
+#[cfg(feature = "bench-probes")]
+pub mod faults {
+    use std::sync::OnceLock;
+
+    pub use tear_types::probes::{FAULTS_ENV, Fault, FaultList};
+
     #[must_use]
-    pub const fn new() -> Self {
-        Self {
-            items: Gauge::new(),
-            bytes: Gauge::new(),
-            relayed_per_wake: Gauge::new(),
+    pub fn from_list(list: &str) -> Vec<Fault> {
+        let list = FaultList::parse(list);
+        for entry in &list.refused {
+            tracing::warn!(entry = %entry, "{FAULTS_ENV}: names no fault and was ignored");
+        }
+        list.faults
+    }
+
+    #[must_use]
+    pub fn armed() -> &'static [Fault] {
+        static ARMED: OnceLock<Vec<Fault>> = OnceLock::new();
+        ARMED.get_or_init(|| {
+            std::env::var(FAULTS_ENV)
+                .map(|v| from_list(&v))
+                .unwrap_or_default()
+        })
+    }
+
+    #[must_use]
+    pub fn bell_for(window: std::task::Waker, wake_off: bool) -> std::task::Waker {
+        if wake_off {
+            std::task::Waker::noop().clone()
+        } else {
+            window
         }
     }
 
     #[must_use]
-    pub fn items(&self) -> &Gauge {
-        &self.items
-    }
-
-    #[must_use]
-    pub fn bytes(&self) -> &Gauge {
-        &self.bytes
-    }
-
-    #[must_use]
-    pub fn relayed_per_wake(&self) -> &Gauge {
-        &self.relayed_per_wake
-    }
-}
-
-#[derive(Debug)]
-pub struct QueueTicket {
-    queue: &'static StreamQueue,
-    bytes: i64,
-}
-
-impl QueueTicket {
-    pub fn enter(queue: &'static StreamQueue, bytes: usize) -> Self {
-        let bytes = i64::try_from(bytes).unwrap_or(i64::MAX);
-        queue.items.inc();
-        queue.bytes.add(bytes);
-        Self { queue, bytes }
-    }
-}
-
-impl Drop for QueueTicket {
-    fn drop(&mut self) {
-        self.queue.items.dec();
-        self.queue.bytes.sub(self.bytes);
+    pub fn report() -> serde_json::Value {
+        serde_json::Value::from(armed().iter().map(|f| f.name()).collect::<Vec<_>>())
     }
 }
 
@@ -508,7 +501,7 @@ pub fn frame_perf() -> serde_json::Value {
         LAST_FRAME_RECTS, LAST_FRAME_SHAPE_CACHE, LAST_FRAME_TEXT, LAST_FRAME_US, TOTAL_FRAMES,
         TOTAL_FRAMES_SKIPPED, TOTAL_LATE_IDLE_PAINTS,
     };
-    serde_json::json!({
+    let perf = serde_json::json!({
         "last_frame_us": LAST_FRAME_US.load(Ordering::Relaxed),
         "last_frame_rects": LAST_FRAME_RECTS.load(Ordering::Relaxed),
         "last_frame_text": LAST_FRAME_TEXT.load(Ordering::Relaxed),
@@ -523,12 +516,8 @@ pub fn frame_perf() -> serde_json::Value {
         "tear_write_failures": &TEAR_WRITE_FAILURES,
         "tear_write_failures_total": TEAR_WRITE_FAILURES.total(),
         "queues": {
-            "stream_watch": {
-                "items": STREAM_QUEUE.items(),
-                "bytes": STREAM_QUEUE.bytes(),
-            },
-            "subscribe_relay": {
-                "relayed_per_wake": STREAM_QUEUE.relayed_per_wake(),
+            "subscribe": {
+                "drained_per_wake": &DRAINED_PER_WAKE,
             },
         },
         "parse": {
@@ -540,7 +529,14 @@ pub fn frame_perf() -> serde_json::Value {
             "byte_to_present": RENDER.latency().byte_to_present(),
         },
         "histograms": RENDER.histograms(),
-    })
+    });
+    #[cfg(feature = "bench-probes")]
+    let perf = {
+        let mut perf = perf;
+        perf["bench_faults"] = faults::report();
+        perf
+    };
+    perf
 }
 
 #[cfg(test)]
@@ -687,19 +683,6 @@ mod tests {
     }
 
     #[test]
-    fn a_queue_ticket_holds_its_depth_until_dropped() {
-        let q: &'static StreamQueue = Box::leak(Box::new(StreamQueue::new()));
-        let a = QueueTicket::enter(q, 10);
-        let b = QueueTicket::enter(q, 5);
-        assert_eq!((q.items().get(), q.bytes().get()), (2, 15));
-        drop(a);
-        assert_eq!((q.items().get(), q.bytes().get()), (1, 5));
-        drop(b);
-        assert_eq!((q.items().get(), q.bytes().get()), (0, 0));
-        assert_eq!(q.items().peak(), 2);
-    }
-
-    #[test]
     fn a_failed_tear_write_is_counted_every_time_and_logged_at_most_once_a_second() {
         let before = TEAR_WRITE_FAILURES.get(TearWrite::Resize);
         let err = tear_types::ControlError::Transport("lost".into());
@@ -756,15 +739,43 @@ mod tests {
         }
         assert!(v["parse"]["ui_bytes_per_tick"]["count"].is_u64());
         assert!(v["parse"]["bytes_total"].is_u64());
-        assert!(v["queues"]["stream_watch"]["items"]["value"].is_i64());
-        assert!(v["queues"]["subscribe_relay"]["relayed_per_wake"]["peak"].is_i64());
+        assert!(v["queues"]["subscribe"]["drained_per_wake"]["peak"].is_i64());
+    }
+
+    #[cfg(feature = "bench-probes")]
+    #[test]
+    fn the_wake_off_fault_hands_out_a_bell_that_rings_nothing_and_refuses_only_unknown_names() {
+        use super::faults::{Fault, bell_for, from_list};
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        struct Count(AtomicUsize);
+        impl std::task::Wake for Count {
+            fn wake(self: Arc<Self>) {
+                self.0.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+        assert_eq!(from_list("bogus, wake-off,,"), vec![Fault::WakeOff]);
+        let rung = Arc::new(Count(AtomicUsize::new(0)));
+        let window = std::task::Waker::from(Arc::clone(&rung));
+        bell_for(window.clone(), true).wake();
+        assert_eq!(rung.0.load(Ordering::SeqCst), 0, "wake-off rings nothing");
+        bell_for(window, false).wake();
+        assert_eq!(
+            rung.0.load(Ordering::SeqCst),
+            1,
+            "the clean bell is the window's"
+        );
+        assert!(
+            frame_perf()["bench_faults"].is_array(),
+            "a bench build reports what it armed"
+        );
     }
 
     const UI_SOURCES: &[&str] = &[
         "src/gui_tear_attach.rs",
         "src/session_picker.rs",
         "src/auto_attach.rs",
-        "src/stream_watch.rs",
+        "src/pane_stream.rs",
         "src/praca_store.rs",
     ];
     const UI_DIRS: &[&str] = &["src/ux", "src/picker"];

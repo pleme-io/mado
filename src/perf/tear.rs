@@ -59,8 +59,12 @@ impl Counted<tear_core::InProcess> {
     }
 
     #[must_use]
-    pub fn producer(&self, pane: PaneId) -> tear_core::engate_producer::PaneProducer {
-        tear_core::engate_producer::PaneProducer::new(Arc::clone(&self.inner), pane)
+    pub fn producer(
+        &self,
+        pane: PaneId,
+        waker: std::task::Waker,
+    ) -> tear_core::engate_producer::PaneProducer {
+        tear_core::engate_producer::PaneProducer::new(Arc::clone(&self.inner), pane, waker)
     }
 }
 
@@ -81,8 +85,12 @@ impl Counted<tear_client::Client> {
     }
 
     #[must_use]
-    pub fn producer(&self, pane: PaneId) -> tear_client::engate_producer::PaneProducer {
-        tear_client::engate_producer::PaneProducer::new(Arc::clone(&self.inner), pane)
+    pub fn producer(
+        &self,
+        pane: PaneId,
+        waker: std::task::Waker,
+    ) -> tear_client::engate_producer::PaneProducer {
+        tear_client::engate_producer::PaneProducer::new(Arc::clone(&self.inner), pane, waker)
     }
 }
 

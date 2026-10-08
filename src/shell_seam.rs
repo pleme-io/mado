@@ -175,7 +175,11 @@ impl Seam {
         // the shell paints its first prompt, so the startup CPR flows
         // through the sink exactly as it does in production.
         let attach = Attach::builder()
-            .producer(PaneProducer::new(Arc::clone(&inproc), pane))
+            .producer(PaneProducer::new(
+                Arc::clone(&inproc),
+                pane,
+                std::task::Waker::noop().clone(),
+            ))
             .consumer(consumer)
             .build();
         let (attach, history) = attach.subscribe().expect("engate.subscribe");

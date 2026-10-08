@@ -26,9 +26,9 @@
 //! (daemon mode) is a one-line config branch in `gui_tear_attach`;
 //! the Consumer impl below is identical for both.
 
-use std::marker::PhantomData;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::task::Waker;
 
 use engate_attach::Consumer;
 use parking_lot::RwLock;
@@ -99,38 +99,27 @@ impl ProbeCounters {
 /// Now also owns a `ResponseWriter` callback: after every `feed`
 /// the VT response queue is drained and pushed back through the
 /// writer. Shells that send DSR/DA/OSC queries get answers.
-pub struct TerminalSink<I = Vec<u8>> {
+pub struct TerminalSink {
     inner: Arc<RwLock<Terminal>>,
     writer: ResponseWriter,
     probes: Arc<ProbeCounters>,
-    item: PhantomData<fn(I)>,
+    bell: Option<Waker>,
 }
 
-pub trait Chunk: Send + 'static {
-    fn into_parts(self) -> (Vec<u8>, Option<u64>);
-}
-
-impl Chunk for Vec<u8> {
-    fn into_parts(self) -> (Vec<u8>, Option<u64>) {
-        (self, None)
-    }
-}
-
-impl Chunk for crate::stream_watch::Stamped<Vec<u8>> {
-    fn into_parts(self) -> (Vec<u8>, Option<u64>) {
-        let (bytes, at) = crate::stream_watch::Stamped::into_parts(self);
-        (bytes, Some(at))
-    }
-}
-
-impl TerminalSink<crate::stream_watch::Stamped<Vec<u8>>> {
+impl TerminalSink {
     #[must_use]
-    pub fn stamped(terminal: Arc<RwLock<Terminal>>, writer: ResponseWriter) -> Self {
+    pub fn live(terminal: Arc<RwLock<Terminal>>, writer: ResponseWriter) -> Self {
         Self::build(terminal, writer, Arc::new(ProbeCounters::default()))
     }
-}
 
-impl<I> TerminalSink<I> {
+    #[must_use]
+    pub fn ringing(terminal: Arc<RwLock<Terminal>>, writer: ResponseWriter, bell: Waker) -> Self {
+        Self {
+            bell: Some(bell),
+            ..Self::live(terminal, writer)
+        }
+    }
+
     fn build(
         terminal: Arc<RwLock<Terminal>>,
         writer: ResponseWriter,
@@ -140,7 +129,7 @@ impl<I> TerminalSink<I> {
             inner: terminal,
             writer,
             probes,
-            item: PhantomData,
+            bell: None,
         }
     }
 
@@ -186,7 +175,7 @@ impl TerminalSink {
     }
 }
 
-impl<I> TerminalSink<I> {
+impl TerminalSink {
     /// Helper: feed bytes + drain any VT response back through
     /// the writer in one atomic step. Used by `consume` + `replay`.
     /// Feed bytes that arrived LIVE from the pty, and answer any query in
@@ -253,8 +242,8 @@ impl<I> TerminalSink<I> {
     }
 }
 
-impl<I: Chunk> Consumer for TerminalSink<I> {
-    type Item = I;
+impl Consumer for TerminalSink {
+    type Item = Vec<u8>;
     type Snap = PaneSnapshotWrap;
 
     fn replay(&mut self, snapshot: Self::Snap) {
@@ -270,8 +259,11 @@ impl<I: Chunk> Consumer for TerminalSink<I> {
     fn consume(&mut self, item: Self::Item) {
         // Live items are raw PTY bytes (or, in embedded mode, the
         // bytes the InProcess::subscribe_pane_bytes channel emits).
-        let (bytes, received_at) = item.into_parts();
-        self.feed_and_answer(&bytes, received_at);
+        let received_at = self.bell.as_ref().map(|_| crate::perf::now_ns());
+        self.feed_and_answer(&item, received_at);
+        if let Some(bell) = &self.bell {
+            bell.wake_by_ref();
+        }
     }
 }
 

@@ -39,8 +39,6 @@ use crate::session_switch::SwitchRequests;
 use crate::tear_discovery::{DiscoveryOutcome, discover};
 use crate::terminal::{Color as TermColor, Terminal};
 
-type LiveSink = crate::engate_consumer::TerminalSink<crate::stream_watch::Stamped<Vec<u8>>>;
-
 /// The pane the per-pane closures (input/resize/response/cursor-keys)
 /// currently target.
 ///
@@ -82,22 +80,19 @@ impl CurrentPane {
 /// when `tear.session_switching = true`. `None` everywhere else, so
 /// the legacy path constructs + branches on nothing new.
 ///
-/// Generic over the engate Producer `P` so a switch can rebuild the
-/// producer→terminal pump against a fresh pane: `build_producer` is
-/// the same constructor the initial attach used (`PaneProducer::new`
-/// closed over the control plane), parameterized by pane id.
-struct SwitchDriver<P> {
+/// A switch rebuilds the producer→terminal pump against a fresh pane
+/// with the same producer constructor the initial attach used.
+struct SwitchDriver {
     /// The shared switch-request channel the kanshou `switch_session`
-    /// leaf posts to. Polled once per event-loop tick.
+    /// leaf posts to. Serviced on every wake and redraw.
     requests: SwitchRequests,
     /// The shared current-pane cell the closures read. A switch writes
     /// the new pane here so input/resize/response/cursor-keys re-target
     /// without rebuilding the closures.
     current: Arc<RwLock<PaneId>>,
-    /// Rebuilds the engate Producer for a given pane (the same
-    /// `PaneProducer::new(control, pane)` shape the first attach used).
-    build_producer: Box<dyn Fn(PaneId) -> P + Send>,
 }
+
+type ProducerFor<P> = Box<dyn Fn(PaneId, std::task::Waker) -> P + Send>;
 
 /// Result of attempting to start mado in default tear-attached mode.
 pub enum TearDefaultOutcome {
@@ -478,8 +473,6 @@ fn next_live_pane(sessions: &[tear_types::TearSession], exclude: PaneId) -> Opti
         .map(|p| p.id)
 }
 
-const REATTACH_BACKOFF: std::time::Duration = std::time::Duration::from_millis(500);
-
 fn stream_lost_but_pane_runs(control: &dyn tear_types::MultiplexerControl, cur: PaneId) -> bool {
     matches!(
         control.get_pane(cur),
@@ -549,8 +542,26 @@ fn displayed_pane_fate(
     }
 }
 
+fn pump_displayed<P>(
+    stream: &mut crate::pane_stream::PaneStream<P>,
+    fate: &mut crate::pane_stream::FateWatch,
+    control: &dyn tear_types::MultiplexerControl,
+    cur: PaneId,
+    now: std::time::Instant,
+) -> DisplayedPaneFate
+where
+    P: engate_attach::Producer<Item = Vec<u8>, Snap = tear_types::engate_wrap::PaneSnapshotWrap>,
+{
+    let drained = stream.drain(crate::pane_stream::DRAIN_BUDGET);
+    if fate.due(drained, now) {
+        displayed_pane_fate(control, cur)
+    } else {
+        DisplayedPaneFate::Keep
+    }
+}
+
 fn run_against_pane_unified<P, C>(
-    producer: P,
+    producer_for: ProducerFor<P>,
     control: Arc<crate::perf::Counted<C>>,
     pane_id: PaneId,
     snapshot_cols: usize,
@@ -560,13 +571,14 @@ fn run_against_pane_unified<P, C>(
     title_kind: &str,
     injected: Option<crate::action_injection::InjectedActions>,
     reload: Option<crate::ux::ConfigReloadSource>,
-    // Runtime re-attach machinery. `None` (default,
-    // `tear.session_switching = false`) = the legacy one-shot path:
-    // the engate pump runs on its own thread, the closures target one
-    // fixed pane, no switch poll. `Some` = the switchable path: the
-    // pump is polled in the event loop so it can be torn down + rebuilt
-    // against a new pane on demand.
-    switch: Option<SwitchDriver<P>>,
+    // Runtime re-attach machinery. `None` (`tear.session_switching =
+    // false`, or a window that owns its daemon session) = the legacy
+    // one-shot path: the engate pump runs on its own thread, the
+    // closures target one fixed pane, no switch poll. `Some` = the
+    // switchable path: the pump is drained in the event loop on every
+    // wake and redraw so it can be torn down + rebuilt against a new
+    // pane on demand.
+    switch: Option<SwitchDriver>,
     // Auto-attach-on-cd driver. `None` (default, `tear.auto_attach =
     // Off` OR `session_switching = false`) = no auto-attach; the
     // displayed pane's cwd is never observed and nothing moves. `Some`
@@ -734,6 +746,8 @@ where
                 );
             }
         });
+    let mut window = madori::App::builder(renderer);
+    let bell = crate::perf::window_bell(window.waker());
     // The engate Live-attach builder, factored so the switchable path
     // can rebuild it against a fresh pane. `response_writer` is an
     // `Arc` (clone-cheap) so each rebuilt consumer shares the same
@@ -741,26 +755,20 @@ where
     // rebuilt attach feeds the SAME renderer-visible terminal (after a
     // `reset()` clears the prior pane's grid).
     let terminal_for_attach = Arc::clone(&terminal);
-    let build_attach_live = move |producer: P,
-                                  response_writer: crate::engate_consumer::ResponseWriter|
-          -> Result<(
-        engate_attach::Attach<engate_types::Live, crate::stream_watch::StreamWatch<P>, LiveSink>,
-        crate::stream_watch::StreamEnded,
-    )> {
-        let (producer, ended) = crate::stream_watch::StreamWatch::new(producer);
-        let consumer = LiveSink::stamped(Arc::clone(&terminal_for_attach), response_writer);
-        let attach_builder = engate_attach::Attach::builder()
-            .producer(producer)
-            .consumer(consumer)
-            .build();
-        let (attach_subscribed, history) =
-            attach_builder.subscribe().context("engate.subscribe")?;
-        let attach_synced = attach_subscribed.replay(history).context("engate.replay")?;
-        Ok((attach_synced.start_live(), ended))
+    let bell_for_attach = bell.clone();
+    let attach_stream = move |producer_for: &ProducerFor<P>,
+                              pane: PaneId,
+                              response_writer: crate::engate_consumer::ResponseWriter|
+          -> Result<crate::pane_stream::PaneStream<P>> {
+        crate::pane_stream::PaneStream::attach(
+            |waker| producer_for(pane, waker),
+            &crate::perf::UI_TEAR_CALLS,
+            Arc::clone(&terminal_for_attach),
+            response_writer,
+            &bell_for_attach,
+        )
+        .context("engate attach")
     };
-
-    let (attach_live, first_ended) = build_attach_live(producer, Arc::clone(&response_writer))?;
-    crate::perf::log_phase("pane_subscribed");
 
     // Shell-exit detection: when the engate Producer's bytes channel
     // closes (= tear pane dropped = child PTY EOF), `attach_live.run()`
@@ -773,37 +781,37 @@ where
 
     // ── Attach drive mode ─────────────────────────────────────────
     //   * legacy (switch.is_none()): the engate pump runs on its own
-    //     thread with the blocking `run()` — byte-identical to today.
+    //     thread with the blocking `run()`, and rings the window after
+    //     each chunk it feeds and when the stream ends.
     //   * switchable (switch.is_some()): the pump lives in a cell the
-    //     event loop polls via `poll_one()`, so a switch can drop it +
-    //     rebuild it against a new pane WITHOUT killing the old pane's
-    //     subscriber (dropping the cell unsubscribes; it does not EOF
-    //     the PTY).
-    let mut live_cell: Option<
-        engate_attach::Attach<engate_types::Live, crate::stream_watch::StreamWatch<P>, LiveSink>,
-    > = None;
-    let mut live_ended: Option<crate::stream_watch::StreamEnded> = None;
+    //     event loop drains on every wake and redraw, so a switch can
+    //     drop it + rebuild it against a new pane WITHOUT killing the
+    //     old pane's subscriber (dropping the cell unsubscribes; it does
+    //     not EOF the PTY).
+    let mut live_cell: Option<crate::pane_stream::PaneStream<P>> = None;
     if switch.is_none() {
-        let child_exited_engate = Arc::clone(&child_exited);
-        let title_kind_owned: String = title_kind.to_owned();
-        let _attach_thread = std::thread::Builder::new()
-            .name(format!("mado-engate-live-{title_kind}"))
-            .spawn(move || {
-                let _consumer = attach_live.run();
-                tracing::info!(
-                    kind = %title_kind_owned,
-                    pane = ?pane_id,
-                    "engate channel closed — child PTY EOF, signalling window exit"
-                );
-                child_exited_engate.store(true, Ordering::Release);
-            })
-            .ok();
+        crate::pane_stream::spawn_feeder(
+            producer_for(pane_id, std::task::Waker::noop().clone()),
+            &crate::perf::UI_TEAR_CALLS,
+            Arc::clone(&terminal),
+            Arc::clone(&response_writer),
+            bell.clone(),
+            Arc::clone(&child_exited),
+            format!("mado-engate-live-{title_kind}"),
+        )?;
     } else {
-        // Switchable path: keep the attach in the cell; the event loop
-        // pumps it with `poll_one()` every tick.
-        live_cell = Some(attach_live);
-        live_ended = Some(first_ended);
+        live_cell = Some(attach_stream(
+            &producer_for,
+            pane_id,
+            Arc::clone(&response_writer),
+        )?);
     }
+    crate::perf::log_phase("pane_subscribed");
+    let mut fate = crate::pane_stream::FateWatch::new(
+        config.tear.pane_fate,
+        config.tear.fate_backstop_secs,
+        std::time::Instant::now(),
+    );
 
     // Initial size-sync: push pane_resize_absolute BEFORE the event
     // loop so tear's default 80×24 doesn't briefly hold while the
@@ -929,7 +937,7 @@ where
     );
     let terminal_for_side_effects = Arc::clone(&terminal);
     let mut engine = crate::ux::InputEngine::attach_to_renderer(
-        &mut renderer,
+        window.renderer_mut(),
         crate::ux::InputEngineParams {
             terminal: Arc::clone(&terminal),
             pty: pty_sink,
@@ -954,20 +962,14 @@ where
 
     // ── Switchable-attach loop state ──────────────────────────────
     // Destructure the switch driver into the pieces the event loop
-    // owns: the request channel (polled per tick), the current-pane
-    // cell (re-pointed on switch), the producer factory (rebuilds the
-    // pump for the new pane), the live attach cell (`live_cell`,
-    // pumped via poll_one + replaced on switch), and the shared
-    // terminal (reset on switch to clear the prior pane's grid).
-    // `None` on the legacy path — the closure branches on nothing.
+    // owns: the request channel (serviced on every wake and redraw),
+    // the current-pane cell (re-pointed on switch), the live attach
+    // cell (`live_cell`, drained on every wake and redraw + replaced on
+    // switch), and the shared terminal (reset on switch to clear the
+    // prior pane's grid). `None` on the legacy path — the closure
+    // branches on nothing.
     let switch_requests = switch.as_ref().map(|sw| sw.requests.clone());
-    let (current_pane_for_switch, build_producer) = match switch {
-        Some(sw) => (
-            Some(CurrentPane::Shared(sw.current)),
-            Some(sw.build_producer),
-        ),
-        None => (None, None),
-    };
+    let current_pane_for_switch = switch.map(|sw| CurrentPane::Shared(sw.current));
     // Register THIS loop as the switch drainer iff switching is on, so
     // the kanshou `switch_session` leaf answers `switching-disabled`
     // anywhere else (mirrors the InjectedActions::attach_sink gate).
@@ -978,14 +980,13 @@ where
     let response_writer_for_switch = Arc::clone(&response_writer);
     let terminal_for_switch = Arc::clone(&terminal);
     let mut live_cell = live_cell;
-    let mut live_ended = live_ended;
     let mut last_reattach = std::time::Instant::now();
 
     // Frame pacing — and THIS is the site that actually costs the operator:
     // the embedded-tear window is the default render mode. Full reasoning and
     // the madori-side API at the twin builder in main.rs; `effective_fps` is
     // resolved above via `config.performance.resolve_target_fps(None)`.
-    madori::App::builder(renderer)
+    window
         .target_fps(effective_fps)
         .config(app_config)
         // Wayland `app_id` / X11 `WM_CLASS` — see the twin builder in
@@ -993,6 +994,7 @@ where
         // (default render mode) matches the launcher too.
         .app_id("mado")
         .on_event(crate::perf::ui_dispatch(move |event, renderer| -> EventResponse {
+            let woke = matches!(event, AppEvent::RedrawRequested);
             // ── Auto-attach-on-cd (the headline praça automation) ──
             // BEFORE servicing the switch channel: observe the displayed
             // terminal's OSC-7 cwd. On an actual cross-project change the
@@ -1004,7 +1006,7 @@ where
             // driver and branches on nothing. Reading the cwd is a cheap
             // RwLock read + (when unchanged) one string compare — no
             // praca/registry/fs work on the common no-change tick.
-            if let Some(driver) = auto_attach.as_mut() {
+            if woke && let Some(driver) = auto_attach.as_mut() {
                 let displayed_cwd =
                     terminal_for_switch.read().cwd().map(str::to_owned);
                 let now = crate::auto_attach::now_unix_seconds();
@@ -1049,18 +1051,18 @@ where
                 }
             }
             // ── Runtime session switch (tear.session_switching) ──
-            // Poll the switch channel + pump the switchable attach.
+            // Service the switch channel + drain the switchable attach.
             // The whole block is gated on `switch_requests.is_some()`
             // — the legacy one-shot loop never enters it (the engate
             // pump runs on its own thread there). Order matters:
             // service a pending switch FIRST (so the rest of this tick
             // already reads the new pane), then drain the new pane's
-            // bytes via poll_one.
-            if let Some(reqs) = switch_requests.as_ref() {
-                let reattach = if live_ended
+            // bytes.
+            if woke && let Some(reqs) = switch_requests.as_ref() {
+                let reattach = if live_cell
                     .as_ref()
-                    .is_some_and(crate::stream_watch::StreamEnded::is_set)
-                    && last_reattach.elapsed() >= REATTACH_BACKOFF
+                    .is_some_and(crate::pane_stream::PaneStream::ended)
+                    && last_reattach.elapsed() >= crate::pane_stream::REATTACH_BACKOFF
                 {
                     last_reattach = std::time::Instant::now();
                     current_pane_for_switch
@@ -1097,95 +1099,85 @@ where
                         // 4. Build a fresh engate pump for the new pane
                         //    + replay its current grid into the cleared
                         //    terminal, then keep pumping it.
-                        match build_producer.as_ref() {
-                            Some(factory) => {
-                                let producer = factory(target);
-                                match build_attach_live(
-                                    producer,
-                                    Arc::clone(&response_writer_for_switch),
-                                ) {
-                                    Ok((new_live, ended)) => {
-                                        live_cell = Some(new_live);
-                                        live_ended = Some(ended);
-                                        // Size-sync the new pane to the
-                                        // window's current grid so it
-                                        // doesn't briefly hold tear's
-                                        // 80×24 default (the reconciler
-                                        // below also converges, but this
-                                        // makes the first frame correct).
-                                        let (c, r) = {
-                                            let t = terminal_for_switch.read();
-                                            (t.cols() as u16, t.rows() as u16)
-                                        };
-                                        if let Err(e) = control_for_switch
-                                            .pane_resize_absolute(target, c.max(1), r.max(1))
-                                        {
-                                            crate::perf::tear_write_failed(
-                                                crate::perf::TearWrite::Resize,
-                                                target,
-                                                0,
-                                                &e,
-                                            );
-                                        }
-                                        tracing::info!(
-                                            from = ?from,
-                                            to = ?target,
-                                            "session switch: re-attached displayed pane"
-                                        );
-                                    }
-                                    Err(e) => {
-                                        tracing::warn!(
-                                            error = %e,
-                                            to = ?target,
-                                            "session switch: rebuild attach failed; staying on prior pane state"
-                                        );
-                                        // Leave live_cell as-is (now
-                                        // None after the move attempt);
-                                        // closures already re-pointed —
-                                        // input still reaches the target
-                                        // pane, just no live render pump.
-                                    }
+                        match attach_stream(
+                            &producer_for,
+                            target,
+                            Arc::clone(&response_writer_for_switch),
+                        ) {
+                            Ok(stream) => {
+                                live_cell = Some(stream);
+                                // Size-sync the new pane to the
+                                // window's current grid so it
+                                // doesn't briefly hold tear's
+                                // 80×24 default (the reconciler
+                                // below also converges, but this
+                                // makes the first frame correct).
+                                let (c, r) = {
+                                    let t = terminal_for_switch.read();
+                                    (t.cols() as u16, t.rows() as u16)
+                                };
+                                if let Err(e) = control_for_switch
+                                    .pane_resize_absolute(target, c.max(1), r.max(1))
+                                {
+                                    crate::perf::tear_write_failed(
+                                        crate::perf::TearWrite::Resize,
+                                        target,
+                                        0,
+                                        &e,
+                                    );
                                 }
-                            }
-                            None => {
-                                tracing::warn!(
-                                    "session switch requested but no producer factory; ignoring"
+                                tracing::info!(
+                                    from = ?from,
+                                    to = ?target,
+                                    "session switch: re-attached displayed pane"
                                 );
+                            }
+                            Err(e) => {
+                                tracing::warn!(
+                                    error = %e,
+                                    to = ?target,
+                                    "session switch: rebuild attach failed; staying on prior pane state"
+                                );
+                                // The cell is emptied; closures already
+                                // re-pointed — input still reaches the
+                                // target pane, just no live render pump.
+                                live_cell = None;
                             }
                         }
                     }
                 }
-                // Pump the switchable attach: drain whatever the current
-                // pane produced since the last tick. Bounded so a noisy
-                // pane can't starve the event loop (matches the
-                // embedded_engate_smoke bounded-poll shape).
+                // Drain the switchable attach: whatever the current pane
+                // produced since the last wake. Bounded so a noisy pane
+                // can't starve the event loop; a drain that hits the
+                // bound rings the window again for the rest.
                 if let Some(live) = live_cell.as_mut() {
-                    let mut drained = 0u32;
-                    while drained < 4096 && live.poll_one() {
-                        drained += 1;
-                    }
                     // ── Reap-on-exit + auto-switch ───────────────────
                     // tear marks an exited pane `Exited` but KEEPS it
                     // (tmux remain-on-exit), so a shell that exits would
                     // otherwise STICK on screen and linger in the Ctrl-S
-                    // list. Only checked on an IDLE tick (a dead pane
-                    // produces no bytes, so `drained == 0`) to avoid a
-                    // per-frame registry read. When the displayed pane's
+                    // list. The fate is read when the pane's byte stream
+                    // ends — tear ends it on exit and on kill — plus a
+                    // backstop every `tear.fate_backstop_secs`, so an
+                    // idle window makes no registry read;
+                    // `tear.pane_fate: poll` reads it on every idle tick
+                    // as before (`FateWatch`). When the displayed pane's
                     // session ENDS — its shell exited, or it was deleted out
                     // from under the window (Ctrl-S Ctrl-D, MCP) — reap what
                     // is left of it (→ gone from the picker) and auto-switch
                     // to another live pane, or close the window if none
                     // remain. The decision is `displayed_pane_fate`.
-                    if drained == 0
-                        && let (Some(cp), Some(reqs)) = (
-                            current_pane_for_switch.as_ref(),
-                            switch_requests.as_ref(),
-                        )
-                    {
+                    if let (Some(cp), Some(reqs)) = (
+                        current_pane_for_switch.as_ref(),
+                        switch_requests.as_ref(),
+                    ) {
                         let cur = cp.get();
-                        if let DisplayedPaneFate::Leave { reap, next } =
-                            displayed_pane_fate(&*control_for_switch, cur)
-                        {
+                        if let DisplayedPaneFate::Leave { reap, next } = pump_displayed(
+                            live,
+                            &mut fate,
+                            &*control_for_switch,
+                            cur,
+                            std::time::Instant::now(),
+                        ) {
                             if let Some(sid) = reap {
                                 let _ = control_for_switch.kill_session(sid);
                                 tracing::info!(
@@ -1220,11 +1212,13 @@ where
             // The latch retries until a window exists: the first event
             // ticks can arrive before AppKit registers the window, and
             // a fire-once call would leave the stock titlebar up.
-            native_styling.tick();
+            if woke {
+                native_styling.tick();
+            }
             // ── PTY-grid ⇄ display reconciler ────────────────────
             // Engine-owned latch on the RENDERED surface signature
-            // (dims + measured cell metrics), run on every event tick
-            // (pre-M1 timing preserved). Covers (a) the pre-window
+            // (dims + measured cell metrics), run on every wake and
+            // redraw. Covers (a) the pre-window
             // estimate being wrong — heuristic cell metrics, and a
             // Flush titlebar insets the content view while macOS
             // sends no initial Resized to correct it (the 2026-06-11
@@ -1234,12 +1228,14 @@ where
             // halves: mado's mirror VT grid (wrap math, CPR/XTWINOPS
             // answers, mouse clamps) and tear's PaneGrid+PTY — the
             // mirror half was missing entirely in tear mode.
-            engine.on_redraw_tick(renderer);
+            if woke {
+                engine.on_redraw_tick(renderer);
+            }
             // ── Watched-config delta (M4 stage 2) ────────────────
             // Same per-frame poll the local-PTY adapter runs: dirty
             // flag → typed SetterCall diff → only the changed
             // renderer setters fire.
-            if let Some(hr) = hot_reload.as_mut() {
+            if woke && let Some(hr) = hot_reload.as_mut() {
                 // A reload touching titlebar/appearance chrome
                 // un-latches `native_styling` so the next tick moves
                 // the NSWindow backing too, not just the canvas —
@@ -1266,7 +1262,7 @@ where
             // `match event` below, and fold the title into the event's
             // own response (the event wins on consumed/exit; the title
             // rides along on an otherwise-untouched field).
-            let drained_title = {
+            let drained_title = if woke {
                 let effects = terminal_for_side_effects.write().drain_side_effects();
                 crate::ux::apply_side_effects(
                     effects,
@@ -1274,13 +1270,15 @@ where
                     &*side_effect_clipboard,
                     &mut notify_center,
                 )
+            } else {
+                None
             };
             // ── Elegant child-exit close ──────────────────────
             // engate signalled the producer channel closed (shell
-            // exited / PTY EOF). Request a clean window-loop exit
-            // on the next event tick. Reap the owned tear session
+            // exited / PTY EOF) and rang the window. Request a clean
+            // window-loop exit on that wake. Reap the owned tear session
             // too so we don't leak the multiplexer entry.
-            if child_exited_for_events.load(Ordering::Acquire) {
+            if woke && child_exited_for_events.load(Ordering::Acquire) {
                 if let Ok(mut slot) = session_reap.lock() {
                     if let Some(sid) = slot.take() {
                         let _ = control_for_reap.kill_session(sid);
@@ -1295,16 +1293,16 @@ where
 
             // ── kanshou-injected actions (`simulate_chord`) ──────
             // Drain BEFORE the event match so injected actions
-            // dispatch on the very next loop tick (madori runs
-            // ControlFlow::Poll and emits RedrawRequested every
-            // frame — worst-case latency is one frame). Injection
+            // dispatch on the very next redraw (the tear path's loop
+            // runs `Capped` and redraws at least once per frame
+            // interval — worst-case latency is one frame). Injection
             // bypasses the key-repeat gate on purpose: these are
             // deliberate typed requests, not OS auto-repeat storms,
             // and BoundedFontSize still clamps the result. The drain
             // goes through engine.apply_action — EXACTLY the dispatch
             // a physical chord hits, no parallel implementation to
             // drift.
-            if let Some(inj) = injected.as_ref() {
+            if woke && let Some(inj) = injected.as_ref() {
                 for action in inj.drain() {
                     if let crate::ux::ActionOutcome::FallThrough =
                         engine.apply_action(action, renderer)
@@ -1775,17 +1773,15 @@ fn run_against_embedded_pane(
     let snapshot = tear
         .pane_snapshot(pane_id)
         .with_context(|| format!("inproc.pane_snapshot({pane_id})"))?;
-    let producer = tear.producer(pane_id);
-    let switch = switch_requests.map(|requests| {
-        let tear_for_factory = tear.clone();
-        SwitchDriver {
-            requests,
-            current: Arc::new(RwLock::new(pane_id)),
-            build_producer: Box::new(move |pane| tear_for_factory.producer(pane)),
-        }
+    let tear_for_factory = tear.clone();
+    let producer_for: ProducerFor<tear_core::engate_producer::PaneProducer> =
+        Box::new(move |pane, waker| tear_for_factory.producer(pane, waker));
+    let switch = switch_requests.map(|requests| SwitchDriver {
+        requests,
+        current: Arc::new(RwLock::new(pane_id)),
     });
     run_against_pane_unified(
-        producer,
+        producer_for,
         Arc::new(tear),
         pane_id,
         snapshot.cols,
@@ -1888,20 +1884,18 @@ fn run_against_pane(
     let snapshot = tear
         .pane_snapshot(pane_id)
         .with_context(|| format!("pane_snapshot({pane_id})"))?;
-    let producer = tear.producer(pane_id);
+    let tear_for_factory = tear.clone();
+    let producer_for: ProducerFor<tear_client::engate_producer::PaneProducer> =
+        Box::new(move |pane, waker| tear_for_factory.producer(pane, waker));
     // Runtime re-attach over the daemon: the same SwitchDriver the embedded
     // runtime uses, with the pump rebuilt from the CLIENT's producer — so a
     // switch re-subscribes this window to any pane the daemon holds.
-    let switch = switch_requests.map(|requests| {
-        let tear_for_factory = tear.clone();
-        SwitchDriver {
-            requests,
-            current: Arc::new(RwLock::new(pane_id)),
-            build_producer: Box::new(move |pane| tear_for_factory.producer(pane)),
-        }
+    let switch = switch_requests.map(|requests| SwitchDriver {
+        requests,
+        current: Arc::new(RwLock::new(pane_id)),
     });
     run_against_pane_unified(
-        producer,
+        producer_for,
         Arc::new(tear),
         pane_id,
         snapshot.cols,
@@ -1926,8 +1920,8 @@ fn run_against_pane(
 #[cfg(test)]
 mod tests {
     use super::{
-        CurrentPane, DisplayedPaneFate, displayed_pane_fate, resolve_boot_name, tear_pty_sink,
-        tear_resize_sink, with_title,
+        CurrentPane, DisplayedPaneFate, displayed_pane_fate, pump_displayed, resolve_boot_name,
+        tear_pty_sink, tear_resize_sink, with_title,
     };
     use crate::perf::{TEAR_WRITE_FAILURES, TearWrite};
     use madori::EventResponse;
@@ -2034,6 +2028,140 @@ mod tests {
             fate,
             DisplayedPaneFate::Leave {
                 reap: Some(sid),
+                next: None
+            }
+        );
+    }
+
+    #[derive(Default)]
+    struct Rings(std::sync::Mutex<usize>, std::sync::Condvar);
+
+    impl std::task::Wake for Rings {
+        fn wake(self: std::sync::Arc<Self>) {
+            *self.0.lock().unwrap() += 1;
+            self.1.notify_all();
+        }
+    }
+
+    impl Rings {
+        fn count(&self) -> usize {
+            *self.0.lock().unwrap()
+        }
+
+        fn past(&self, n: usize) -> bool {
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+            let mut got = self.0.lock().unwrap();
+            while *got <= n {
+                let left = deadline.saturating_duration_since(std::time::Instant::now());
+                if left.is_zero() {
+                    return false;
+                }
+                got = self.1.wait_timeout(got, left).unwrap().0;
+            }
+            true
+        }
+    }
+
+    struct IdleRun {
+        get_pane: u64,
+        wakes: u64,
+        rang_for_output: bool,
+        end: DisplayedPaneFate,
+        end_get_pane: u64,
+    }
+
+    fn idle_window(policy: crate::config::PaneFate) -> IdleRun {
+        use crate::perf::TearCall;
+        use std::time::{Duration, Instant};
+        let inproc = std::sync::Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let (sid, pane) = live_session(&inproc, "idle");
+        let calls: &'static crate::perf::TearCalls =
+            Box::leak(Box::new(kanshou::metrics::Family::new()));
+        let control = crate::perf::Counted::counting_into(std::sync::Arc::clone(&inproc), calls);
+        let terminal: crate::render::SharedTerminal = std::sync::Arc::new(
+            parking_lot::RwLock::new(crate::terminal::Terminal::with_scrollback(80, 24, 100)),
+        );
+        let rings = std::sync::Arc::new(Rings::default());
+        let bell = std::task::Waker::from(std::sync::Arc::clone(&rings));
+        let mut stream = crate::pane_stream::PaneStream::attach(
+            |waker| control.producer(pane, waker),
+            calls,
+            terminal,
+            std::sync::Arc::new(|_: &[u8]| {}),
+            &bell,
+        )
+        .expect("attach");
+        let quiet = rings.count();
+        inproc.send_keys(pane, b"echo idle\n").expect("type");
+        let rang_for_output = rings.past(quiet);
+        let _ui = crate::perf::UiThread::mark();
+        let start = Instant::now();
+        let mut fate = crate::pane_stream::FateWatch::new(policy, 30, start);
+        std::thread::sleep(Duration::from_millis(300));
+        let _ = stream.drain(crate::pane_stream::DRAIN_BUDGET);
+        let before = calls.get(TearCall::GetPane);
+        let mut wakes = 0;
+        for tick in 0..240u64 {
+            let now = start + Duration::from_micros(tick * 16_667);
+            assert_eq!(
+                pump_displayed(&mut stream, &mut fate, &control, pane, now),
+                DisplayedPaneFate::Keep,
+                "a running pane stays"
+            );
+            wakes += 1;
+        }
+        let get_pane = calls.get(TearCall::GetPane) - before;
+        let rung = rings.count();
+        inproc.kill_session(sid).expect("kill the shown session");
+        assert!(rings.past(rung), "the stream's end rang the window");
+        let before = calls.get(TearCall::GetPane);
+        let end = pump_displayed(
+            &mut stream,
+            &mut fate,
+            &control,
+            pane,
+            start + Duration::from_secs(5),
+        );
+        IdleRun {
+            get_pane,
+            wakes,
+            rang_for_output,
+            end,
+            end_get_pane: calls.get(TearCall::GetPane) - before,
+        }
+    }
+
+    #[test]
+    fn an_idle_window_reads_no_pane_fate_and_reads_it_once_when_the_stream_ends() {
+        let idle = idle_window(crate::config::PaneFate::Edge);
+        assert!(idle.rang_for_output, "output rang the window's bell");
+        assert_eq!(
+            idle.get_pane, 0,
+            "UI-thread get_pane over {} idle wakes",
+            idle.wakes
+        );
+        assert_eq!(
+            idle.end,
+            DisplayedPaneFate::Leave {
+                reap: None,
+                next: None
+            }
+        );
+        assert_eq!(idle.end_get_pane, 1, "the end is read once");
+    }
+
+    #[test]
+    fn the_poll_control_reads_the_fate_on_every_idle_wake() {
+        let idle = idle_window(crate::config::PaneFate::Poll);
+        assert_eq!(
+            idle.get_pane, idle.wakes,
+            "pane_fate: poll is today's one get_pane per idle tick"
+        );
+        assert_eq!(
+            idle.end,
+            DisplayedPaneFate::Leave {
+                reap: None,
                 next: None
             }
         );

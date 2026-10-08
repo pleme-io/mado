@@ -23,6 +23,7 @@
 //! real thing.
 
 use std::sync::Arc;
+use std::task::Waker;
 use std::time::{Duration, Instant};
 
 use engate_attach::Attach;
@@ -159,8 +160,9 @@ fn l1_prompt_cycle_consumes_exactly_one_row_and_parks_the_caret_after_it() {
     let probes = Arc::new(ProbeCounters::default());
     let consumer =
         TerminalSink::new_with_probes(Arc::clone(&terminal), response_writer, Arc::clone(&probes));
+    let producer = PaneProducer::new(Arc::clone(&inproc), pane, Waker::noop().clone());
     let attach = Attach::builder()
-        .producer(PaneProducer::new(Arc::clone(&inproc), pane))
+        .producer(producer)
         .consumer(consumer)
         .build();
     let (attach, history) = attach.subscribe().expect("engate.subscribe");
@@ -299,8 +301,9 @@ fn l1_real_shell_queries_answered_and_command_round_trips() {
     // ── engate typed Attach lifecycle + live pump thread ──
     // Identical shape to production: subscribe → replay → start_live,
     // then run() on a named thread until the pane's channel closes.
+    let producer = PaneProducer::new(Arc::clone(&inproc), pane, Waker::noop().clone());
     let attach = Attach::builder()
-        .producer(PaneProducer::new(Arc::clone(&inproc), pane))
+        .producer(producer)
         .consumer(consumer)
         .build();
     let (attach, history) = attach.subscribe().expect("engate.subscribe");

@@ -407,7 +407,7 @@ impl MadoMcp {
     }
 
     #[tool(
-        description = "Render and latency instrumentation from the LIVE GUI mado, forwarded via kanshou: the last frame's CPU time and sizes, frame totals, painted frames by reason (content, forced_scrub, epoch_scrub, overlay, animation, late_idle — they sum to total_frames), declined_after_acquire, tear calls made on the UI thread per method, the stream-watch queue's depth and the subscribe relay's chunks per wake (whose peak bounds that channel's depth from above), bytes parsed on the UI thread per event-loop tick, and input→present / byte→present histograms in microseconds (count, sum, min, max, p50, p90, p99, buckets). When no GUI is reachable the answer is outcome=blind with ok=false — never zeros, because this MCP process renders nothing."
+        description = "Render and latency instrumentation from the LIVE GUI mado, forwarded via kanshou: the last frame's CPU time and sizes, frame totals, painted frames by reason (content, forced_scrub, epoch_scrub, overlay, animation, late_idle — they sum to total_frames), declined_after_acquire, tear calls made on the UI thread per method, the subscription's chunks drained per wake (whose peak bounds that channel's depth from above), bytes parsed on the UI thread per event-loop tick, and input→present / byte→present histograms in microseconds (count, sum, min, max, p50, p90, p99, buckets). When no GUI is reachable the answer is outcome=blind with ok=false — never zeros, because this MCP process renders nothing."
     )]
     async fn frame_perf(&self) -> String {
         frame_perf_answer(

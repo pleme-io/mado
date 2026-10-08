@@ -12078,22 +12078,55 @@ mod render_gpu_invariants {
         );
     }
 
-    struct Echo(std::sync::Mutex<Option<std::sync::mpsc::Receiver<Vec<u8>>>>);
+    type ShellSlot = Arc<std::sync::Mutex<Option<tear_types::waking::WakingSender<Vec<u8>>>>>;
+
+    struct Echo {
+        slot: ShellSlot,
+        waker: std::task::Waker,
+    }
 
     impl engate_attach::Producer for Echo {
         type Item = Vec<u8>;
         type Snap = tear_types::engate_wrap::PaneSnapshotWrap;
         fn snapshot(&self) -> Result<Self::Snap, engate_types::AttachError> {
-            Err(engate_types::AttachError::SnapshotFailed("unused".into()))
+            Ok(tear_types::engate_wrap::PaneSnapshotWrap(
+                tear_types::pane_snapshot::PaneSnapshot::blank(6, 40),
+            ))
         }
         fn subscribe(
             &self,
         ) -> Result<std::sync::mpsc::Receiver<Vec<u8>>, engate_types::AttachError> {
-            Ok(self.0.lock().unwrap().take().expect("subscribed once"))
+            let (tx, rx) = tear_types::waking::WakingSender::channel(self.waker.clone());
+            *self.slot.lock().unwrap() = Some(tx);
+            Ok(rx)
         }
     }
 
-    type StampedChunk = crate::stream_watch::Stamped<Vec<u8>>;
+    #[derive(Default)]
+    struct Rang(std::sync::Mutex<bool>, std::sync::Condvar);
+
+    impl std::task::Wake for Rang {
+        fn wake(self: Arc<Self>) {
+            *self.0.lock().unwrap() = true;
+            self.1.notify_all();
+        }
+    }
+
+    impl Rang {
+        fn wait(&self) -> bool {
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+            let mut rang = self.0.lock().unwrap();
+            while !*rang {
+                let left = deadline.saturating_duration_since(std::time::Instant::now());
+                if left.is_zero() {
+                    return false;
+                }
+                rang = self.1.wait_timeout(rang, left).unwrap().0;
+            }
+            *rang = false;
+            true
+        }
+    }
 
     struct KeyEcho {
         gpu: GpuContext,
@@ -12103,9 +12136,8 @@ mod render_gpu_invariants {
         text: TextLayerStack,
         metrics: &'static crate::perf::RenderMetrics,
         engine: crate::ux::InputEngine,
-        from_tear: std::sync::mpsc::Receiver<StampedChunk>,
-        sink: crate::engate_consumer::TerminalSink<StampedChunk>,
-        _watch: crate::stream_watch::StreamWatch<Echo>,
+        stream: crate::pane_stream::PaneStream<Echo>,
+        rang: Arc<Rang>,
     }
 
     impl KeyEcho {
@@ -12114,21 +12146,29 @@ mod render_gpu_invariants {
             let target = HeadlessTarget::new(&gpu, 320, 96, SURFACE_FORMAT);
             let (mut r, term, text) = build_gpu_renderer(&gpu, 40, 6);
             let metrics = fresh_metrics(&mut r);
-            let (shell_tx, shell_rx) = std::sync::mpsc::channel::<Vec<u8>>();
-            let (watch, _ended) =
-                crate::stream_watch::StreamWatch::new(Echo(std::sync::Mutex::new(Some(shell_rx))));
-            let from_tear = engate_attach::Producer::subscribe(&watch).expect("subscribe");
-            let sink = crate::engate_consumer::TerminalSink::stamped(
+            let slot: ShellSlot = Arc::default();
+            let rang = Arc::new(Rang::default());
+            let stream = crate::pane_stream::PaneStream::attach(
+                |waker| Echo {
+                    slot: Arc::clone(&slot),
+                    waker,
+                },
+                Box::leak(Box::new(kanshou::metrics::Family::new())),
                 Arc::clone(&term),
                 Arc::new(|_: &[u8]| {}),
-            );
+                &std::task::Waker::from(Arc::clone(&rang)),
+            )
+            .expect("attach");
+            let shell = Arc::clone(&slot);
             let config = crate::config::MadoConfig::default();
             let engine = crate::ux::InputEngine::attach_to_renderer(
                 &mut r,
                 crate::ux::InputEngineParams {
                     terminal: Arc::clone(&term),
                     pty: Box::new(move |bytes: &[u8]| {
-                        let _ = shell_tx.send(bytes.to_vec());
+                        if let Some(tx) = shell.lock().unwrap().as_ref() {
+                            let _ = tx.send(bytes.to_vec());
+                        }
                     }),
                     resize: Box::new(|_: u16, _: u16| {}),
                     shared: crate::ux::SharedUxState::fresh(),
@@ -12151,9 +12191,8 @@ mod render_gpu_invariants {
                 text,
                 metrics,
                 engine,
-                from_tear,
-                sink,
-                _watch: watch,
+                stream,
+                rang,
             }
         }
 
@@ -12164,15 +12203,15 @@ mod render_gpu_invariants {
             }
         }
 
-        fn dispatch(&mut self, event: &madori::AppEvent, mut chunk: Option<StampedChunk>) {
+        fn dispatch(&mut self, event: &madori::AppEvent) {
             let engine = &mut self.engine;
-            let sink = &mut self.sink;
+            let stream = &mut self.stream;
             let mut handler =
                 crate::perf::ui_dispatch(|e: &madori::AppEvent, r: &mut TerminalRenderer| {
                     if let madori::AppEvent::Key(k) = e {
                         let _ = engine.on_key(k, r);
-                    } else if let Some(c) = chunk.take() {
-                        engate_attach::Consumer::consume(sink, c);
+                    } else {
+                        let _ = stream.drain(crate::pane_stream::DRAIN_BUDGET);
                     }
                     madori::EventResponse::default()
                 });
@@ -12186,15 +12225,12 @@ mod render_gpu_invariants {
                 modifiers: madori::event::Modifiers::default(),
                 text: Some(ch.to_string()),
             };
-            self.dispatch(&madori::AppEvent::Key(key), None);
+            self.dispatch(&madori::AppEvent::Key(key));
         }
 
         fn echo(&mut self) {
-            let chunk = self
-                .from_tear
-                .recv_timeout(std::time::Duration::from_secs(5))
-                .expect("the shell echoes the key");
-            self.dispatch(&madori::AppEvent::RedrawRequested, Some(chunk));
+            assert!(self.rang.wait(), "the shell's echo rings the window");
+            self.dispatch(&madori::AppEvent::RedrawRequested);
         }
 
         fn inputs(&self) -> u64 {

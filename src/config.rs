@@ -768,6 +768,26 @@ pub struct MadoTearConfig {
     /// every row (● live / ○ latent). The bare tier sets `Off`.
     #[serde(default)]
     pub session_picker_badges: BadgeMode,
+    #[serde(default)]
+    #[schemars(
+        description = "When the window reads the displayed pane's fate (exited, deleted or running). edge reads it when the pane's byte stream ends, which tear signals on exit and on kill, plus a backstop every fate_backstop_secs; poll reads it on every idle event-loop tick, one get_pane RPC per tick, as before tear PERFORMANCE R10."
+    )]
+    pub pane_fate: PaneFate,
+    #[serde(default = "default_fate_backstop_secs")]
+    #[schemars(
+        description = "Under pane_fate: edge, seconds between backstop reads of the displayed pane's fate while its stream stays open. 0 turns the backstop off."
+    )]
+    pub fate_backstop_secs: u64,
+}
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum PaneFate {
+    #[default]
+    Edge,
+    Poll,
 }
 
 /// How the Ctrl-S union picker badges live vs latent rows — a tiered knob
@@ -2050,6 +2070,8 @@ impl Default for MadoTearConfig {
             // (only when the list mixes live + latent → minimal impact).
             session_picker_surface_presets: true,
             session_picker_badges: BadgeMode::Auto,
+            pane_fate: PaneFate::default(),
+            fate_backstop_secs: default_fate_backstop_secs(),
         }
     }
 }
@@ -2232,6 +2254,10 @@ fn default_auto_spawn() -> bool {
 
 fn default_spawn_wait_ms() -> u64 {
     2000
+}
+
+fn default_fate_backstop_secs() -> u64 {
+    30
 }
 
 /// Font family and rendering configuration (mirrors Ghostty's font-* options).
@@ -3513,6 +3539,8 @@ impl MadoConfig {
                 // but set explicitly so the bare tier is self-describing.)
                 session_picker_surface_presets: false,
                 session_picker_badges: BadgeMode::Off,
+                pane_fate: PaneFate::default(),
+                fate_backstop_secs: default_fate_backstop_secs(),
             },
             // ── Effects ──────────────────────────────────────────
             // All effects disabled in bare. Snow params stay at
@@ -7299,8 +7327,10 @@ mod coverage {
         "suggestions.ttl_secs",
         "tear.auto_attach",
         "tear.auto_spawn",
+        "tear.fate_backstop_secs",
         "tear.impose",
         "tear.mode",
+        "tear.pane_fate",
         "tear.runtime",
         "tear.session_name",
         "tear.session_picker_anchor",

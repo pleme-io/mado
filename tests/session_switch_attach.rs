@@ -123,7 +123,11 @@ fn switch_tears_down_pane_a_and_rebuilds_against_pane_b() {
     // The shared model is the renderer-visible terminal in the real
     // loop; here it's the RecordingConsumer's buffer.
     let model = RecordingConsumer::new();
-    let producer_a = PaneProducer::new(Arc::clone(&inproc), pane_a);
+    let producer_a = PaneProducer::new(
+        Arc::clone(&inproc),
+        pane_a,
+        std::task::Waker::noop().clone(),
+    );
     let attach_a = Attach::builder()
         .producer(producer_a)
         .consumer(model.clone())
@@ -161,7 +165,11 @@ fn switch_tears_down_pane_a_and_rebuilds_against_pane_b() {
     assert!(model.text().is_empty(), "reset clears the displayed model");
     //   (d) build a FRESH attach against pane B + replay. Same
     //       InProcess control plane, same model object.
-    let producer_b = PaneProducer::new(Arc::clone(&inproc), pane_b);
+    let producer_b = PaneProducer::new(
+        Arc::clone(&inproc),
+        pane_b,
+        std::task::Waker::noop().clone(),
+    );
     let attach_b = Attach::builder()
         .producer(producer_b)
         .consumer(model.clone())

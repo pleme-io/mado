@@ -178,7 +178,9 @@ garasu = "0.1"
 # 0.1.21 makes geometry the LOOP's decision (`FrameDebt`), so this override can
 # go on answering only about CONTENT — the one question it can honestly answer.
 # Downgrading below 0.1.21 re-arms the bug, and nothing in this repo would fail.
-madori = "0.1.21"
+# 0.1.22 adds the loop's doorbell (`AppBuilder::waker`), which tear output rings
+# (tear PERFORMANCE R10); below it the tear attach does not compile.
+madori = "0.1.22"
 shikumi = { version = "0.1", features = ["cli"] }
 # izumi (泉) — the fresh-source board substrate: the generalized extraction of
 # mado's Ctrl-S suggestion plane (Item/Store/Engine/Environment algebra, the
@@ -216,12 +218,14 @@ tsuuchi = "0.1"
 # byte stream + stream it to stdout for now; future Phase 3.1
 # renders it in the GPU window). Phase 3 MVP of the mado⇄tear
 # de-overlap roadmap — see theory/MADO-TEAR-M5.md.
-# From crates.io. tear-core is held at 0.1.36 or later, the release that
-# ships `tear_core::feeder`, which `Terminal::feed` runs every byte through
-# (tear PERFORMANCE R7).
-tear-types = { version = "0.1", features = ["engate"] }
-tear-core = { version = "0.1.36", features = ["engate"] }
-tear-client = { version = "0.1", features = ["engate"] }
+# From crates.io. The floor is 0.1.38, the release whose producers take the
+# window's waker (`PaneProducer::new(.., waker)`, tear PERFORMANCE R10); it
+# also ships `tear_core::feeder`, which `Terminal::feed` runs every byte
+# through (R7, 0.1.36), and the SpawnEnv seam mado's gui_tear_attach uses
+# (`from_overrides` / `with_cwd` / `inproc.set_spawn_env`).
+tear-types = { version = "0.1.38", features = ["engate"] }
+tear-core = { version = "0.1.38", features = ["engate"] }
+tear-client = { version = "0.1.38", features = ["engate"] }
 tear-config = "0.1"
 
 # praça (praca) — typed session-orchestration substrate (project-root
@@ -317,11 +321,12 @@ tatara-nix = "=0.2.568"
 
 # engate typed-attach primitive — mado's gui_tear_attach uses it to
 # wrap the daemon-mode or embedded-mode tear Producer into one
-# typestate-enforced attach lifecycle. branch=main pinned to match
-# tear-types/-core/-client (otherwise cargo treats the two sources
-# as separate crates and the trait identities don't unify).
+# typestate-enforced attach lifecycle. From crates.io, the same source
+# tear-types/-core/-client resolve it from (two sources would be two
+# crates, and the trait identities would not unify). 0.1.4 adds
+# `Attach<Live>::poll` (item, empty or closed).
 engate-types = "0.1"
-engate-attach = "0.1"
+engate-attach = "0.1.4"
 # Signal handling for the long-running `mado tear-attach` loop.
 ctrlc = { version = "3", features = ["termination"] }
 awase = "0.1"
@@ -528,6 +533,7 @@ tear-daemon = "0.1"
 
 [features]
 default = []
+bench-probes = ["tear-types/bench-probes"]
 # Opt-in: runs Layer-2 headless-wgpu pixel-readback tests that
 # need a real GPU adapter. cid + dev workstations have one; CI
 # runners typically don't, so default is off. Match

@@ -180,7 +180,7 @@ fn tear_adapter_drain_never_short_circuits_the_event() {
     // the title has nowhere to short-circuit TO.
     let required = [
         (
-            "let drained_title = {",
+            "let drained_title =",
             "the side-effect drain must be captured into a `drained_title` binding, \
              not returned in place (the early-return-on-title regression)",
         ),
