@@ -16,11 +16,13 @@
 //! still carries the FULL snapshot, so the tear-daemon world (which outlives
 //! sessions) can reuse it unchanged later.
 //!
-//! Writes ride the suggestion engine's maintenance tick (one place, off the
-//! GUI hot path), are BLAKE3-framed + atomic like the suggestion snapshot,
-//! change-gated by a content hash, and gated on the single-writer election.
+//! Writes ride the suggestion engine's maintenance pass (one place, off the
+//! GUI hot path), which a preset capture schedules through [`touch`]; they
+//! are BLAKE3-framed + atomic like the suggestion snapshot, change-gated by
+//! a content hash, and gated on the single-writer election.
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 /// The registered live praça (the SAME `Arc<Mutex<_>>` the picker bridge +
@@ -34,6 +36,24 @@ struct Registered {
 }
 
 static REGISTERED: OnceLock<Registered> = OnceLock::new();
+
+static TOUCHED: AtomicBool = AtomicBool::new(false);
+
+static TOUCH: tokio::sync::Notify = tokio::sync::Notify::const_new();
+
+pub fn touch() {
+    TOUCHED.store(true, Ordering::SeqCst);
+    TOUCH.notify_one();
+}
+
+pub async fn touched() {
+    TOUCH.notified().await;
+}
+
+#[must_use]
+pub fn owes_disk() -> bool {
+    REGISTERED.get().is_some() && TOUCHED.load(Ordering::SeqCst)
+}
 
 /// Resolve the praça snapshot path — same state-dir resolution as the
 /// suggestion snapshot (`MADO_STATE_DIR` honored for tests).
@@ -82,6 +102,7 @@ pub fn maintenance_tick() {
     if !crate::single_writer::is_writer() {
         return;
     }
+    TOUCHED.store(false, Ordering::SeqCst);
     // The write guard is taken FIRST and held across snapshot + write. Two
     // threads call this — the suggestion engine's maintenance loop and the
     // picker persisting a delete — and the framed write's temp file is tagged

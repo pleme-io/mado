@@ -25,6 +25,6 @@
 //! strict no-op at `dt <= 0` — and run in ishou's suite.
 
 pub use ishou_tokens::motion::{
-    Advance, Curve, Decay, EasingKind, Glide, NonNegSecs, Oscillator, Seconds, Tween, Unit,
-    UnitBounds, blink_on, frame_decay, secs,
+    Advance, BlinkPhase, Curve, Decay, EasingKind, Glide, NonNegSecs, Oscillator, Seconds, Tween,
+    Unit, UnitBounds, blink_on, blink_phase, frame_decay, secs, wait_until,
 };

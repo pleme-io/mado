@@ -18,6 +18,7 @@ mod ambience;
 mod auto_attach;
 mod auto_detect;
 mod banner;
+mod bench;
 mod board_row;
 mod browser_bridge;
 mod browser_engine;
@@ -42,6 +43,7 @@ mod kanshou_state;
 mod keybind;
 mod kuse;
 mod pane_stream;
+mod ring;
 // L1 integration-test brick (docs/INTEGRATION-TESTING.md §L1): real
 // shell + real TerminalSink + probe counters, headless. Unit-test
 // module (not tests/) because mado is binary-only — only unit tests
@@ -136,6 +138,25 @@ struct Cli {
 }
 
 #[derive(clap::Subcommand)]
+enum BenchCmd {
+    Rows,
+    Present {
+        #[arg(long, default_value_t = 200)]
+        frames: usize,
+        #[arg(long, default_value_t = 20)]
+        warmup: usize,
+        #[arg(long, default_value_t = 163)]
+        cols: usize,
+        #[arg(long, default_value_t = 48)]
+        rows: usize,
+        #[arg(long, default_value_t = 3524)]
+        width: u32,
+        #[arg(long, default_value_t = 2064)]
+        height: u32,
+    },
+}
+
+#[derive(clap::Subcommand)]
 enum SubCmd {
     /// Run as MCP server (stdio transport) for Claude Code integration.
     Mcp,
@@ -189,6 +210,8 @@ enum SubCmd {
     /// of hand-mirrored. Pure stdout JSON; the committed `config.schema.json`
     /// + a freshness gate diff this output against the tree.
     ConfigSchema,
+    #[command(subcommand)]
+    Bench(BenchCmd),
     /// Run a `*.scenario.yaml` file in headless mode and exit non-zero
     /// on assertion failure. Used by `tests/scenarios.rs` to dispatch
     /// each scenario as its own process — and by operators to replay
@@ -597,6 +620,29 @@ fn main() -> anyhow::Result<()> {
             println!("{}", serde_json::to_string_pretty(&schema)?);
             return Ok(());
         }
+        Some(SubCmd::Bench(BenchCmd::Rows)) => {
+            println!("{}", serde_json::to_string_pretty(&bench::rows())?);
+            return Ok(());
+        }
+        Some(SubCmd::Bench(BenchCmd::Present {
+            frames,
+            warmup,
+            cols,
+            rows,
+            width,
+            height,
+        })) => {
+            shidou::init_tracing_to_stderr();
+            bench::present(bench::PresentOptions {
+                frames,
+                warmup,
+                cols,
+                rows,
+                width,
+                height,
+            })?;
+            return Ok(());
+        }
         Some(SubCmd::ScenarioRun { ref path }) => {
             // Stderr-only tracing so the scenario harness can route
             // failure context to the test runner without interleaving
@@ -699,6 +745,7 @@ fn main() -> anyhow::Result<()> {
     let (config, config_store) = config::load_and_watch(&cli.config, move |_new_config| {
         tracing::info!("config reloaded — typed setter delta applies next frame");
         watcher_dirty.store(true, Ordering::Release);
+        crate::ring::WINDOW.ring();
     })?;
     let config_reload_source =
         crate::ux::ConfigReloadSource::new(Arc::new(config_store), config_dirty);
@@ -1093,18 +1140,22 @@ fn main() -> anyhow::Result<()> {
     crate::platform::install_app_menu();
     // Frame pacing. Without this madori runs `ControlFlow::Poll` and an idle
     // prompt redraws at ~297 Hz, burning ~10% of a core presenting identical
-    // frames — and `performance.target_fps` reads like it caps the frame rate
-    // while only budgeting the ambience governor. `FramePacing::Capped` makes
-    // the knob mean what it says; `0` stays uncapped (`Continuous`), matching
-    // `resolve_target_fps`'s own sentinel. The default did change: a null
-    // `target_fps` resolves to `FALLBACK_FPS` (60) here, because no posture
-    // is passed, so the default is `Capped(60)`, not the old `Poll`.
+    // frames. `performance.pacing` picks the pacing
+    // (`PerformanceConfig::frame_pacing`): `demand`, the default, parks the
+    // loop until something changes and draws at most once per display
+    // refresh; `capped` is the `Capped(target_fps)` loop of before tear
+    // PERFORMANCE R11, a null `target_fps` resolving to `FALLBACK_FPS` (60)
+    // because no posture is passed; `continuous` is `Poll`.
     //
     // The twin builder in gui_tear_attach.rs carries the same call and BOTH
     // matter: embedded-tear is the default render mode, so pacing only this
     // one would look done while changing nothing the operator runs.
-    madori::App::builder(renderer)
-        .target_fps(effective_fps)
+    let window = madori::App::builder(renderer);
+    crate::ring::WINDOW.connect(window.waker());
+    crate::perf::watch_window(window.visibility(), config.performance.pacing);
+    let pacing = config.performance.frame_pacing();
+    window
+        .frame_pacing(pacing)
         .config(app_config)
         // Wayland `app_id` / X11 `WM_CLASS` — matches `mado.desktop`'s
         // `StartupWMClass=mado` so GNOME (and every other Wayland
@@ -1272,6 +1323,19 @@ fn main() -> anyhow::Result<()> {
                     // latch over the rendered-surface signature (same
                     // contract as the tear path).
                     engine.on_redraw_tick(renderer);
+                    let now = std::time::Instant::now();
+                    let mut demand = engine.frame_demand();
+                    if native_styling.pending() || quick_terminal
+                            .as_ref()
+                            .is_some_and(crate::platform::QuickTerminal::pending) {
+                        demand = demand.with(madori::FrameDemand::At(
+                            now + crate::platform::STYLING_RETRY,
+                        ));
+                    }
+                    if let Some(f) = follow_os.as_ref() {
+                        demand = demand.with(madori::FrameDemand::At(f.next_poll()));
+                    }
+                    renderer.set_loop_demand(demand);
                     // ONE typed drain + ONE shared consumer — the M4
                     // seam. Title change-edges come back typed; the
                     // adapter owns only the EventResponse translation.

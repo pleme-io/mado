@@ -15,6 +15,7 @@ use crate::render::SharedTerminal;
 
 pub const REATTACH_BACKOFF: Duration = Duration::from_millis(500);
 pub const DRAIN_BUDGET: u32 = 4096;
+pub const POLL_TICK: Duration = Duration::from_nanos(16_666_667);
 
 struct Stamp {
     arrivals: Arrivals,
@@ -200,6 +201,22 @@ impl FateWatch {
         }
         due
     }
+
+    #[must_use]
+    pub fn next(&self) -> madori::FrameDemand {
+        let at = |gap: Duration| madori::FrameDemand::At(self.last_read + gap);
+        match self.policy {
+            PaneFate::Poll => at(POLL_TICK),
+            PaneFate::Edge => {
+                let ended = if self.saw_end {
+                    at(REATTACH_BACKOFF)
+                } else {
+                    madori::FrameDemand::Idle
+                };
+                self.backstop.map_or(ended, |b| ended.with(at(b)))
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -231,6 +248,35 @@ mod tests {
         (0..secs * 60)
             .map(|i| (Duration::from_micros(i * 16_667), d))
             .collect()
+    }
+
+    #[test]
+    fn the_next_read_is_a_deadline_the_loop_can_sleep_until() {
+        let start = Instant::now();
+        let mut edge = FateWatch::new(PaneFate::Edge, 30, start);
+        assert_eq!(
+            edge.next(),
+            madori::FrameDemand::At(start + Duration::from_secs(30)),
+            "an open stream asks again only at the backstop"
+        );
+        assert!(edge.due(ENDED, start + Duration::from_secs(1)));
+        assert_eq!(
+            edge.next(),
+            madori::FrameDemand::At(start + Duration::from_secs(1) + REATTACH_BACKOFF),
+            "an ended stream asks again after the re-attach backoff"
+        );
+        let off = FateWatch::new(PaneFate::Edge, 0, start);
+        assert_eq!(
+            off.next(),
+            madori::FrameDemand::Idle,
+            "0 turns the backstop off"
+        );
+        let poll = FateWatch::new(PaneFate::Poll, 30, start);
+        assert_eq!(
+            poll.next(),
+            madori::FrameDemand::At(start + POLL_TICK),
+            "pane_fate: poll keeps today's 60 reads a second"
+        );
     }
 
     #[test]

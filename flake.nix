@@ -213,6 +213,12 @@
             default = "on";
             description = "Latency and size histograms in frame_perf (input→present, byte→present, parse bytes per tick). off stops recording them; every counter and gauge keeps counting.";
           };
+          pacing = {
+            type = "enum";
+            values = [ "demand" "capped" "continuous" ];
+            default = "demand";
+            description = "How the window decides when to draw. demand = draw when something changed: the first frame after idle at once, later ones at most once per display refresh, two idle ticks then park, deadlines for blink, fades and backoffs, nothing while the window is occluded or minimized; target_fps (else fps_cap) caps it below the display's rate. capped = tick at target_fps (60 when unset) forever and draw while occluded, as before tear PERFORMANCE R11. continuous = redraw as fast as the loop turns.";
+          };
         };
 
         # Floating & snapping browser surfaces (theory/BROWSER.md).

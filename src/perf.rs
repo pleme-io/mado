@@ -126,6 +126,25 @@ static TEAR_WRITE_LOGGED_AT: TearWriteLogSlots = [const { AtomicU64::new(0) }; T
 const TEAR_WRITE_LOG_EVERY_NS: u64 = 1_000_000_000;
 pub static PARSED_BYTES: Counter = Counter::new();
 pub static DRAINED_PER_WAKE: Gauge = Gauge::new();
+pub static LOOP_TICKS: Counter = Counter::new();
+static WINDOW: OnceLock<(madori::Visibility, crate::config::PacingMode)> = OnceLock::new();
+
+pub fn watch_window(visibility: madori::Visibility, pacing: crate::config::PacingMode) {
+    let _ = WINDOW.set((visibility, pacing));
+}
+
+fn window_report() -> serde_json::Value {
+    WINDOW
+        .get()
+        .map_or(serde_json::Value::Null, |(visibility, pacing)| {
+            serde_json::json!({
+                "pacing": pacing,
+                "hidden": visibility.hidden(),
+                "hides": visibility.hides(),
+                "reveals": visibility.reveals(),
+            })
+        })
+}
 
 static CLOCK: OnceLock<Instant> = OnceLock::new();
 static RENDER: RenderMetrics = RenderMetrics::new();
@@ -247,6 +266,9 @@ where
     F: FnMut(&madori::AppEvent, &mut TerminalRenderer) -> madori::EventResponse,
 {
     move |event: &madori::AppEvent, renderer: &mut TerminalRenderer| {
+        if matches!(event, madori::AppEvent::RedrawRequested) {
+            LOOP_TICKS.inc();
+        }
         let dispatch = UiDispatch::begin();
         let response = handler(event, renderer);
         dispatch.end(renderer.render_metrics());
@@ -529,6 +551,10 @@ pub fn frame_perf() -> serde_json::Value {
             "byte_to_present": RENDER.latency().byte_to_present(),
         },
         "histograms": RENDER.histograms(),
+        "loop": {
+            "ticks": &LOOP_TICKS,
+        },
+        "window": window_report(),
     });
     #[cfg(feature = "bench-probes")]
     let perf = {

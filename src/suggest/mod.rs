@@ -688,12 +688,14 @@ struct LoopKnobs {
     /// under a fast global TTL.
     ttl_map: std::collections::BTreeMap<SourceKind, u64>,
     global_ttl_ms: u64,
-    /// WRITING is additionally re-decided every maintenance tick via the
-    /// single-writer election; this knob is the config half of that AND.
+    /// WRITING is additionally re-decided on every maintenance pass that owes
+    /// the disk, via the single-writer election; this knob is the config half
+    /// of that AND.
     persist: bool,
     max_entries: usize,
-    /// 0 = "persist on every change" → a 1s minimum tick (tokio rejects a
-    /// 0 interval); otherwise coalesce writes to this cadence.
+    /// How long after a change its maintenance pass runs, coalescing the
+    /// writes a burst of changes would make. 0 = "persist on every change",
+    /// floored at 1 s.
     debounce: std::time::Duration,
 }
 
@@ -719,6 +721,42 @@ impl LoopKnobs {
             debounce: std::time::Duration::from_secs(cfg.persist_debounce_secs.max(1)),
         }
     }
+}
+
+const PASS_FLOOR: std::time::Duration = std::time::Duration::from_secs(1);
+
+fn next_pass(
+    now_ms: u64,
+    expiry_ms: Option<u64>,
+    janitor_ms: Option<u64>,
+    retry: Option<std::time::Duration>,
+) -> Option<std::time::Duration> {
+    let until = |at: u64| std::time::Duration::from_millis(at.saturating_sub(now_ms));
+    [expiry_ms.map(until), janitor_ms.map(until), retry]
+        .into_iter()
+        .flatten()
+        .min()
+        .map(|wait| wait.max(PASS_FLOOR))
+}
+
+fn sooner(due: Option<tokio::time::Instant>, at: tokio::time::Instant) -> tokio::time::Instant {
+    due.map_or(at, |due| due.min(at))
+}
+
+fn earliest_expiry(store: &SuggestionStore, knobs: &LoopKnobs, now_ms: u64) -> Option<u64> {
+    store
+        .to_snapshot(now_ms)
+        .entries
+        .iter()
+        .filter_map(|st| {
+            let ttl = knobs
+                .ttl_map
+                .get(&st.item.source)
+                .copied()
+                .unwrap_or(knobs.global_ttl_ms);
+            (ttl != 0).then(|| st.last_seen_ms.saturating_add(ttl).saturating_add(1))
+        })
+        .min()
 }
 
 /// Build a RUNNING engine from the live config sections: merged source
@@ -835,19 +873,29 @@ pub fn spawn_engine_thread(
                     }
                     // Maintenance loop — the SINGLE owner of decay + debounced
                     // persist, off the watcher hot path. The watchers only
-                    // ever touch RAM; this coalesces a startup burst of first
-                    // ticks into ONE disk write, and only when the change-
-                    // generation actually advanced. Keeps the runtime + engine
-                    // alive for the process lifetime. The select's second arm
-                    // is the hot-reload ingress: a Swap tears down the running
-                    // engine (stop() aborts every watcher task) and rebuilds
-                    // from the NEW config sections — same path for enable,
-                    // disable, and reconfigure.
+                    // ever touch RAM; a store change or a praça capture
+                    // schedules one pass a debounce later, coalescing a
+                    // burst into ONE disk write, and otherwise the loop
+                    // sleeps until the next row can expire or the next
+                    // janitor is due (`next_pass`). Keeps the runtime +
+                    // engine alive for the process lifetime. The select's
+                    // last arm is the hot-reload ingress: a Swap tears down
+                    // the running engine (stop() aborts every watcher task)
+                    // and rebuilds from the NEW config sections — same path
+                    // for enable, disable, and reconfigure.
                     let mut last_gen = store.generation();
-                    let mut tick = tokio::time::interval(knobs.debounce);
+                    let mut changes = store.subscribe();
+                    let mut watching = true;
+                    let mut due = Some(tokio::time::Instant::now());
                     loop {
+                        let pass = async move {
+                            match due {
+                                Some(at) => tokio::time::sleep_until(at).await,
+                                None => std::future::pending().await,
+                            }
+                        };
                         tokio::select! {
-                            _ = tick.tick() => {
+                            () = pass => {
                                 let now_ms = env.now_unix().saturating_mul(1000);
                                 // The shared izumi maintenance tick: per-source
                                 // decay + the hard gc cap, in one call.
@@ -858,11 +906,14 @@ pub fn spawn_engine_thread(
                                     now_ms,
                                 );
                                 let current_gen = store.generation();
-                                // The writer election is RE-CHECKED every tick (a
-                                // cheap non-blocking flock attempt when not already
-                                // held), so a surviving instance picks up the writer
-                                // role when the previous winner exits — persistence
-                                // never silently dies with the first process.
+                                // The writer election is RE-CHECKED on every pass
+                                // that owes the disk (a cheap non-blocking flock
+                                // attempt when not already held), and a pass that
+                                // owes it without the role is retried a debounce
+                                // later, so a surviving instance picks up the
+                                // writer role when the previous winner exits —
+                                // persistence never silently dies with the first
+                                // process.
                                 if knobs.persist
                                     && current_gen != last_gen
                                     && crate::single_writer::is_writer()
@@ -870,7 +921,7 @@ pub fn spawn_engine_thread(
                                     store.persist_file(&path, store::SNAPSHOT_MAGIC, now_ms);
                                     last_gen = current_gen;
                                 }
-                                // Praça persistence rides the same maintenance tick
+                                // Praça persistence rides the same maintenance pass
                                 // (internally change-gated + writer-election-gated) —
                                 // saved presets survive restarts with zero extra
                                 // threads and zero GUI-hot-path writes.
@@ -883,6 +934,25 @@ pub fn spawn_engine_thread(
                                     crate::fibers::bus(),
                                     now_ms,
                                 );
+                                let unelected = (knobs.persist && store.generation() != last_gen)
+                                    || crate::praca_store::owes_disk();
+                                due = next_pass(
+                                    now_ms,
+                                    earliest_expiry(&store, &knobs, now_ms),
+                                    janitor_runner.next_due_ms(),
+                                    unelected.then_some(knobs.debounce),
+                                )
+                                .map(|wait| tokio::time::Instant::now() + wait);
+                            }
+                            seen = changes.changed(), if watching => {
+                                if seen.is_ok() {
+                                    due = Some(sooner(due, tokio::time::Instant::now() + knobs.debounce));
+                                } else {
+                                    watching = false;
+                                }
+                            }
+                            () = crate::praca_store::touched() => {
+                                due = Some(sooner(due, tokio::time::Instant::now() + knobs.debounce));
                             }
                             cmd = rx.recv() => match cmd {
                                 Some(EngineCommand::Swap(pair)) => {
@@ -921,7 +991,7 @@ pub fn spawn_engine_thread(
                                             &engine_config_from(&current.0),
                                         );
                                     }
-                                    tick = tokio::time::interval(knobs.debounce);
+                                    due = Some(tokio::time::Instant::now());
                                     tracing::info!(
                                         enabled = current.0.enabled,
                                         "suggestion engine hot-swapped from config edit"
@@ -955,6 +1025,78 @@ pub fn spawn_engine_thread(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_quiet_store_with_nothing_due_parks_the_maintenance_loop() {
+        assert_eq!(next_pass(10_000, None, None, None), None);
+    }
+
+    #[test]
+    fn the_next_pass_is_the_soonest_expiry_janitor_or_writer_retry() {
+        let debounce = std::time::Duration::from_secs(5);
+        assert_eq!(
+            next_pass(10_000, Some(70_001), None, None),
+            Some(std::time::Duration::from_millis(60_001)),
+            "a row's expiry"
+        );
+        assert_eq!(
+            next_pass(10_000, Some(70_001), Some(40_000), None),
+            Some(std::time::Duration::from_secs(30)),
+            "the janitor due first"
+        );
+        assert_eq!(
+            next_pass(10_000, Some(70_001), Some(40_000), Some(debounce)),
+            Some(debounce),
+            "a pass owing the disk without the writer role retries a debounce later"
+        );
+        assert_eq!(
+            next_pass(10_000, Some(9_000), Some(0), None),
+            Some(PASS_FLOOR),
+            "a due already past never spins the loop"
+        );
+    }
+
+    #[test]
+    fn a_store_change_brings_the_pass_forward_and_never_pushes_it_back() {
+        let now = tokio::time::Instant::now();
+        let soon = now + std::time::Duration::from_secs(1);
+        let later = now + std::time::Duration::from_secs(60);
+        assert_eq!(sooner(None, later), later);
+        assert_eq!(sooner(Some(soon), later), soon);
+        assert_eq!(sooner(Some(later), soon), soon);
+    }
+
+    #[test]
+    fn a_row_expires_one_ms_past_its_source_ttl_and_a_ttl_of_zero_never() {
+        let store = SuggestionStore::new();
+        let item = |key: &str| {
+            Suggestion::new(
+                SourceKind::TendRepos,
+                key,
+                key,
+                SpawnSpec::new("/code", key).unwrap(),
+            )
+        };
+        let mut knobs = LoopKnobs::from_config(
+            &crate::config::SuggestionsConfig::default(),
+            &engine_config_from(&crate::config::SuggestionsConfig::default()),
+        );
+        assert_eq!(
+            earliest_expiry(&store, &knobs, 1_000),
+            None,
+            "an empty store"
+        );
+        store.ingest(SourceKind::TendRepos, vec![item("a")], 1_000);
+        store.upsert(item("b"), 4_000);
+        let ttl = knobs.ttl_map[&SourceKind::TendRepos];
+        assert_eq!(
+            earliest_expiry(&store, &knobs, 5_000),
+            Some(1_000 + ttl + 1)
+        );
+        knobs.ttl_map.insert(SourceKind::TendRepos, 0);
+        knobs.global_ttl_ms = 0;
+        assert_eq!(earliest_expiry(&store, &knobs, 5_000), None);
+    }
 
     /// One test (not two) so the process-global env mutations can't race in the
     /// parallel test runner — nothing else reads these vars.

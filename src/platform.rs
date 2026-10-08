@@ -62,7 +62,11 @@ impl MacOsWindowStyle {
 pub struct NativeStylingLatch {
     style: MacOsWindowStyle,
     applied: bool,
+    attempts: u32,
 }
+
+pub const STYLING_RETRY: std::time::Duration = std::time::Duration::from_millis(50);
+pub const STYLING_RETRIES: u32 = 40;
 
 impl NativeStylingLatch {
     /// Build the latch from the operator's shikumi config.
@@ -70,14 +74,21 @@ impl NativeStylingLatch {
         Self {
             style: MacOsWindowStyle::from_config(config),
             applied: false,
+            attempts: 0,
         }
     }
 
     /// Apply styling if it hasn't landed yet; cheap no-op afterwards.
     pub fn tick(&mut self) {
         if !self.applied {
+            self.attempts = self.attempts.saturating_add(1);
             self.applied = apply_native_styling(&self.style);
         }
+    }
+
+    #[must_use]
+    pub fn pending(&self) -> bool {
+        !self.applied && self.attempts < STYLING_RETRIES
     }
 
     /// Re-derive the chrome style from a reloaded config and, if it
@@ -99,6 +110,7 @@ impl NativeStylingLatch {
         if new_style != self.style {
             self.style = new_style;
             self.applied = false;
+            self.attempts = 0;
         }
     }
 }
@@ -371,6 +383,11 @@ impl FollowOsAppearance {
         Some(dark)
     }
 
+    #[must_use]
+    pub fn next_poll(&self) -> std::time::Instant {
+        self.next_poll
+    }
+
     /// Throttled OS read + edge. Call once per redraw; `Some(dark)` only
     /// on an actual flip.
     pub fn poll(&mut self, now: std::time::Instant) -> Option<bool> {
@@ -497,6 +514,7 @@ pub struct QuickTerminal {
     /// [`tick`](Self::tick) retries — same contract as
     /// [`NativeStylingLatch`].
     placed: bool,
+    attempts: u32,
 }
 
 impl QuickTerminal {
@@ -534,6 +552,7 @@ impl QuickTerminal {
             visible: true,
             can_restore: false,
             placed: false,
+            attempts: 0,
         })
     }
 
@@ -613,8 +632,14 @@ impl QuickTerminal {
     /// Retry placement until a window exists; inert afterwards.
     pub fn tick(&mut self) {
         if !self.placed {
+            self.attempts = self.attempts.saturating_add(1);
             self.apply();
         }
+    }
+
+    #[must_use]
+    pub fn pending(&self) -> bool {
+        !self.placed && self.attempts < STYLING_RETRIES
     }
 
     fn apply(&mut self) {
@@ -982,6 +1007,7 @@ mod tests {
             let mut latch = NativeStylingLatch {
                 style,
                 applied: false,
+                attempts: 0,
             };
             latch.tick();
             latch.tick();

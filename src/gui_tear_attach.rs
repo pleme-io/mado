@@ -747,6 +747,8 @@ where
             }
         });
     let mut window = madori::App::builder(renderer);
+    crate::ring::WINDOW.connect(window.waker());
+    crate::perf::watch_window(window.visibility(), config.performance.pacing);
     let bell = crate::perf::window_bell(window.waker());
     // The engate Live-attach builder, factored so the switchable path
     // can rebuild it against a fresh pane. `response_writer` is an
@@ -984,10 +986,10 @@ where
 
     // Frame pacing — and THIS is the site that actually costs the operator:
     // the embedded-tear window is the default render mode. Full reasoning and
-    // the madori-side API at the twin builder in main.rs; `effective_fps` is
-    // resolved above via `config.performance.resolve_target_fps(None)`.
+    // the madori-side API at the twin builder in main.rs; the pacing is
+    // `performance.pacing`, resolved by `PerformanceConfig::frame_pacing`.
     window
-        .target_fps(effective_fps)
+        .frame_pacing(config.performance.frame_pacing())
         .config(app_config)
         // Wayland `app_id` / X11 `WM_CLASS` — see the twin builder in
         // main.rs. Same string on both paths so the embedded-tear window
@@ -1293,9 +1295,8 @@ where
 
             // ── kanshou-injected actions (`simulate_chord`) ──────
             // Drain BEFORE the event match so injected actions
-            // dispatch on the very next redraw (the tear path's loop
-            // runs `Capped` and redraws at least once per frame
-            // interval — worst-case latency is one frame). Injection
+            // dispatch on the very next redraw (a push rings the
+            // window, so the redraw follows the push at once). Injection
             // bypasses the key-repeat gate on purpose: these are
             // deliberate typed requests, not OS auto-repeat storms,
             // and BoundedFontSize still clamps the result. The drain
@@ -1313,6 +1314,26 @@ where
                         );
                     }
                 }
+            }
+
+            if woke {
+                let mut demand = engine.frame_demand();
+                if switch_requests.is_some()
+                    && let Some(live) = live_cell.as_ref()
+                {
+                    demand = demand.with(fate.next());
+                    if live.ended() {
+                        demand = demand.with(madori::FrameDemand::At(
+                            last_reattach + crate::pane_stream::REATTACH_BACKOFF,
+                        ));
+                    }
+                }
+                if native_styling.pending() {
+                    demand = demand.with(madori::FrameDemand::At(
+                        std::time::Instant::now() + crate::platform::STYLING_RETRY,
+                    ));
+                }
+                renderer.set_loop_demand(demand);
             }
 
             // M1 adapter: each arm translates AppEvent fields into one

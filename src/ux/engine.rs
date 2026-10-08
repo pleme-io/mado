@@ -21,7 +21,7 @@
 //! storm gate and the curated default keybind baseline.
 
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use hasami::ClipboardProvider;
 use madori::event::{KeyEvent, Modifiers, MouseButton, ScrollDelta};
@@ -44,6 +44,8 @@ use crate::ux::{
     EventOutcome, FontZoomTarget, PtySink, ResizeSink, ScrollAction, ScrollContext, ScrollGesture,
     ScrollSystem, UxBehavior,
 };
+
+const BOARD_TICK: Duration = Duration::from_secs(3);
 
 /// Translate a windowing-layer [`ScrollDelta`] (madori, typed by source)
 /// into the scroll system's [`ScrollGesture`]. The ONE boundary where
@@ -324,6 +326,9 @@ impl InputEngine {
             .session_picker_bridge
             .as_ref()
             .and_then(|bridge| bridge.suggestion_subscribe());
+        if let Some(rx) = suggest_rx.as_ref() {
+            crate::ring::on_change(rx.clone());
+        }
         // The async page-fetch channel: workers send completed fetches back here,
         // the engine drains them each render tick (never blocks the GUI).
         let (fetch_tx, fetch_rx) = std::sync::mpsc::channel();
@@ -2678,6 +2683,19 @@ impl InputEngine {
         *self.float_panels.lock().unwrap() = panels;
     }
 
+    #[must_use]
+    pub fn frame_demand(&self) -> madori::FrameDemand {
+        if self.scroll.is_active() {
+            return madori::FrameDemand::Continuous;
+        }
+        if self.session_picker_bridge.is_some() && self.session_picker.lock().unwrap().open {
+            return self.last_board_tick.map_or(madori::FrameDemand::Now, |at| {
+                madori::FrameDemand::At(at + BOARD_TICK)
+            });
+        }
+        madori::FrameDemand::Idle
+    }
+
     pub fn on_redraw_tick(&mut self, renderer: &TerminalRenderer) {
         // Realize any queued floating-browser commands (open/navigate/snap/
         // focus/close from the MCP + vigy surfaces), then publish the panel
@@ -2755,7 +2773,7 @@ impl InputEngine {
             if open {
                 let coarse_due = self
                     .last_board_tick
-                    .is_none_or(|t| t.elapsed() >= std::time::Duration::from_secs(3));
+                    .is_none_or(|t| t.elapsed() >= BOARD_TICK);
                 if changed || coarse_due {
                     self.last_board_tick = Some(Instant::now());
                     self.session_picker_autorefresh();
@@ -5568,6 +5586,33 @@ mod tests {
             h.velocity(),
             0.0,
             "no velocity injected when momentum is off"
+        );
+    }
+
+    #[test]
+    fn a_kinetic_glide_asks_for_every_refresh_until_it_rests_then_asks_for_nothing() {
+        let mut h = Harness::new(SinkKind::Closure);
+        for _ in 0..200 {
+            h.feed(b"line\r\n");
+        }
+        h.engine.behavior.scroll_momentum = true;
+        assert_eq!(h.engine.frame_demand(), madori::FrameDemand::Idle);
+        h.scroll(1.0);
+        let mut frames = 0;
+        while h.engine.frame_demand() == madori::FrameDemand::Continuous && frames < 1_200 {
+            h.tick_dt(1.0 / 120.0);
+            frames += 1;
+        }
+        assert!(frames > 10, "the glide lasted {frames} frames");
+        assert!(frames < 1_200, "and it came to rest");
+        assert!(h.scroll_offset() > 0, "the glide moved the viewport");
+        assert_eq!(h.engine.frame_demand(), madori::FrameDemand::Idle);
+        h.engine.behavior.scroll_momentum = false;
+        h.scroll(1.0);
+        assert_eq!(
+            h.engine.frame_demand(),
+            madori::FrameDemand::Idle,
+            "a line-for-line wheel needs no glide frames"
         );
     }
 

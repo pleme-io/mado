@@ -92,6 +92,7 @@ impl BrowserCommands {
             return false;
         }
         self.queue.lock().unwrap().push_back(verb);
+        crate::ring::WINDOW.ring();
         true
     }
 
@@ -258,6 +259,11 @@ impl BrowserBridge {
     pub fn take_render_reqs(&self) -> Vec<u32> {
         std::mem::take(&mut *self.render_reqs.lock().unwrap())
     }
+
+    #[must_use]
+    pub fn has_render_reqs(&self) -> bool {
+        !self.render_reqs.lock().unwrap().is_empty()
+    }
 }
 
 /// The process-global bridge (mirrors `vigy_host::HOST`).
@@ -287,6 +293,16 @@ pub fn ensure() -> &'static BrowserBridge {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_snapshot_render_is_owed_until_the_render_pass_takes_it() {
+        let bridge = BrowserBridge::new();
+        assert!(!bridge.has_render_reqs());
+        bridge.push_render_req(7);
+        assert!(bridge.has_render_reqs());
+        assert_eq!(bridge.take_render_reqs(), vec![7]);
+        assert!(!bridge.has_render_reqs());
+    }
 
     #[test]
     fn a_push_with_no_drainer_is_refused_never_silently_queued() {

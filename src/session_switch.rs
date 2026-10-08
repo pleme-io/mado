@@ -7,7 +7,9 @@
 //! [`crate::kanshou_state::MadoAppState`] parses it and posts the
 //! request here. The GUI event loop
 //! ([`crate::gui_tear_attach::run_against_pane_unified`]) polls this
-//! channel on every tick (only when `tear.session_switching = true`)
+//! channel on every redraw, and a post rings the window
+//! (`crate::ring::WINDOW`) so a parked window still takes it at once
+//! (only when `tear.session_switching = true`)
 //! and, when a request is pending, tears down the current engate
 //! attach + rebuilds it against the requested pane while the madori
 //! window + renderer persist.
@@ -51,6 +53,7 @@ impl SwitchRequests {
             .pending
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(pane);
+        crate::ring::WINDOW.ring();
     }
 
     /// Take the pending switch target, clearing the slot. Called from

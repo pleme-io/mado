@@ -6,9 +6,9 @@
 //! [`crate::kanshou_state::MadoAppState`] resolves it against the
 //! keybinding table and pushes the bound [`Action`] here. The GUI
 //! event loop ([`crate::gui_tear_attach::run_against_pane_unified`])
-//! drains the queue on every tick (madori runs `ControlFlow::Poll` +
-//! emits a `RedrawRequested` per frame, so worst-case dispatch
-//! latency is one frame) and feeds each action through EXACTLY the
+//! drains the queue on every redraw, and a push rings the window
+//! (`crate::ring::WINDOW`) so that redraw follows the push even when
+//! the window is parked, and feeds each action through EXACTLY the
 //! dispatch path a physical keypress takes after key→action
 //! resolution.
 //!
@@ -41,6 +41,7 @@ impl InjectedActions {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .push_back(action);
+        crate::ring::WINDOW.ring();
     }
 
     /// Take every queued action, FIFO order. Called from the GUI

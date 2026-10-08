@@ -180,7 +180,7 @@ garasu = "0.1"
 # Downgrading below 0.1.21 re-arms the bug, and nothing in this repo would fail.
 # 0.1.22 adds the loop's doorbell (`AppBuilder::waker`), which tear output rings
 # (tear PERFORMANCE R10); below it the tear attach does not compile.
-madori = "0.1.22"
+madori = "0.1.23"
 shikumi = { version = "0.1", features = ["cli"] }
 # izumi (泉) — the fresh-source board substrate: the generalized extraction of
 # mado's Ctrl-S suggestion plane (Item/Store/Engine/Environment algebra, the
@@ -348,7 +348,7 @@ kanchi = "0.1"
 # direct-sRGB-to-wgpu construction (the cause of the washed-out gray
 # background visible on Retina pre-M3) cannot recompile.
 # Architecture: pleme-io/theory/THEME-ARCHITECTURE.md
-ishou-tokens = { version = "0.1", features = ["wgpu"] }
+ishou-tokens = { version = "0.1.20", features = ["wgpu"] }
 # wadachi (轍) directory frecency — READER ONLY. mado calls pleme_io_wadachi::
 # top_n / resolve in-process for the DirPicker overlay + MCP tools, and NEVER
 # records (the shell owns recording — single-recorder rule). Published crate,

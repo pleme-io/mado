@@ -2138,7 +2138,16 @@ pub enum TearMode {
 /// * `Resident` — like `Daemon`, but the session resides in the daemon
 ///   and outlives every window; closing the window detaches.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    schemars::JsonSchema,
+    Default,
+    pleme_allvariants_derive::AllVariants,
 )]
 #[serde(rename_all = "snake_case")]
 pub enum TearRuntime {
@@ -2717,6 +2726,31 @@ pub struct PerformanceConfig {
         description = "Latency and size histograms in frame_perf (input→present, byte→present, parse bytes per tick). off stops recording them; every counter and gauge keeps counting."
     )]
     pub histograms: HistogramMode,
+    #[serde(default)]
+    #[schemars(
+        description = "How the window decides when to draw. demand = draw when something changed: the first frame after idle at once, later ones at most once per display refresh, two idle ticks then park, deadlines for blink, fades and backoffs, nothing while the window is occluded or minimized; target_fps (else fps_cap) caps it below the display's rate. capped = tick at target_fps (60 when unset) forever and draw while occluded, as before tear PERFORMANCE R11. continuous = redraw as fast as the loop turns."
+    )]
+    pub pacing: PacingMode,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    schemars::JsonSchema,
+    Default,
+    pleme_allvariants_derive::AllVariants,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum PacingMode {
+    #[default]
+    Demand,
+    Capped,
+    Continuous,
 }
 
 #[derive(
@@ -2744,11 +2778,28 @@ impl Default for PerformanceConfig {
             fps_cap: None,
             battery_fps_cap: None,
             histograms: HistogramMode::On,
+            pacing: PacingMode::Demand,
         }
     }
 }
 
 impl PerformanceConfig {
+    #[must_use]
+    pub fn frame_pacing(&self) -> madori::FramePacing {
+        match self.pacing {
+            PacingMode::Demand => madori::FramePacing::Reactive(
+                self.target_fps
+                    .or(self.fps_cap)
+                    .and_then(std::num::NonZeroU32::new)
+                    .unwrap_or(std::num::NonZeroU32::MAX),
+            ),
+            PacingMode::Capped => {
+                madori::FramePacing::from_target_fps(self.resolve_target_fps(None))
+            }
+            PacingMode::Continuous => madori::FramePacing::Continuous,
+        }
+    }
+
     /// Hardcoded fallback frame rate used when neither the user config
     /// nor the adaptive recommender supplies a value. The safe floor —
     /// every panel since 2003 supports 60Hz.
@@ -3477,6 +3528,7 @@ impl MadoConfig {
                 fps_cap: None,
                 battery_fps_cap: None,
                 histograms: HistogramMode::On,
+                pacing: PacingMode::Demand,
             },
             // ── Environment ──────────────────────────────────────
             environment: EnvironmentConfig {
@@ -6361,6 +6413,7 @@ window:
             fps_cap: Some(60),
             battery_fps_cap: None,
             histograms: HistogramMode::On,
+            pacing: PacingMode::Demand,
         };
         // Posture present, but user-set value preempts.
         let posture = make_posture_with_refresh(Some(120));
@@ -6375,6 +6428,7 @@ window:
             fps_cap: None,
             battery_fps_cap: None,
             histograms: HistogramMode::On,
+            pacing: PacingMode::Demand,
         };
         let posture = make_posture_with_refresh(Some(120));
         assert_eq!(p.resolve_target_fps(Some(&posture)), 120);
@@ -6388,6 +6442,7 @@ window:
             fps_cap: Some(90),
             battery_fps_cap: None,
             histograms: HistogramMode::On,
+            pacing: PacingMode::Demand,
         };
         let posture = make_posture_with_refresh(Some(240));
         assert_eq!(p.resolve_target_fps(Some(&posture)), 90);
@@ -6475,6 +6530,7 @@ window:
             fps_cap: Some(240),
             battery_fps_cap: Some(60),
             histograms: HistogramMode::On,
+            pacing: PacingMode::Demand,
         };
         let json = serde_json::to_string(&p).unwrap();
         let back: PerformanceConfig = serde_json::from_str(&json).unwrap();
@@ -6504,6 +6560,7 @@ window:
             fps_cap: Some(120),
             battery_fps_cap: Some(30),
             histograms: HistogramMode::On,
+            pacing: PacingMode::Demand,
         };
         let posture = make_posture_with_refresh(Some(144));
         // Without force_battery_mode, fps_cap (120) clamps, not battery_fps_cap.
@@ -6522,6 +6579,7 @@ window:
             fps_cap: None,
             battery_fps_cap: None,
             histograms: HistogramMode::On,
+            pacing: PacingMode::Demand,
         };
         let posture = make_posture_with_refresh(Some(120));
         assert_eq!(p.resolve_target_fps(Some(&posture)), 0);
@@ -6581,6 +6639,7 @@ window:
                     fps_cap: None,
                     battery_fps_cap: None,
                     histograms: HistogramMode::On,
+                    pacing: PacingMode::Demand,
                 }),
                 ..ProfileConfig::default()
             },
@@ -7287,6 +7346,7 @@ mod coverage {
         "performance.battery_fps_cap",
         "performance.fps_cap",
         "performance.histograms",
+        "performance.pacing",
         "performance.target_fps",
         "performance.vsync",
         "quick_terminal.animation_ms",

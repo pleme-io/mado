@@ -178,6 +178,7 @@ pub fn spawn(
                 Err(e) => {
                     tracing::error!("failed to spawn PTY: {e}");
                     exited_writer.store(true, Ordering::Release);
+                    crate::ring::WINDOW.ring();
                     return;
                 }
             };
@@ -276,7 +277,10 @@ pub fn spawn(
                         if let Some(response) = t.take_response() {
                             drop(t);
                             let _ = response_tx.send(PtyWrite::VtAnswer(response));
+                        } else {
+                            drop(t);
                         }
+                        crate::ring::WINDOW.ring();
                     }
                     Err(e) => {
                         tracing::warn!("PTY read error: {e}");
@@ -286,6 +290,7 @@ pub fn spawn(
             }
             // PTY closed — signal the renderer to exit.
             exited_writer.store(true, Ordering::Release);
+            crate::ring::WINDOW.ring();
             writer_task.abort();
             resize_task.abort();
         });

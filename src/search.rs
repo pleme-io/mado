@@ -161,6 +161,22 @@ pub struct SearchState {
 
 impl SearchState {
     #[must_use]
+    pub fn fingerprint(&self) -> u64 {
+        use std::hash::{Hash, Hasher};
+        if !self.active {
+            return 0;
+        }
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        self.query.hash(&mut h);
+        self.matches.len().hash(&mut h);
+        self.current.hash(&mut h);
+        self.ignore_case.hash(&mut h);
+        std::mem::discriminant(&self.matcher).hash(&mut h);
+        self.pattern_error.is_some().hash(&mut h);
+        h.finish() | 1
+    }
+
+    #[must_use]
     pub fn new() -> Self {
         Self {
             active: false,

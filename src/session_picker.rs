@@ -756,6 +756,7 @@ pub(crate) fn capture_preset(
     };
     let def = praca::SessionDefinition::from_live(&tear_session, project_root, now);
     lock().definitions.upsert(def);
+    crate::praca_store::touch();
     true
 }
 

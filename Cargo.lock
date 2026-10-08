@@ -2739,9 +2739,9 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
 name = "ishou-tokens"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccc298c8c7e8274196a91d5217c8f683dff6e2c58970a67ad144abeae02b5afb"
+checksum = "d9caac69eeac2d5d7c5b074a242f8c0c0549b970bb8b72468182dff9e811b4b3"
 dependencies = [
  "irodori",
  "serde",
@@ -3409,9 +3409,9 @@ dependencies = [
 
 [[package]]
 name = "madori"
-version = "0.1.22"
+version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d7fd98a590f2e6d3238254985193d646c723e36410af6f94d8ea990c6b65de3"
+checksum = "63503dc0228ee8ff4eefb41827f64f9a70a6598f7efe7cf3e6a802b18fd23d5b"
 dependencies = [
  "egaku",
  "garasu",

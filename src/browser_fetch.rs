@@ -55,6 +55,7 @@ pub fn spawn_fetch(
                 result,
                 epoch,
             });
+            crate::ring::WINDOW.ring();
         });
 }
 

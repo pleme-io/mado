@@ -19,9 +19,11 @@
 //!
 //! ## Where janitors run (M0 placement decision)
 //!
-//! Janitors ride the suggest engine thread's EXISTING maintenance tick
+//! Janitors ride the suggest engine thread's EXISTING maintenance pass
 //! (`suggest::spawn_engine_thread`'s select loop) with a per-janitor
-//! interval gate inside [`JanitorRunner::tick`]. Chosen over registering
+//! interval gate inside [`JanitorRunner::tick`]; the pass sleeps until
+//! [`JanitorRunner::next_due_ms`] unless a row expires or a change comes
+//! first. Chosen over registering
 //! vigy reconcilers because (a) the tick already exists, runs
 //! unconditionally (even with suggestions disabled the loop parks armed),
 //! and is hot-reload-aware via `EngineCommand::Swap`; (b) the embedded vigy
@@ -1003,6 +1005,20 @@ impl JanitorRunner {
         !self.slots.is_empty()
     }
 
+    #[must_use]
+    pub fn next_due_ms(&self) -> Option<u64> {
+        self.slots
+            .iter()
+            .map(|slot| {
+                if slot.last_run_ms == 0 {
+                    0
+                } else {
+                    slot.last_run_ms.saturating_add(slot.interval_ms)
+                }
+            })
+            .min()
+    }
+
     /// One host tick: run every janitor whose interval has elapsed, publish
     /// every finding (bus + tracing), remediate under Effect, project onto
     /// the board when configured. Returns the number of findings processed.
@@ -1612,6 +1628,33 @@ mod tests {
                 authority: None,
             },
         }
+    }
+
+    #[test]
+    fn the_runner_is_due_at_once_then_at_each_janitor_s_own_interval() {
+        let env = MockJanitorEnv::with_sessions(Vec::new());
+        let bus = FiberBus::default();
+        let mut cfg = armed_config(Authority::Shadow);
+        cfg.suggest_health.interval_secs = 120;
+        let mut runner = JanitorRunner::from_config(&cfg);
+        assert_eq!(
+            runner.next_due_ms(),
+            Some(0),
+            "a janitor never run is due now"
+        );
+        runner.tick(&env, &bus, 1_000);
+        assert_eq!(
+            runner.next_due_ms(),
+            Some(61_000),
+            "the ghost sweep, every 60 s"
+        );
+        runner.tick(&env, &bus, 61_000);
+        assert_eq!(runner.next_due_ms(), Some(121_000));
+        assert_eq!(
+            JanitorRunner::from_config(&JanitorsConfig::bare()).next_due_ms(),
+            None,
+            "no janitor, no deadline"
+        );
     }
 
     #[test]

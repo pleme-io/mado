@@ -91,8 +91,37 @@ impl MadoAppState {
     }
 }
 
+const READ_ONLY_LEAVES: &[&str] = &[
+    "frame_perf",
+    "client_geometry",
+    "sessions",
+    "config",
+    "process",
+    "suggest",
+    "pane_snapshot_embedded",
+    "browser_snapshot_get",
+    "browser_surfaces",
+];
+
 impl Introspect for MadoAppState {
     fn query(&self, q: &Query) -> QueryResult {
+        let answer = self.answer(q);
+        if q.path
+            .first()
+            .is_some_and(|leaf| !READ_ONLY_LEAVES.contains(&leaf.as_str()))
+        {
+            crate::ring::WINDOW.ring();
+        }
+        answer
+    }
+
+    fn schema(&self) -> &'static [&'static str] {
+        Self::SCHEMA
+    }
+}
+
+impl MadoAppState {
+    fn answer(&self, q: &Query) -> QueryResult {
         let Some(first) = q.path.first().map(String::as_str) else {
             return Err(QueryError::unknown_field(String::new()));
         };
@@ -1033,36 +1062,34 @@ impl Introspect for MadoAppState {
         }
     }
 
-    fn schema(&self) -> &'static [&'static str] {
-        &[
-            "frame_perf",
-            "client_geometry",
-            "sessions",
-            "config",
-            "process",
-            "simulate_chord",
-            "switch_session",
-            "save_session_as_preset",
-            "suggest",
-            "suggest_inject",
-            "suggest_dismiss",
-            "spawn_term",
-            "close_session",
-            "send_keys_embedded",
-            "pane_snapshot_embedded",
-            "browser_open",
-            "browser_navigate",
-            "browser_snap",
-            "browser_focus",
-            "browser_close",
-            "browser_move",
-            "browser_resize",
-            "browser_set_dom",
-            "browser_snapshot",
-            "browser_snapshot_get",
-            "browser_surfaces",
-        ]
-    }
+    const SCHEMA: &'static [&'static str] = &[
+        "frame_perf",
+        "client_geometry",
+        "sessions",
+        "config",
+        "process",
+        "simulate_chord",
+        "switch_session",
+        "save_session_as_preset",
+        "suggest",
+        "suggest_inject",
+        "suggest_dismiss",
+        "spawn_term",
+        "close_session",
+        "send_keys_embedded",
+        "pane_snapshot_embedded",
+        "browser_open",
+        "browser_navigate",
+        "browser_snap",
+        "browser_focus",
+        "browser_close",
+        "browser_move",
+        "browser_resize",
+        "browser_set_dom",
+        "browser_snapshot",
+        "browser_snapshot_get",
+        "browser_surfaces",
+    ];
 }
 
 /// The `{ok:false, error:"no-injection-sink"}` refusal every GUI-mutating
@@ -1115,6 +1142,29 @@ pub struct SpawnTermParams {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn every_read_only_leaf_is_a_leaf_and_the_mutating_leaves_ring() {
+        for leaf in super::READ_ONLY_LEAVES {
+            assert!(
+                super::MadoAppState::SCHEMA.contains(leaf),
+                "{leaf} is not a leaf of the schema"
+            );
+        }
+        for leaf in [
+            "simulate_chord",
+            "switch_session",
+            "suggest_inject",
+            "browser_open",
+            "browser_snapshot",
+        ] {
+            assert!(super::MadoAppState::SCHEMA.contains(&leaf));
+            assert!(
+                !super::READ_ONLY_LEAVES.contains(&leaf),
+                "{leaf} changes what the window shows, so it rings the window"
+            );
+        }
+    }
+
     use super::*;
     use crate::keybind::Action;
 

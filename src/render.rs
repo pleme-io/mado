@@ -1956,6 +1956,9 @@ pub struct TerminalRenderer {
     /// 2026-08-26 on Linux / mado 0.1.142, reported as "mado does not
     /// select text").
     last_selection_epoch: SelectionEpoch,
+    last_search_fingerprint: u64,
+    last_float_fingerprint: std::cell::Cell<u64>,
+    loop_demand: madori::FrameDemand,
     /// Frames remaining to force a full paint after a grid-epoch change,
     /// bypassing the synchronized-output defer. Set to the swapchain
     /// depth so EVERY back-buffer slot is repainted with the new pane's
@@ -2524,6 +2527,9 @@ impl TerminalRenderer {
             last_overlay_snapshot: OverlaySnapshot::default(),
             last_overlay_paint_at: f32::NEG_INFINITY,
             last_selection_epoch: SelectionEpoch::default(),
+            last_search_fingerprint: 0,
+            last_float_fingerprint: std::cell::Cell::new(float_fingerprint(&[])),
+            loop_demand: madori::FrameDemand::Idle,
             force_paint_frames: 0,
             scrub_reason: crate::perf::PaintReason::ForcedScrub,
             metrics: crate::perf::render_metrics(),
@@ -5795,8 +5801,12 @@ impl TerminalRenderer {
         encoder: &mut wgpu::CommandEncoder,
         target_view: &wgpu::TextureView,
     ) {
+        let render_reqs = crate::browser_bridge::get()
+            .map(crate::browser_bridge::BrowserBridge::take_render_reqs)
+            .unwrap_or_default();
         let panels: Vec<FloatPanel> = {
             let g = self.float_panels.lock().unwrap();
+            self.last_float_fingerprint.set(float_fingerprint(&g));
             if g.is_empty() {
                 return;
             }
@@ -5860,7 +5870,7 @@ impl TerminalRenderer {
         // render (not the seqno cache) so a snapshot reflects the current page
         // even when its seqno didn't move. ──
         if let Some(bridge) = crate::browser_bridge::get() {
-            for id in bridge.take_render_reqs() {
+            for id in render_reqs {
                 let Some(p) = panels.iter().find(|p| p.id == id) else {
                     continue;
                 };
@@ -6364,49 +6374,54 @@ impl TerminalRenderer {
     }
 }
 
-impl RenderCallback for TerminalRenderer {
-    /// ★ THE SKIP THAT ACTUALLY SKIPS.
-    ///
-    /// `render` below has computed this verdict since forever — it counts it
-    /// into `TOTAL_FRAMES_SKIPPED`, logs it as an idle frame, and then falls
-    /// through to a full repaint. The counter read **9,934,969 of 10,726,562
-    /// "skipped"**, none of which were, and the cost measured on plo
-    /// (2026-08-21) was **50.7% of a core on a completely static screen** —
-    /// against a source comment estimating "≈0.2% … free correctness with no
-    /// measurable cost". That estimate was reasoned, never measured, and it
-    /// was wrong by ~250x.
-    ///
-    /// It was written that way for a real reason: the original gate returned
-    /// early *and madori still presented*, handing the swapchain a slot
-    /// nobody had painted — the "prompt leaves shadows of itself" regression,
-    /// plus Metal's uninitialised magenta. But the implication of *never
-    /// present an unwritten slot* is **do not present**, not **always write**,
-    /// and mado could not express that alone: madori owns the acquire and the
-    /// present. `RenderCallback::needs_frame` is that seam, and a `false`
-    /// here skips acquire, render and present together — so no unpainted slot
-    /// can reach the display and the window keeps the frame it already has.
-    ///
-    /// ★ **Deliberately conservative, and side-effect free.** It returns
-    /// `false` ONLY when every reason to paint is absent, and it mutates
-    /// nothing — `last_seqno`, `last_cursor_on`, `force_paint_frames` and the
-    /// sync-output defer all stay owned by `render`, so a `true` here leaves
-    /// behaviour bit-for-bit identical to before this method existed. Any
-    /// doubt resolves to `true`: a redundant frame costs microseconds, a
-    /// wrongly-skipped one is a display that stops updating.
-    fn needs_frame(&mut self, q: madori::FrameQuery) -> bool {
+fn float_fingerprint(panels: &[FloatPanel]) -> u64 {
+    use std::hash::{Hash as _, Hasher as _};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    for p in panels {
+        p.id.hash(&mut hasher);
+        for v in [p.x, p.y, p.w, p.h, p.opacity] {
+            v.to_bits().hash(&mut hasher);
+        }
+        p.content.is_some().hash(&mut hasher);
+        p.content_seqno.hash(&mut hasher);
+    }
+    panels.len().hash(&mut hasher);
+    hasher.finish()
+}
+
+fn render_time(now: Instant, q: madori::FrameQuery, at: f32) -> madori::FrameDemand {
+    crate::motion::wait_until(q.elapsed, f64::from(at)).map_or(madori::FrameDemand::Idle, |wait| {
+        madori::FrameDemand::At(now + wait)
+    })
+}
+
+fn flip_time(now: Instant, phase: crate::motion::BlinkPhase) -> madori::FrameDemand {
+    phase.flips_in.map_or(madori::FrameDemand::Idle, |wait| {
+        madori::FrameDemand::At(now + wait)
+    })
+}
+
+impl TerminalRenderer {
+    pub fn set_loop_demand(&mut self, demand: madori::FrameDemand) {
+        self.loop_demand = demand;
+    }
+
+    fn content_demand(&self, q: madori::FrameQuery, now: Instant) -> madori::FrameDemand {
         use crate::motion::Advance as _;
+        use madori::FrameDemand;
+        let mut later = FrameDemand::Idle;
         // A forced repaint outranks everything — it exists to scrub stale
         // content out of EVERY swapchain slot after a pane switch, and
         // skipping any of those frames is what leaves one slot showing the
         // previous session.
         if self.force_paint_frames > 0 {
-            return true;
+            return FrameDemand::Now;
         }
         // Never skipped a frame yet: `last_seqno == 0` is the "nothing has
         // been drawn" sentinel that several reset paths restore, and it must
         // not be mistaken for "the terminal is at seqno 0 and quiet".
         if self.last_seqno == 0 {
-            return true;
+            return FrameDemand::Now;
         }
 
         let (seqno, cursor_visible, epoch, presentation) = {
@@ -6421,15 +6436,30 @@ impl RenderCallback for TerminalRenderer {
 
         // New content, or a whole new pane.
         if seqno != self.last_seqno || epoch != self.last_grid_epoch {
-            return true;
+            return FrameDemand::Now;
         }
         // A pending synchronized-output defer means a frame is owed the
-        // moment the defer resolves; `render` owns that timer, so stay awake.
-        if self.sync_output_deferred_since.is_some() {
-            return true;
+        // moment the defer resolves; `render` owns that timer, so the
+        // question is asked again when its cap runs out.
+        if let Some(since) = self.sync_output_deferred_since {
+            let cap = since + SYNC_OUTPUT_MAX_DEFER;
+            if now >= cap {
+                return FrameDemand::Now;
+            }
+            later = later.with(FrameDemand::At(cap));
         }
-        if self.bell_flash.is_active() || self.search.lock().unwrap().active {
-            return true;
+        if self.bell_flash.is_active() {
+            return FrameDemand::Continuous;
+        }
+        if self.search.lock().unwrap().fingerprint() != self.last_search_fingerprint {
+            return FrameDemand::Now;
+        }
+        if float_fingerprint(&self.float_panels.lock().unwrap())
+            != self.last_float_fingerprint.get()
+            || crate::browser_bridge::get()
+                .is_some_and(crate::browser_bridge::BrowserBridge::has_render_reqs)
+        {
+            return FrameDemand::Now;
         }
 
         // ── ★ AN OPEN OVERLAY MUST KEEP THE RENDERER AWAKE ──────────────────
@@ -6496,7 +6526,7 @@ impl RenderCallback for TerminalRenderer {
         // grid checks below still get to ask for the frame, so an overlay open
         // over a live shell keeps animating the cursor exactly as before.
         if self.overlay_motion.closing() {
-            return true;
+            return FrameDemand::Continuous;
         }
         if !matches!(
             *self.overlay_focus.lock().unwrap(),
@@ -6505,25 +6535,30 @@ impl RenderCallback for TerminalRenderer {
             // (1) Still fading in — a pure fn of the render clock, so this
             // stops asking the moment the tween completes.
             if self.overlay_fade_progress(q.elapsed) < 1.0 {
-                return true;
+                return FrameDemand::Continuous;
             }
             // (2) A row is still dissolving in.
             if self.suggestion_fades_in_flight(q.elapsed) {
-                return true;
+                return FrameDemand::Continuous;
             }
             if self.overlay_motion.in_flight(q.elapsed) {
-                return true;
+                return FrameDemand::Continuous;
             }
             // (3) Something the overlay draws actually changed.
             if self.overlay_snapshot() != self.last_overlay_snapshot {
-                return true;
+                return FrameDemand::Now;
             }
             // (4) Bounded-staleness backstop. `last_overlay_paint_at` starts
             // at NEG_INFINITY, so the first frame after an overlay opens
             // always paints even if it somehow reached here.
             if q.elapsed - self.last_overlay_paint_at >= OVERLAY_HEARTBEAT_SECS {
-                return true;
+                return FrameDemand::Now;
             }
+            later = later.with(render_time(
+                now,
+                q,
+                self.last_overlay_paint_at + OVERLAY_HEARTBEAT_SECS,
+            ));
         }
 
         // The blink phase, resolved exactly as the draw path resolves it —
@@ -6539,10 +6574,14 @@ impl RenderCallback for TerminalRenderer {
             Some((_, blink)) => blink && !self.reduce_motion,
             None => self.cursor_blink,
         };
-        let cursor_on_now = !effective_blink
-            || crate::motion::blink_on(q.elapsed, self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0);
-        if effective_blink && cursor_visible && cursor_on_now != self.last_cursor_on {
-            return true;
+        let blink_period = self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
+        let blink = crate::motion::blink_phase(q.elapsed, blink_period);
+        let cursor_on_now = !effective_blink || blink.on;
+        if effective_blink && cursor_visible {
+            if cursor_on_now != self.last_cursor_on {
+                return FrameDemand::Now;
+            }
+            later = later.with(flip_time(now, blink));
         }
 
         // ── ★ AND SGR-5 TEXT, WHICH BLINKS ON THE SAME CLOCK ─────────────
@@ -6552,8 +6591,13 @@ impl RenderCallback for TerminalRenderer {
         // itself (it returns always-on), so this needs no separate term —
         // the phase simply stops changing and the clause stops firing.
         let text_blink_on_now = self.blink_phase_on(q.elapsed);
-        if self.saw_blinking_cell && text_blink_on_now != self.last_text_blink_on {
-            return true;
+        if self.saw_blinking_cell {
+            if text_blink_on_now != self.last_text_blink_on {
+                return FrameDemand::Now;
+            }
+            if !self.reduce_motion {
+                later = later.with(flip_time(now, blink));
+            }
         }
 
         // ★ MOUSE SELECTION WAKES THE LOOP.
@@ -6574,9 +6618,50 @@ impl RenderCallback for TerminalRenderer {
         // conservative: a redundant frame is microseconds, a wrongly
         // skipped one is the class this whole predicate exists to serve.
         if self.selection.lock().unwrap().epoch() != self.last_selection_epoch {
-            return true;
+            return FrameDemand::Now;
         }
 
+        later
+    }
+}
+
+impl RenderCallback for TerminalRenderer {
+    fn needs_frame(&mut self, q: madori::FrameQuery) -> bool {
+        self.frame_demand(q).draws()
+    }
+
+    /// ★ THE SKIP THAT ACTUALLY SKIPS.
+    ///
+    /// `render` below has computed this verdict since forever — it counts it
+    /// into `TOTAL_FRAMES_SKIPPED`, logs it as an idle frame, and then falls
+    /// through to a full repaint. The counter read **9,934,969 of 10,726,562
+    /// "skipped"**, none of which were, and the cost measured on plo
+    /// (2026-08-21) was **50.7% of a core on a completely static screen** —
+    /// against a source comment estimating "≈0.2% … free correctness with no
+    /// measurable cost". That estimate was reasoned, never measured, and it
+    /// was wrong by ~250x.
+    ///
+    /// It was written that way for a real reason: the original gate returned
+    /// early *and madori still presented*, handing the swapchain a slot
+    /// nobody had painted — the "prompt leaves shadows of itself" regression,
+    /// plus Metal's uninitialised magenta. But the implication of *never
+    /// present an unwritten slot* is **do not present**, not **always write**,
+    /// and mado could not express that alone: madori owns the acquire and the
+    /// present. `RenderCallback::frame_demand` is that seam, and a demand
+    /// that draws nothing skips acquire, render and present together — so no
+    /// unpainted slot can reach the display and the window keeps the frame it
+    /// already has.
+    ///
+    /// ★ **Deliberately conservative, and side-effect free.** It asks for no
+    /// frame ONLY when every reason to paint is absent, and it mutates
+    /// nothing — `last_seqno`, `last_cursor_on`, `force_paint_frames` and the
+    /// sync-output defer all stay owned by `render`, so a frame it asks for
+    /// leaves behaviour bit-for-bit identical to before this method existed.
+    /// Any doubt resolves to a frame: a redundant frame costs microseconds, a
+    /// wrongly-skipped one is a display that stops updating.
+    fn frame_demand(&mut self, q: madori::FrameQuery) -> madori::FrameDemand {
+        let now = Instant::now();
+        let demand = self.content_demand(q, now).with(self.loop_demand);
         // ★ THE SKIP IS COUNTED WHERE THE SKIP HAPPENS.
         //
         // `TOTAL_FRAMES_SKIPPED` used to be bumped inside `render`, which was
@@ -6593,8 +6678,10 @@ impl RenderCallback for TerminalRenderer {
         // makes the whole surface unfalsifiable. It also hid the defect from
         // its own guard test, which drives `render` directly and so never
         // asks the predicate that does the skipping.
-        TOTAL_FRAMES_SKIPPED.fetch_add(1, Ordering::Relaxed);
-        false
+        if !demand.draws() {
+            TOTAL_FRAMES_SKIPPED.fetch_add(1, Ordering::Relaxed);
+        }
+        demand
     }
 
     fn init(&mut self, gpu: &garasu::GpuContext) {
@@ -7048,6 +7135,7 @@ impl RenderCallback for TerminalRenderer {
         let selection_epoch = self.selection.lock().unwrap().epoch();
         let selection_changed = selection_epoch != self.last_selection_epoch;
         self.last_selection_epoch = selection_epoch;
+        self.last_search_fingerprint = self.search.lock().unwrap().fingerprint();
         let paint_reason = classify_paint(PaintSignals {
             content: prev_seqno == 0 || seqno != prev_seqno,
             overlay: overlay_active_peek
@@ -7665,6 +7753,7 @@ mod render_invariants {
 
     use super::*;
     use crate::terminal::Terminal;
+    use std::time::Duration;
 
     /// Build a `TerminalRenderer` with a fresh `cols×rows`
     /// terminal. No GPU device touched — pipelines stay `None`;
@@ -7792,6 +7881,191 @@ mod render_invariants {
         // differ from the recorded one forever, and every quiet-screen
         // assertion below would read `true` for the wrong reason.
         r.last_selection_epoch = r.selection.lock().unwrap().epoch();
+        r.last_search_fingerprint = r.search.lock().unwrap().fingerprint();
+        r.last_float_fingerprint
+            .set(float_fingerprint(&r.float_panels.lock().unwrap()));
+    }
+
+    fn q_at(elapsed: f32) -> madori::FrameQuery {
+        madori::FrameQuery { elapsed, dt: 0.0 }
+    }
+
+    fn wait_of(demand: madori::FrameDemand, from: Instant) -> Duration {
+        match demand {
+            madori::FrameDemand::At(at) => at.saturating_duration_since(from),
+            other => panic!("expected a deadline, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_quiet_blinking_cursor_asks_again_at_its_next_flip_and_draws_nothing_before() {
+        let (mut r, term) = harness(20, 5);
+        r.cursor_blink = true;
+        settled(&mut r, &term);
+        assert_eq!(r.cursor_blink_rate_ms, 500);
+        let period = 1.0;
+        r.last_cursor_on = crate::motion::blink_on(0.1, period);
+        let from = Instant::now();
+        let demand = r.frame_demand(q_at(0.1));
+        let wait = wait_of(demand, from);
+        let expected = Duration::from_secs_f32(period * 0.5 - 0.1);
+        assert!(
+            wait.abs_diff(expected) < Duration::from_millis(50),
+            "the next flip is {expected:?} away, the deadline {wait:?}"
+        );
+        assert!(!demand.draws(), "nothing is drawn before the flip");
+        let after = r.frame_demand(q_at(period * 0.5 + 0.01));
+        assert_eq!(
+            after,
+            madori::FrameDemand::Now,
+            "at the flip the cursor draws"
+        );
+    }
+
+    #[test]
+    #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
+    fn a_non_dyadic_blink_a_week_into_the_clock_draws_every_flip_at_its_deadline() {
+        let (mut r, term) = harness(20, 5);
+        r.cursor_blink = true;
+        r.cursor_blink_rate_ms = 530;
+        settled(&mut r, &term);
+        let period = r.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
+        let start = 7.0 * 86_400.0_f64;
+        let clock = |real: f64| (start + real) as f32;
+        let mut real = 0.0_f64;
+        r.last_cursor_on = crate::motion::blink_on(clock(real), period);
+        let mut flips = 0;
+        let mut asks = 0;
+        while flips < 60 {
+            asks += 1;
+            assert!(asks <= 3 * 60, "{asks} asks for {flips} flips");
+            let from = Instant::now();
+            match r.frame_demand(q_at(clock(real))) {
+                madori::FrameDemand::Now => {
+                    flips += 1;
+                    r.last_cursor_on = crate::motion::blink_on(clock(real), period);
+                }
+                madori::FrameDemand::At(at) => {
+                    let wait = at.saturating_duration_since(from).as_secs_f64();
+                    assert!(
+                        wait <= f64::from(period) * 0.5 + 0.07,
+                        "a deadline {wait} s away skips a flip"
+                    );
+                    real += wait;
+                }
+                other => panic!("a blinking cursor asked for {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn with_the_blink_off_a_quiet_renderer_is_idle_not_a_deadline() {
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        assert_eq!(r.frame_demand(q_at(0.1)), madori::FrameDemand::Idle);
+        assert_eq!(r.frame_demand(q_at(100.0)), madori::FrameDemand::Idle);
+    }
+
+    #[test]
+    fn a_float_panel_that_opens_moves_or_repaints_asks_for_a_frame_once() {
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Idle);
+        let panel = |x: f32, content_seqno: u64| FloatPanel {
+            id: 3,
+            x,
+            y: 10.0,
+            w: 200.0,
+            h: 100.0,
+            opacity: 0.98,
+            content: None,
+            content_seqno,
+        };
+        let drawn = |r: &mut TerminalRenderer| {
+            r.last_float_fingerprint
+                .set(float_fingerprint(&r.float_panels.lock().unwrap()));
+        };
+        *r.float_panels.lock().unwrap() = vec![panel(10.0, 0)];
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Now, "opening");
+        drawn(&mut r);
+        assert_eq!(
+            r.frame_demand(Q0),
+            madori::FrameDemand::Idle,
+            "drawn, unchanged"
+        );
+        *r.float_panels.lock().unwrap() = vec![panel(40.0, 0)];
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Now, "moved");
+        drawn(&mut r);
+        *r.float_panels.lock().unwrap() = vec![panel(40.0, 1)];
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Now, "a new page");
+        drawn(&mut r);
+        r.float_panels.lock().unwrap().clear();
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Now, "closing");
+        drawn(&mut r);
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Idle);
+    }
+
+    #[test]
+    fn an_open_search_bar_repaints_only_on_change() {
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        {
+            let mut s = r.search.lock().unwrap();
+            s.active = true;
+            s.query = "x".into();
+        }
+        assert_eq!(
+            r.frame_demand(Q0),
+            madori::FrameDemand::Now,
+            "opening draws"
+        );
+        r.last_search_fingerprint = r.search.lock().unwrap().fingerprint();
+        assert_eq!(
+            r.frame_demand(Q0),
+            madori::FrameDemand::Idle,
+            "an open, unchanged search bar asks for nothing"
+        );
+        r.search.lock().unwrap().query = "xy".into();
+        assert_eq!(
+            r.frame_demand(Q0),
+            madori::FrameDemand::Now,
+            "a typed query draws"
+        );
+        r.last_search_fingerprint = r.search.lock().unwrap().fingerprint();
+        r.search.lock().unwrap().active = false;
+        assert_eq!(
+            r.frame_demand(Q0),
+            madori::FrameDemand::Now,
+            "closing draws"
+        );
+        r.last_search_fingerprint = r.search.lock().unwrap().fingerprint();
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Idle);
+    }
+
+    #[test]
+    fn a_decaying_bell_asks_for_every_refresh_until_it_has_decayed() {
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        r.trigger_bell();
+        assert!(crate::motion::Advance::is_active(&r.bell_flash));
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Continuous);
+        for _ in 0..1_000 {
+            crate::motion::Advance::advance(&mut r.bell_flash, 1.0 / 120.0);
+        }
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Idle);
+    }
+
+    #[test]
+    fn the_loop_s_demand_joins_the_renderer_s() {
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        let at = Instant::now() + Duration::from_secs(3);
+        r.set_loop_demand(madori::FrameDemand::At(at));
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::At(at));
+        r.set_loop_demand(madori::FrameDemand::Continuous);
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Continuous);
+        r.set_loop_demand(madori::FrameDemand::Idle);
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Idle);
     }
 
     #[test]
@@ -8150,15 +8424,19 @@ mod render_invariants {
     }
 
     #[test]
-    fn a_pending_sync_output_defer_keeps_the_loop_awake() {
+    fn a_pending_sync_output_defer_wakes_the_loop_when_it_resolves() {
         let (mut r, term) = harness(20, 5);
         settled(&mut r, &term);
-        r.sync_output_deferred_since = Some(std::time::Instant::now());
-        assert!(
-            r.needs_frame(Q0),
+        let since = Instant::now();
+        r.sync_output_deferred_since = Some(since);
+        assert_eq!(
+            r.frame_demand(Q0),
+            madori::FrameDemand::At(since + SYNC_OUTPUT_MAX_DEFER),
             "a frame is owed the moment the defer resolves, and `render` owns \
-             that timer — sleeping here would strand it"
+             that timer — the loop sleeps until it runs out, never past it"
         );
+        r.sync_output_deferred_since = since.checked_sub(SYNC_OUTPUT_MAX_DEFER);
+        assert!(r.needs_frame(Q0), "a defer past its cap draws at once");
     }
 
     #[test]

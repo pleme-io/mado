@@ -178,7 +178,21 @@ Tear (embedded, the default; daemon; resident):
   Main thread:  drain <=4,096 chunks/tick --> VT parse (mirror Terminal)
                 --> GPU render; tear calls block here
 ```
-Pacing: `Capped(target_fps)`, 60 when null. Tear-path plan: tear's
+Pacing: `performance.pacing` — `demand` (default, madori `Reactive`
+capped by `target_fps` else `fps_cap`, at the display's rate otherwise:
+parked until output, input or a deadline rings the window; blink, fades,
+the kinetic glide, the board tick and the re-attach backoff are
+`FrameDemand`s), `capped` (`Capped(target_fps)`, 60 when null, the loop
+before tear PERFORMANCE R11) or `continuous`. A producer that changes
+what the window shows rings it at its own push: tear output (the window's
+waker), and the switch, injection, reload, local-PTY, fetch, browser-verb,
+suggestion-store and mutating kanshou channels through
+`crate::ring::WINDOW`; a new producer must do the same, nothing types it.
+The suggestion engine's maintenance pass sleeps until a row can expire, a
+janitor is due or a change schedules one. `mado bench rows` prints
+the matrix rows mado owns (exhaustive over `TearRuntime` and madori's
+`FramePacing`); `mado bench present` times paint and GPU per frame for a
+one-row change, a full rebuild and a repeat. Tear-path plan: tear's
 `docs/PERFORMANCE.md`.
 
 Target (Ghostty-inspired four-thread model):
