@@ -1426,9 +1426,9 @@ dependencies = [
 
 [[package]]
 name = "engate-attach"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c245fa517e5f1f591f3adbe22b3c475795ebdedb198eab6c9957164326f81653"
+checksum = "cd29310035d78e902052cc1814a9a88aae2647681062e9c798bc4620054d840b"
 dependencies = [
  "drop_bomb",
  "engate-types",
@@ -1440,9 +1440,9 @@ dependencies = [
 
 [[package]]
 name = "engate-types"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f235a89a6de8a08331658c45f128c398869949ac71eca2292101f0bf7edb99f"
+checksum = "5590399e692a7ca4cc21735485111152d949badac73d204bef0e29222fb875c3"
 dependencies = [
  "serde",
  "thiserror 2.0.21",
@@ -3138,9 +3138,9 @@ dependencies = [
 
 [[package]]
 name = "kukaku"
-version = "0.1.39"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e2024629a096f5695205802080d6f759c0e29cf361d20fa5134955cc06d3625"
+checksum = "21721bfb69ddd79714797ee758d024fd3648727ca000eed4d0dbe0f0b0a575bb"
 dependencies = [
  "serde",
 ]
@@ -3325,7 +3325,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.186"
+version = "0.1.187"
 dependencies = [
  "anyhow",
  "awase",
@@ -4902,9 +4902,9 @@ dependencies = [
 
 [[package]]
 name = "praca"
-version = "0.1.39"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcff068096d4c6c06522969865dd0ce25c325b1deacd6b4507ba12f901ef808e"
+checksum = "e05bf7911f7356da300018d0dd604ae5a2f924d7707c486e59c68505e5ede348"
 dependencies = [
  "ishou-tokens",
  "serde",
@@ -6006,6 +6006,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_bytes"
+version = "0.11.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5d440709e79d88e51ac01c4b72fc6cb7314017bb7da9eeff678aa94c10e3ea8"
+dependencies = [
+ "serde",
+ "serde_core",
+]
+
+[[package]]
 name = "serde_core"
 version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6932,9 +6942,9 @@ dependencies = [
 
 [[package]]
 name = "tear-client"
-version = "0.1.39"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6269844bbf906c62fac9edb43c71c0d66794dfe390b9e5c9a401851cbb825ce7"
+checksum = "34973f106136f018ceb53d783c18a174bfd75d88ac5abc9959f1ffca2900ebac"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -6946,9 +6956,9 @@ dependencies = [
 
 [[package]]
 name = "tear-config"
-version = "0.1.39"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a201875bea619a369f0b7b5e4bdfb8c764c1c594badaf34a2e54380929f4617"
+checksum = "4f0e7b45fa2d76d29972e87d5cc960423a2bd7026c6739f989f04ade198da64a"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -6966,9 +6976,9 @@ dependencies = [
 
 [[package]]
 name = "tear-core"
-version = "0.1.39"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4796418ddb8777babddc7a2b6fdc36b433a11dac8d6f6c768f9efa197fea5bd9"
+checksum = "6c715c569ce4b8d0c3a0b1e33e29482dde2a2b71994c2decb639e22daf159468"
 dependencies = [
  "anyhow",
  "blake3",
@@ -6993,9 +7003,9 @@ dependencies = [
 
 [[package]]
 name = "tear-daemon"
-version = "0.1.39"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "928622c422f9f818a03e7545c300557b58c38dac86c10cb05e138582dfec369a"
+checksum = "f5691b301b6b14fa342c1172dbf69de243b00cf63424129c15e1e4c724981b0c"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7018,9 +7028,9 @@ dependencies = [
 
 [[package]]
 name = "tear-makimono"
-version = "0.1.39"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c216972964796464ec57640fcd30ca85207b8003fade0d99fe9b04e8ec30d81"
+checksum = "1870346e7c81d829817fe97889e0b3d290417efb2fc048085f7ccd2e3018e206"
 dependencies = [
  "serde",
  "serde_json",
@@ -7031,9 +7041,9 @@ dependencies = [
 
 [[package]]
 name = "tear-tamotsu"
-version = "0.1.39"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f51a79175300b01d87c94e4f577553c125dc7506a3682711ee2f61751e7c0e74"
+checksum = "2fa522772ad90778e62ae4aa92d62c31a1302391a0e9f1bf30508af367256298"
 dependencies = [
  "anyhow",
  "ciborium",
@@ -7047,9 +7057,9 @@ dependencies = [
 
 [[package]]
 name = "tear-types"
-version = "0.1.39"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48efa7ea693d90f176df328d276087d373903b64079f843baa80c14ae8b59a15"
+checksum = "056629f47e6155f23e46488a2a444aaed764f76f3814bf4c5fa7387a390bb090"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7059,6 +7069,7 @@ dependencies = [
  "kukaku",
  "okiba",
  "serde",
+ "serde_bytes",
  "serde_json",
  "thiserror 2.0.21",
 ]
@@ -9003,18 +9014,18 @@ checksum = "6df3dc4292935e51816d896edcd52aa30bc297907c26167fec31e2b0c6a32524"
 
 [[package]]
 name = "zerocopy"
-version = "0.8.61"
+version = "0.8.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "879fb705ce98c32e41ebdb970fbe1204f8492423b314c6ab0354c3e7b5542866"
+checksum = "86502bf56ac7c77571a32e2647bb2a15894565e981fb2a48d7bde2d91c965a9d"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.61"
+version = "0.8.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "708882a28301d604fa039cc7727607a98d04c4b86dc76ec9cc683f805d709759"
+checksum = "5457206954b06561e2608c7e19cf58b1926586d999c246eebe4502f7e2039d1a"
 dependencies = [
  "proc-macro2",
  "quote",

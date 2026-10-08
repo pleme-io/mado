@@ -8253,9 +8253,9 @@ rec {
       };
       "ishou-tokens" = rec {
         crateName = "ishou-tokens";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2024";
-        sha256 = "1yss5ghfmas4s5xacw49qpigdpw3yv41flhxm6b429z8qz49ihnc";
+        sha256 = "1cxl27lgkpw2h53752xvf2wlj18cihpj8jh7bdy5sbdcxrlsrjnr";
         libName = "ishou_tokens";
         dependencies = [
           {
@@ -9616,9 +9616,9 @@ rec {
       };
       "kukaku" = rec {
         crateName = "kukaku";
-        version = "0.1.38";
+        version = "0.1.39";
         edition = "2024";
-        sha256 = "1550axlsbmpxcg0jf684lkjvvl3vdncrfvl11rsy5pfgrfzp748w";
+        sha256 = "099ndp05r59la7x2079nrwlhx73mdw6hh0jq42amcvq9k9i2883y";
         authors = [
           "pleme-io"
         ];
@@ -10155,7 +10155,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.186";
+        version = "0.1.187";
         edition = "2024";
         crateBin = [
           {
@@ -10527,9 +10527,9 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.22";
+        version = "0.1.23";
         edition = "2024";
-        sha256 = "1qsxnv391acf9pwzc2j16qz74v347lcqaj9570r6sbhgb65djzwx";
+        sha256 = "0nrxsa7v20m8wvrprzkyixcscw4s9zv2f65lxx7gzs4f4b03sl33";
         dependencies = [
           {
             name = "egaku";
@@ -16864,9 +16864,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.38";
+        version = "0.1.39";
         edition = "2024";
-        sha256 = "0s9i03rrc56gnidybb0k0hmsrd3fjj3804bwz3911mmxp35nikni";
+        sha256 = "13l0xw0zj4ms0x2npkga3mdk4p721kfnb64n49jw1inljs00dzxw";
         authors = [
           "pleme-io"
         ];
@@ -24173,9 +24173,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.38";
+        version = "0.1.39";
         edition = "2024";
-        sha256 = "0n8f3izwni4zhn6lwd408f1n3vfb02ilwyznfzcvgzl2c4lxv3zx";
+        sha256 = "1rswhaxir181lk4ybfchwggr8rynq1qkrd7dr7x64v4hpx5q8sb2";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -24216,9 +24216,9 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.38";
+        version = "0.1.39";
         edition = "2024";
-        sha256 = "1pn4x1axna4iwh545jr8q9dyx80c0vq6akjjxpiw9mac0lzimm4i";
+        sha256 = "05s6ky980hz5l8sazbabb4f4qxlczfyy9ddpy1ls66d6prsih83s";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -24281,9 +24281,9 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.38";
+        version = "0.1.39";
         edition = "2024";
-        sha256 = "03yxzfg2hpz13jf2216s7pcxhbp04mbfrvap3ni3hc5cfb972zkc";
+        sha256 = "1navx9zikylyixv6qvwdmhfs2cxl6vf6yavsvjyvlxw7vf6l35j7";
         libName = "tear_core";
         authors = [
           "pleme-io"
@@ -24379,9 +24379,9 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.38";
+        version = "0.1.39";
         edition = "2024";
-        sha256 = "036s1glh7wl0i0b0si94r1n6039rm3jifd75bilzqxaw0glckgwr";
+        sha256 = "16inxkgq518kbsq0rhc6mj6w6n3val0c6ibm7sh1iy7r4b2251lj";
         libName = "tear_daemon";
         authors = [
           "pleme-io"
@@ -24470,9 +24470,9 @@ rec {
       };
       "tear-makimono" = rec {
         crateName = "tear-makimono";
-        version = "0.1.38";
+        version = "0.1.39";
         edition = "2024";
-        sha256 = "1m09s6zshyqpb0bw1mv7j3cp4nkzaan0n2bvc1hf75rp9z2q8vbm";
+        sha256 = "108dqf74xc79kzcy1b9z02w0flm81k9zqh3nqm74d5j7jrr6j8bw";
         libName = "makimono";
         authors = [
           "pleme-io"
@@ -24507,10 +24507,10 @@ rec {
       };
       "tear-tamotsu" = rec {
         crateName = "tear-tamotsu";
-        version = "0.1.38";
+        version = "0.1.39";
         edition = "2024";
         crateBin = [];
-        sha256 = "0rkz667ycwfcfgn5q7riglw7dvpc3fc3biwfwr1ldn10mppicif0";
+        sha256 = "0x0fghg7aq9gxq8jfs530rsxq9f1adsmfksfr63ivc00acbpj6pm";
         libName = "tamotsu";
         authors = [
           "pleme-io"
@@ -24559,9 +24559,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.38";
+        version = "0.1.39";
         edition = "2024";
-        sha256 = "03hkcfxajp1m29p125jm9gbpw8m56l1ckqcs28rv64ap9m8k6acx";
+        sha256 = "05csnpl4mhc0m8xq97q7chxr0wykhxh2g39jvxvg341xd7magvs8";
         libName = "tear_types";
         authors = [
           "pleme-io"
