@@ -4295,9 +4295,9 @@ rec {
       };
       "engate-attach" = rec {
         crateName = "engate-attach";
-        version = "0.1.2";
+        version = "0.1.3";
         edition = "2024";
-        sha256 = "029rnqjljc4inl3c0f4lsdgkvkmv7ksv8msijaiw47bw2cnj9hpr";
+        sha256 = "124gv5a57gvzz24g53rigxy46wsg7vbfr41jkzza13w5sdc7ax0b";
         libName = "engate_attach";
         authors = [
           "pleme-io <ops@pleme.io>"
@@ -4335,9 +4335,9 @@ rec {
       };
       "engate-types" = rec {
         crateName = "engate-types";
-        version = "0.1.2";
+        version = "0.1.3";
         edition = "2024";
-        sha256 = "1wypnl0ss9bk8qd59dygsq7q1c7igiyq773p77ldx65v84ni9aix";
+        sha256 = "0zqcvi23jl95iw5vmvl1vjw8782mz2kxr8kkz8c7ks33r7xbhp4q";
         libName = "engate_types";
         authors = [
           "pleme-io <ops@pleme.io>"
@@ -8846,9 +8846,9 @@ rec {
       };
       "kanshou" = rec {
         crateName = "kanshou";
-        version = "0.1.10";
+        version = "0.1.11";
         edition = "2024";
-        sha256 = "02qcg4m134v15qxn32nwx3ifsndhyh8zydw0lh5q47310fvpi96r";
+        sha256 = "04qbxw1cr00xm63smihrz2hpgsqsbq46yj3y1kvw5795s19qbci2";
         authors = [
           "pleme-io"
         ];
@@ -8900,9 +8900,9 @@ rec {
       };
       "kanshou-derive" = rec {
         crateName = "kanshou-derive";
-        version = "0.1.10";
+        version = "0.1.11";
         edition = "2024";
-        sha256 = "1spzqg0v7v01q33l6p945yb64f62wyf8rc8k5ny7v6wab35cmrqa";
+        sha256 = "1mdlhmsc5b59cfc655hsy2l2sifjxjcwq0lgrxjjdgripj6lll3p";
         procMacro = true;
         libName = "kanshou_derive";
         authors = [
@@ -9616,9 +9616,9 @@ rec {
       };
       "kukaku" = rec {
         crateName = "kukaku";
-        version = "0.1.32";
+        version = "0.1.36";
         edition = "2024";
-        sha256 = "017k3phc6fa4rznpmvgdk8cpa4g3q9fhmpvdkj5qibrlv2s2qyzb";
+        sha256 = "0cn4j8jd6gxrihn83zh13ckaqayxwyam6m7lmzpbhqfbsj8dn4d9";
         authors = [
           "pleme-io"
         ];
@@ -10155,7 +10155,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.184";
+        version = "0.1.185";
         edition = "2024";
         crateBin = [
           {
@@ -16863,9 +16863,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.32";
+        version = "0.1.36";
         edition = "2024";
-        sha256 = "0bpw34cj454l4bxx7nip8z30qdlfy6f1rcnawc3p2bnwdyzj47mr";
+        sha256 = "0c4pkhd63lxhyr62p46r7qga0iw9fajhg8kdqfps2n5hr4wgagfj";
         authors = [
           "pleme-io"
         ];
@@ -16933,7 +16933,7 @@ rec {
         dependencies = [
           {
             name = "toml_edit";
-            packageId = "toml_edit 0.25.15+spec-1.1.0";
+            packageId = "toml_edit 0.25.16+spec-1.1.0";
             usesDefaultFeatures = false;
             features = [ "parse" ];
           }
@@ -24172,9 +24172,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.32";
+        version = "0.1.36";
         edition = "2024";
-        sha256 = "15zlnkxhpsfbnhc24ja78y2qm8j9ray37xk1s8iqgk0f04d9dn0i";
+        sha256 = "0b3fjj1qj6x4yf7yz2s9wi2ka3dpmk5afr2k0436sjcqn76r9si6";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -24208,15 +24208,16 @@ rec {
           }
         ];
         features = {
+          "bench-probes" = [ "tear-types/bench-probes" ];
           "engate" = [ "dep:engate-types" "dep:engate-attach" "tear-types/engate" ];
         };
         resolvedDefaultFeatures = [ "default" "engate" ];
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.32";
+        version = "0.1.36";
         edition = "2024";
-        sha256 = "1qv13sjka1vblssl2dclr6vim7y52fbs18mv27hm135ipjqkg8w8";
+        sha256 = "0lddnm58bf6cp77x9jdag5szacpm1m7xyy2r6s4bwchjhz9z1i1w";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -24279,9 +24280,9 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.32";
+        version = "0.1.36";
         edition = "2024";
-        sha256 = "0w008d4f8rr4bal4a05xwhl63vql5j7f9ika00a9j2j2ihgmcy1f";
+        sha256 = "0dnnqqfngz0hc6gxj8ihp5pi2bm5s4hfmiqm5cmzzxr03x1qlkic";
         libName = "tear_core";
         authors = [
           "pleme-io"
@@ -24308,6 +24309,10 @@ rec {
           {
             name = "ishou-tokens";
             packageId = "ishou-tokens";
+          }
+          {
+            name = "memchr";
+            packageId = "memchr";
           }
           {
             name = "once_cell";
@@ -24366,15 +24371,16 @@ rec {
           }
         ];
         features = {
+          "bench-probes" = [ "tear-types/bench-probes" "makimono/bench-probes" "tamotsu/bench-probes" ];
           "engate" = [ "dep:engate-types" "dep:engate-attach" "tear-types/engate" ];
         };
         resolvedDefaultFeatures = [ "default" "engate" ];
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.32";
+        version = "0.1.36";
         edition = "2024";
-        sha256 = "170dmnj8vr6bj0fgjw3mmvrpi48rmz28ql8mhnjdqx1qmb4sz1ns";
+        sha256 = "0z8lf0827dls1idlfvhzp0c888qk54mzd7wkhclf5wyspayan3s3";
         libName = "tear_daemon";
         authors = [
           "pleme-io"
@@ -24457,14 +24463,15 @@ rec {
           }
         ];
         features = {
+          "bench-probes" = [ "tear-types/bench-probes" "tear-core/bench-probes" "makimono/bench-probes" "tamotsu/bench-probes" ];
         };
         resolvedDefaultFeatures = [ "default" ];
       };
       "tear-makimono" = rec {
         crateName = "tear-makimono";
-        version = "0.1.32";
+        version = "0.1.36";
         edition = "2024";
-        sha256 = "0c48ldsyv92dvvkz102dppzq3f2i3w8b0yanjj1q008bjhgdk1qy";
+        sha256 = "08lxi5jpnf7rrn5mc38pr79lm49asq8pj8hv9jpw9dxq5z5icwly";
         libName = "makimono";
         authors = [
           "pleme-io"
@@ -24492,14 +24499,17 @@ rec {
             packageId = "tracing";
           }
         ];
-
+        features = {
+          "bench-probes" = [ "tear-types/bench-probes" ];
+        };
+        resolvedDefaultFeatures = [ "default" ];
       };
       "tear-tamotsu" = rec {
         crateName = "tear-tamotsu";
-        version = "0.1.32";
+        version = "0.1.36";
         edition = "2024";
         crateBin = [];
-        sha256 = "1g2zhxqg83awksbdqfn6qqlf55wnlj9v33b1mh3xg8g3b0xnwxf2";
+        sha256 = "02azcaswfsf2pdcd56mx5pmgycr5pq6490dcmkwck5hr4c3j8hnd";
         libName = "tamotsu";
         authors = [
           "pleme-io"
@@ -24541,13 +24551,16 @@ rec {
             packageId = "tracing";
           }
         ];
-
+        features = {
+          "bench-probes" = [ "dep:tear-types" "tear-types/bench-probes" "makimono/bench-probes" ];
+        };
+        resolvedDefaultFeatures = [ "default" ];
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.32";
+        version = "0.1.36";
         edition = "2024";
-        sha256 = "0cyxmmgqkvf9cf2c6i61vgi7n2hm6979lhq1v41dlndw717vks44";
+        sha256 = "0z07f7c8i38f0z7dg7mfjp9f0ii4j1bgclrd8yazgjwqb4igd3z4";
         libName = "tear_types";
         authors = [
           "pleme-io"
@@ -25525,11 +25538,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "serde" ];
       };
-      "toml_datetime 1.1.1+spec-1.1.0" = rec {
+      "toml_datetime 1.1.2+spec-1.1.0" = rec {
         crateName = "toml_datetime";
-        version = "1.1.1+spec-1.1.0";
+        version = "1.1.2+spec-1.1.0";
         edition = "2024";
-        sha256 = "1mws2mkkf46l7inn77azhm0vdwxngv9vsbhbl0ah33p2c9gzcr9i";
+        sha256 = "0lrhcmqvhjr259w4f2kijya7fgi0kpmhg9fb3m144v3cj1kxg1ib";
         dependencies = [
           {
             name = "serde_core";
@@ -25600,11 +25613,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "display" "parse" "serde" ];
       };
-      "toml_edit 0.25.15+spec-1.1.0" = rec {
+      "toml_edit 0.25.16+spec-1.1.0" = rec {
         crateName = "toml_edit";
-        version = "0.25.15+spec-1.1.0";
+        version = "0.25.16+spec-1.1.0";
         edition = "2024";
-        sha256 = "0556lgzcvgfy16b8sxskr391s6cbfwnb0r4h5i4k6qw5lnaflh0k";
+        sha256 = "08n7gybi8k7z2cjwg559l78b4hr1npig9459cwf88wdzz0x8zww8";
         dependencies = [
           {
             name = "indexmap";
@@ -25613,7 +25626,7 @@ rec {
           }
           {
             name = "toml_datetime";
-            packageId = "toml_datetime 1.1.1+spec-1.1.0";
+            packageId = "toml_datetime 1.1.2+spec-1.1.0";
           }
           {
             name = "toml_parser";
@@ -25637,9 +25650,9 @@ rec {
       };
       "toml_parser" = rec {
         crateName = "toml_parser";
-        version = "1.1.3+spec-1.1.0";
+        version = "1.1.4+spec-1.1.0";
         edition = "2024";
-        sha256 = "0mjdvihdkmjd4ykh574xgii71hpxw7ns7h4n4bisqpxrz4faqf0x";
+        sha256 = "0czkx8wkqzysf5c803vf30kzlhl137kp8iqbyaf7z3kx03p11n5y";
         dependencies = [
           {
             name = "winnow";
