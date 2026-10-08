@@ -847,10 +847,24 @@ where
     // `reset()` clears the prior pane's grid).
     let terminal_for_attach = Arc::clone(&terminal);
     let bell_for_attach = bell.clone();
+    let keys_from_mirror = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let resolve_cursor_keys = {
+        let control = Arc::clone(&control);
+        let keys_from_mirror = Arc::clone(&keys_from_mirror);
+        let source = config.input.cursor_keys_source;
+        move || {
+            keys_from_mirror.store(
+                source.resolve(&control.capabilities()) == crate::config::CursorKeysSource::Mirror,
+                std::sync::atomic::Ordering::Release,
+            );
+        }
+    };
+    let resolve_cursor_keys_for_attach = resolve_cursor_keys.clone();
     let attach_stream = move |producer_for: &ProducerFor<P>,
                               pane: PaneId,
                               response_writer: crate::engate_consumer::ResponseWriter|
           -> Result<crate::pane_stream::PaneStream<P>> {
+        resolve_cursor_keys_for_attach();
         crate::pane_stream::PaneStream::attach(
             |waker| producer_for(pane, waker),
             &crate::perf::UI_TEAR_CALLS,
@@ -881,6 +895,7 @@ where
     //     not EOF the PTY).
     let mut live_cell: Option<crate::pane_stream::PaneStream<P>> = None;
     if switch.is_none() {
+        resolve_cursor_keys();
         crate::pane_stream::spawn_feeder(
             producer_for(pane_id, std::task::Waker::noop().clone()),
             &crate::perf::UI_TEAR_CALLS,
@@ -992,25 +1007,31 @@ where
     // adapter (tests/ux_unification.rs pins that structurally). The
     // tear divergences are injected here: PTY writes →
     // control.send_keys, grid pushes → control.pane_resize_absolute,
-    // DECCKM → pane_cursor_keys_mode.
+    // DECCKM → the mirror, or pane_cursor_keys_mode under daemon-rpc.
     let pty_sink = tear_pty_sink(Arc::clone(&control), current_pane.clone());
     let resize_sink = tear_resize_sink(Arc::clone(&control), current_pane.clone());
-    // DECCKM (cursor-keys application mode) is queried per keystroke
-    // via the typed `pane_cursor_keys_mode` accessor on
-    // `MultiplexerControl` — no-alloc on the `InProcess` backend,
-    // default fallback to `pane_snapshot` on other backends. When
-    // vim / less / etc. enter alt-screen and set DECCKM, this returns
-    // true and the engine emits `ESC O A/B/C/D` instead of
-    // `ESC [ A/B/C/D` for arrow keys. Errors (`NoSuchPane` during
-    // shutdown race) degrade to normal mode — the editor still
-    // receives valid cursor keys.
+    // DECCKM (cursor-keys application mode) is read from the mirror,
+    // whose replay carries the authority's modes, unless
+    // `input.cursor_keys_source` resolves to `daemon-rpc` (configured,
+    // or a daemon without `replay-modes`): then it is queried per
+    // keystroke via `pane_cursor_keys_mode` — no-alloc on the
+    // `InProcess` backend, a `pane_snapshot` on the daemon backends.
+    // When vim / less / etc. set DECCKM the engine emits `ESC O A/B/C/D`
+    // instead of `ESC [ A/B/C/D` for arrow keys. RPC errors
+    // (`NoSuchPane` during shutdown race) degrade to normal mode — the
+    // editor still receives valid cursor keys.
     let cursor_keys_mode: Box<dyn Fn() -> bool + Send + Sync> = {
         let control = Arc::clone(&control);
         let current = current_pane.clone();
+        let terminal = Arc::clone(&terminal);
         Box::new(move || {
-            control
-                .pane_cursor_keys_mode(current.get())
-                .unwrap_or(false)
+            if keys_from_mirror.load(std::sync::atomic::Ordering::Acquire) {
+                terminal.read().cursor_keys_mode()
+            } else {
+                control
+                    .pane_cursor_keys_mode(current.get())
+                    .unwrap_or(false)
+            }
         })
     };
     // Adapter-side clipboard handle for OSC 52 sync (same precedent

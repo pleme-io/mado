@@ -57,6 +57,10 @@ impl<P: Producer> Producer for CountedProducer<P> {
         crate::perf::count_tear_call(self.calls, TearCall::ProducerSubscribe);
         self.inner.subscribe()
     }
+
+    fn replay_source(&self) -> engate_attach::ReplaySource {
+        self.inner.replay_source()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

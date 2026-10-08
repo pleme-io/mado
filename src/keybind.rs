@@ -2085,7 +2085,8 @@ mod tests {
     fn embedded_tear_flow_arrow_keys_respect_decckm() {
         // Vim, less, htop, btop, etc. set DECCKM (CSI ? 1 h) on
         // alt-screen entry and reset it on exit. The embedded-tear
-        // path queries `pane_cursor_keys_mode` and passes the result
+        // path reads DECCKM (from the mirror, or `pane_cursor_keys_mode`
+        // under daemon-rpc) and passes the result
         // here; this test pins that arrow-key encoding flips
         // correctly with that input.
         let event = madori::event::KeyEvent {

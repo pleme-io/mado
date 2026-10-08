@@ -462,6 +462,17 @@
       "type": "bool"
     }
   },
+  "input": {
+    "cursor_keys_source": {
+      "default": "mirror",
+      "description": "",
+      "type": "enum",
+      "values": [
+        "mirror",
+        "daemon-rpc"
+      ]
+    }
+  },
   "janitors": {
     "authority": {
       "default": "shadow",

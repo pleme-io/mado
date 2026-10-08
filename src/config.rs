@@ -183,6 +183,8 @@ pub struct MadoConfig {
     pub browser: BrowserConfig,
     #[serde(default)]
     pub attachments: AttachmentsConfig,
+    #[serde(default)]
+    pub input: InputConfig,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
@@ -212,6 +214,34 @@ impl AttachmentsConfig {
         Self {
             pill: true,
             temp_ttl_secs: crate::clipboard_store::DEFAULT_TEMP_TTL_SECS,
+        }
+    }
+}
+
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema,
+)]
+pub struct InputConfig {
+    #[serde(default)]
+    pub cursor_keys_source: CursorKeysSource,
+}
+
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema,
+)]
+#[serde(rename_all = "kebab-case")]
+pub enum CursorKeysSource {
+    #[default]
+    Mirror,
+    DaemonRpc,
+}
+
+impl CursorKeysSource {
+    #[must_use]
+    pub fn resolve(self, daemon: &tear_types::DaemonIdentity) -> Self {
+        match self {
+            Self::Mirror if daemon.has(tear_types::Capability::ReplayModes) => Self::Mirror,
+            Self::Mirror | Self::DaemonRpc => Self::DaemonRpc,
         }
     }
 }
@@ -4044,6 +4074,7 @@ impl MadoConfig {
             // bare = floating-browser subsystem fully off.
             browser: BrowserConfig::bare(),
             attachments: AttachmentsConfig::bare(),
+            input: InputConfig::default(),
         }
     }
 
@@ -4360,6 +4391,7 @@ fn mado_fleet_base() -> MadoConfig {
         motion: MotionConfig::default(),
         browser: BrowserConfig::default(),
         attachments: AttachmentsConfig::default(),
+        input: InputConfig::default(),
     }
 }
 
@@ -5726,6 +5758,7 @@ mod tests {
             motion: MotionConfig::default(),
             browser: BrowserConfig::default(),
             attachments: AttachmentsConfig::default(),
+            input: InputConfig::default(),
         };
         if fd.scrollback_lines == 10_000 {
             c.behavior.scrollback_lines = default_scrollback();
@@ -7824,6 +7857,7 @@ mod coverage {
         "font_italic",
         "font_size",
         "font_symbols",
+        "input.cursor_keys_source",
         "janitors.authority",
         "janitors.board_rows",
         "janitors.enabled",

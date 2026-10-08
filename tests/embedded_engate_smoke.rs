@@ -98,13 +98,14 @@ fn embedded_engate_attach_drains_snapshot_and_live() {
     }
 
     let observed_bytes = observed.lock().unwrap();
-    // Replay alone should give us at LEAST the ANSI prelude
-    // (`\x1b[0m\x1b[2J\x1b[H...`) plus per-row CSI cursor positioning
-    // plus the prompt characters.
-    let prelude = b"\x1b[0m\x1b[2J\x1b[H";
+    // Replay alone should give us at LEAST the ANSI prelude (a soft
+    // reset and the primary screen, then `\x1b[0m\x1b[2J\x1b[H...`)
+    // plus per-row CSI cursor positioning plus the prompt characters.
+    assert!(observed_bytes.starts_with(b"\x1b[!p\x1b[?1049l"));
     assert!(
-        observed_bytes.windows(prelude.len()).any(|w| w == prelude),
-        "the replay carries the grid's reset, clear and home, after the modes it restores"
+        observed_bytes
+            .windows(11)
+            .any(|w| w == b"\x1b[0m\x1b[2J\x1b[H")
     );
     let s = String::from_utf8_lossy(&observed_bytes);
     // The macOS /bin/sh prompt is "sh-3.2$ ". The replay must

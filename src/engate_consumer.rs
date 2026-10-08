@@ -265,6 +265,10 @@ impl Consumer for TerminalSink {
             bell.wake_by_ref();
         }
     }
+
+    fn replay_item(&mut self, item: Self::Item) {
+        self.feed_silent(&item);
+    }
 }
 
 #[cfg(test)]
@@ -438,6 +442,169 @@ mod tests {
             "replay wrote to the pty — a query already answered live got a \
              SECOND answer, which is the ^[[31;24R^[[31;24R the operator saw"
         );
+    }
+
+    fn mirror_modes(t: &Terminal) -> (bool, bool, crate::terminal::MouseMode, bool, bool, u32) {
+        (
+            t.cursor_keys_mode(),
+            t.bracketed_paste(),
+            t.mouse_mode(),
+            t.sgr_mouse(),
+            t.keypad_app_mode(),
+            t.kitty_keyboard_flags(),
+        )
+    }
+
+    fn vim_snapshot() -> PaneSnapshotWrap {
+        use tear_types::modes::{
+            AltScreen, BracketedPaste, CursorKeys, KeypadApplication, MouseEncoding, MouseTracking,
+        };
+        let mut snap = tear_types::pane_snapshot::PaneSnapshot::blank(24, 80);
+        snap.alt_screen_active = true;
+        snap.modes.alt_screen = AltScreen::new(true);
+        snap.modes.cursor_keys = CursorKeys::new(true);
+        snap.modes.keypad = KeypadApplication::new(true);
+        snap.modes.bracketed_paste = BracketedPaste::new(true);
+        snap.modes.mouse = MouseTracking::Click;
+        snap.modes.mouse_encoding = MouseEncoding::Sgr;
+        snap.modes.kitty_keyboard.alternate.push(1);
+        PaneSnapshotWrap(snap)
+    }
+
+    type Written = Arc<Mutex<Vec<Vec<u8>>>>;
+
+    fn sink() -> (Arc<RwLock<Terminal>>, TerminalSink, Written) {
+        let (w, collected) = collecting_writer();
+        let term = Arc::new(RwLock::new(Terminal::with_scrollback(80, 24, 10_000)));
+        (Arc::clone(&term), TerminalSink::new(term, w), collected)
+    }
+
+    #[test]
+    fn an_attach_into_vim_restores_the_mirror_s_decckm_bracketed_paste_and_sgr_mouse() {
+        let (term, mut sink, _) = sink();
+        sink.replay(vim_snapshot());
+        assert_eq!(
+            mirror_modes(&term.read()),
+            (
+                true,
+                true,
+                crate::terminal::MouseMode::Normal,
+                true,
+                true,
+                1
+            )
+        );
+    }
+
+    #[test]
+    fn a_stream_carried_replay_restores_the_same_modes_and_answers_nothing() {
+        let (term, mut sink, collected) = sink();
+        let mut bytes = vim_snapshot().to_ansi();
+        bytes.extend_from_slice(b"\x1b[6n");
+        sink.replay_item(bytes);
+        assert!(
+            collected.lock().unwrap().is_empty(),
+            "a replay answers nothing"
+        );
+        assert_eq!(
+            mirror_modes(&term.read()),
+            (
+                true,
+                true,
+                crate::terminal::MouseMode::Normal,
+                true,
+                true,
+                1
+            )
+        );
+    }
+
+    #[test]
+    fn a_replay_applied_twice_leaves_the_mirror_where_once_does() {
+        let (once, mut a, _) = sink();
+        a.replay(vim_snapshot());
+        let (twice, mut b, _) = sink();
+        b.replay(vim_snapshot());
+        b.consume(vim_snapshot().to_ansi());
+        assert_eq!(mirror_modes(&once.read()), mirror_modes(&twice.read()));
+    }
+
+    #[test]
+    fn a_replay_leaves_exactly_the_pane_s_history_rows() {
+        let mut snap = tear_types::pane_snapshot::PaneSnapshot::blank(24, 80);
+        snap.scrollback = (0..177)
+            .map(|i| {
+                let mut row = vec![tear_types::pane_snapshot::Cell::BLANK; 80];
+                for (c, ch) in row.iter_mut().zip(format!("history {i}").chars()) {
+                    c.ch = ch;
+                }
+                row
+            })
+            .collect();
+        let (term, mut sink, collected) = sink();
+        sink.replay_item(PaneSnapshotWrap(snap).to_ansi());
+        assert_eq!(term.read().scrollback_total(), 177);
+        assert!(collected.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn after_an_attach_mid_neovim_and_its_exit_ctrl_c_reaches_the_child_as_0x03() {
+        let ctrl_c = |t: &Terminal| -> Vec<u8> {
+            assert_eq!(t.kitty_keyboard_flags(), 0, "no kitty flag outlives neovim");
+            crate::keybind::madori_key_to_pty_bytes(
+                &madori::event::KeyCode::Char('c'),
+                &Some("c".into()),
+                madori::event::Modifiers {
+                    ctrl: true,
+                    alt: false,
+                    shift: false,
+                    meta: false,
+                },
+                t.cursor_keys_mode(),
+            )
+            .unwrap()
+        };
+        let quit = b"\x1b[<u\x1b[?1l\x1b>\x1b[?2004l\x1b[?1000l\x1b[?1006l\x1b[?1049l".to_vec();
+        let (head, mut h, _) = sink();
+        h.replay_item(vim_snapshot().to_ansi());
+        h.consume(quit.clone());
+        assert_eq!(ctrl_c(&head.read()), vec![0x03]);
+        let (prev, mut p, _) = sink();
+        p.replay(vim_snapshot());
+        p.consume(vim_snapshot().to_ansi());
+        p.consume(quit);
+        assert_eq!(ctrl_c(&prev.read()), vec![0x03]);
+    }
+
+    #[test]
+    fn mirror_is_the_cursor_keys_source_only_against_a_daemon_that_replays_modes() {
+        use crate::config::CursorKeysSource;
+        use tear_types::{DaemonHello, DaemonIdentity};
+        let old = DaemonIdentity::from_hello(DaemonHello {
+            daemon_version: "0.1.37".into(),
+            capabilities: vec!["spawn-args".into()],
+        });
+        let new = DaemonIdentity::from_hello(DaemonHello {
+            daemon_version: "0.1.38".into(),
+            capabilities: vec!["replay-modes".into()],
+        });
+        assert_eq!(
+            CursorKeysSource::Mirror.resolve(&new),
+            CursorKeysSource::Mirror
+        );
+        assert_eq!(
+            CursorKeysSource::Mirror.resolve(&old),
+            CursorKeysSource::DaemonRpc
+        );
+        assert_eq!(
+            CursorKeysSource::Mirror.resolve(&DaemonIdentity::pre_capability()),
+            CursorKeysSource::DaemonRpc
+        );
+        assert_eq!(
+            CursorKeysSource::DaemonRpc.resolve(&new),
+            CursorKeysSource::DaemonRpc
+        );
+        assert_eq!(CursorKeysSource::default(), CursorKeysSource::Mirror);
     }
 
     #[test]

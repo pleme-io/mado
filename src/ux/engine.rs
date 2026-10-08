@@ -8,8 +8,9 @@
 //! * PTY writes → [`PtySink`] (local `input_tx` vs tear `send_keys`)
 //! * grid pushes → [`ResizeSink`] (local `resize_tx` vs tear
 //!   `pane_resize_absolute`)
-//! * DECCKM query → `cursor_keys_mode` closure (local mirror-Terminal
-//!   read vs tear `pane_cursor_keys_mode`)
+//! * DECCKM query → `cursor_keys_mode` closure (the mirror Terminal,
+//!   or tear's `pane_cursor_keys_mode` under `input.cursor_keys_source:
+//!   daemon-rpc`)
 //!
 //! Everything else — selection, copy/paste (PasteGuard), search +
 //! dir-picker overlay routing, full mouse forwarding, kitty CSI-u,
@@ -649,9 +650,11 @@ impl InputEngine {
         //
         // DECCKM (cursor-keys application mode) is queried through
         // the injected closure — the local path reads the mirror
-        // Terminal, the tear path asks `pane_cursor_keys_mode` (errors
-        // during shutdown race degrade to normal mode — the editor
-        // still receives valid cursor keys).
+        // Terminal, and so does the tear path unless its
+        // `input.cursor_keys_source` resolves to `daemon-rpc`, when it
+        // asks `pane_cursor_keys_mode` (errors during shutdown race
+        // degrade to normal mode — the editor still receives valid
+        // cursor keys).
         let app_mode = (self.cursor_keys_mode)();
         if let Some(bytes) = crate::keybind::madori_key_to_pty_bytes(key, text, mods, app_mode) {
             self.write_key_input(&bytes);
