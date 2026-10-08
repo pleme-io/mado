@@ -19,7 +19,7 @@ use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Instant;
 
-use kanshou::metrics::{Counter, Family, Gauge, LogHistogram};
+use kanshou::metrics::{Counter, Family, Gauge, Label, LogHistogram};
 
 use crate::config::HistogramMode;
 use crate::render::TerminalRenderer;
@@ -95,7 +95,35 @@ kanshou::metric_labels! {
 
 pub type TearCalls = Family<TearCall, { TearCall::COUNT }>;
 
+kanshou::metric_labels! {
+    pub enum TearWrite {
+        Keys = "send_keys",
+        Resize = "pane_resize_absolute",
+        QueryAnswer = "query_answer",
+        Prewarm = "prewarm_keys",
+    }
+}
+
+pub type TearWrites = Family<TearWrite, { TearWrite::COUNT }>;
+
+impl TearWrite {
+    #[must_use]
+    pub const fn consequence(self) -> &'static str {
+        match self {
+            TearWrite::Keys => "these keystrokes never reached the pane",
+            TearWrite::Resize => "the pane keeps its old size",
+            TearWrite::QueryAnswer => "the shell may stall on an unanswered DSR/DA/OSC query",
+            TearWrite::Prewarm => "the prewarm command never reached the shell",
+        }
+    }
+}
+
+type TearWriteLogSlots = [AtomicU64; TearWrite::COUNT];
+
 pub static UI_TEAR_CALLS: TearCalls = Family::new();
+pub static TEAR_WRITE_FAILURES: TearWrites = Family::new();
+static TEAR_WRITE_LOGGED_AT: TearWriteLogSlots = [const { AtomicU64::new(0) }; TearWrite::COUNT];
+const TEAR_WRITE_LOG_EVERY_NS: u64 = 1_000_000_000;
 pub static PARSED_BYTES: Counter = Counter::new();
 pub static STREAM_QUEUE: StreamQueue = StreamQueue::new();
 
@@ -139,6 +167,38 @@ pub(crate) fn count_tear_call(calls: &TearCalls, call: TearCall) {
     if on_ui_thread() {
         calls.inc(call);
     }
+}
+
+pub fn tear_write_failed(
+    write: TearWrite,
+    pane: tear_types::PaneId,
+    len: usize,
+    error: &tear_types::ControlError,
+) {
+    TEAR_WRITE_FAILURES.inc(write);
+    if tear_write_log_due(&TEAR_WRITE_LOGGED_AT, write, now_ns()) {
+        tracing::warn!(
+            write = write.name(),
+            pane = ?pane,
+            len,
+            error = %error,
+            failures = TEAR_WRITE_FAILURES.get(write),
+            "a write to tear failed: {}",
+            write.consequence()
+        );
+    }
+}
+
+fn tear_write_log_due(slots: &TearWriteLogSlots, write: TearWrite, now: u64) -> bool {
+    log_due(&slots[write.index()], now, TEAR_WRITE_LOG_EVERY_NS)
+}
+
+fn log_due(last: &AtomicU64, now: u64, every: u64) -> bool {
+    let prev = last.load(Ordering::Relaxed);
+    (prev == 0 || now.saturating_sub(prev) >= every)
+        && last
+            .compare_exchange(prev, now, Ordering::Relaxed, Ordering::Relaxed)
+            .is_ok()
 }
 
 pub fn note_parsed(bytes: usize) {
@@ -460,6 +520,8 @@ pub fn frame_perf() -> serde_json::Value {
         "declined_after_acquire": RENDER.declined_after_acquire(),
         "ui_thread_tear_calls": &UI_TEAR_CALLS,
         "ui_thread_tear_calls_total": UI_TEAR_CALLS.total(),
+        "tear_write_failures": &TEAR_WRITE_FAILURES,
+        "tear_write_failures_total": TEAR_WRITE_FAILURES.total(),
         "queues": {
             "stream_watch": {
                 "items": STREAM_QUEUE.items(),
@@ -638,6 +700,34 @@ mod tests {
     }
 
     #[test]
+    fn a_failed_tear_write_is_counted_every_time_and_logged_at_most_once_a_second() {
+        let before = TEAR_WRITE_FAILURES.get(TearWrite::Resize);
+        let err = tear_types::ControlError::Transport("lost".into());
+        tear_write_failed(TearWrite::Resize, tear_types::PaneId(7), 0, &err);
+        tear_write_failed(TearWrite::Resize, tear_types::PaneId(7), 0, &err);
+        assert!(TEAR_WRITE_FAILURES.get(TearWrite::Resize) >= before + 2);
+        let last = AtomicU64::new(0);
+        assert!(log_due(&last, 5, 1_000));
+        assert!(!log_due(&last, 900, 1_000));
+        assert!(log_due(&last, 1_005, 1_000));
+        assert!(!log_due(&last, 1_006, 1_000));
+    }
+
+    #[test]
+    fn each_tear_write_label_has_its_own_log_limiter_and_says_what_its_failure_costs() {
+        let slots: TearWriteLogSlots = [const { AtomicU64::new(0) }; TearWrite::COUNT];
+        assert!(tear_write_log_due(&slots, TearWrite::Keys, 5));
+        assert!(tear_write_log_due(&slots, TearWrite::QueryAnswer, 6));
+        assert!(!tear_write_log_due(&slots, TearWrite::Keys, 7));
+        assert!(!tear_write_log_due(&slots, TearWrite::QueryAnswer, 8));
+        assert!(TearWrite::QueryAnswer.consequence().contains("DSR/DA/OSC"));
+        let mut said: Vec<&str> = TearWrite::ALL.iter().map(|w| w.consequence()).collect();
+        said.sort_unstable();
+        said.dedup();
+        assert_eq!(said.len(), TearWrite::COUNT);
+    }
+
+    #[test]
     fn frame_perf_names_every_reason_and_every_tear_method() {
         let v = frame_perf();
         for key in [
@@ -647,8 +737,12 @@ mod tests {
             "total_late_idle_paints",
             "declined_after_acquire",
             "ui_thread_tear_calls_total",
+            "tear_write_failures_total",
         ] {
             assert!(v.get(key).is_some(), "frame_perf lacks {key}");
+        }
+        for w in TearWrite::ALL {
+            assert!(v["tear_write_failures"][w.name()].is_u64());
         }
         assert!(["on", "off"].contains(&v["histograms"].as_str().unwrap()));
         for r in PaintReason::ALL {

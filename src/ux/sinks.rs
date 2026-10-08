@@ -20,9 +20,11 @@ use std::sync::Arc;
 /// never knows which transport it writes to; "proven once holds in
 /// every mode" is structural.
 pub trait PtySink: Send + Sync {
-    /// Deliver `bytes` to the PTY. Best-effort: a closed channel /
-    /// dead pane drops the bytes exactly as the pre-M1 loops did
-    /// (`let _ = input_tx.send(..)` / `let _ = control.send_keys(..)`).
+    /// Deliver `bytes` to the PTY. Best-effort, never silent: the
+    /// local-PTY sink drops bytes on a closed channel as the pre-M1 loop
+    /// did, and the tear sinks count every failed `send_keys` in
+    /// `frame_perf`'s `tear_write_failures` and log it at most once a
+    /// second (tear PERFORMANCE.md R3).
     fn write(&self, bytes: &[u8]);
 }
 
@@ -45,7 +47,7 @@ where
 /// answers CPR/XTWINOPS for a grid the PTY no longer has — the
 /// reedline fatal-CPR class).
 pub trait ResizeSink: Send + Sync {
-    /// Push the new grid. Best-effort, same drop semantics as
+    /// Push the new grid. Best-effort, same failure accounting as
     /// [`PtySink::write`].
     fn resize(&self, cols: u16, rows: u16);
 }

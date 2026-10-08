@@ -432,6 +432,30 @@ pub fn try_run_default(
 /// one-pane sessions, so reaping this session reaps the pane (removing
 /// it from the registry → gone from the Ctrl-S list). `None` if no
 /// session contains the pane (already reaped / unknown id).
+fn tear_pty_sink<C>(control: Arc<C>, current: CurrentPane) -> Box<dyn crate::ux::PtySink>
+where
+    C: tear_types::MultiplexerControl + ?Sized + 'static,
+{
+    Box::new(move |bytes: &[u8]| {
+        let pane = current.get();
+        if let Err(e) = control.send_keys(pane, bytes) {
+            crate::perf::tear_write_failed(crate::perf::TearWrite::Keys, pane, bytes.len(), &e);
+        }
+    })
+}
+
+fn tear_resize_sink<C>(control: Arc<C>, current: CurrentPane) -> Box<dyn crate::ux::ResizeSink>
+where
+    C: tear_types::MultiplexerControl + ?Sized + 'static,
+{
+    Box::new(move |cols: u16, rows: u16| {
+        let pane = current.get();
+        if let Err(e) = control.pane_resize_absolute(pane, cols, rows) {
+            crate::perf::tear_write_failed(crate::perf::TearWrite::Resize, pane, 0, &e);
+        }
+    })
+}
+
 fn session_of_pane(
     sessions: &[tear_types::TearSession],
     pane: PaneId,
@@ -690,8 +714,8 @@ where
     // crossterm's 2 s.
     let control_for_response_writer = Arc::clone(&control);
     let current_pane_for_response = current_pane.clone();
-    let response_writer: crate::engate_consumer::ResponseWriter = Arc::new(
-        move |bytes: &[u8]| {
+    let response_writer: crate::engate_consumer::ResponseWriter =
+        Arc::new(move |bytes: &[u8]| {
             // A dropped VT-query answer stalls the asking shell — never
             // swallow this error silently. frost builds against pleme-io's
             // reedline fork, whose painter falls back after a failed cursor
@@ -702,15 +726,14 @@ where
             // on the legacy path).
             let pane_id = current_pane_for_response.get();
             if let Err(e) = control_for_response_writer.send_keys(pane_id, bytes) {
-                tracing::warn!(
-                    pane = ?pane_id,
-                    len = bytes.len(),
-                    error = %e,
-                    "VT query response write-back FAILED — shell may stall on an unanswered DSR/DA/OSC query"
+                crate::perf::tear_write_failed(
+                    crate::perf::TearWrite::QueryAnswer,
+                    pane_id,
+                    bytes.len(),
+                    &e,
                 );
             }
-        },
-    );
+        });
     // The engate Live-attach builder, factored so the switchable path
     // can rebuild it against a fresh pane. `response_writer` is an
     // `Arc` (clone-cheap) so each rebuilt consumer shares the same
@@ -871,20 +894,8 @@ where
     // tear divergences are injected here: PTY writes →
     // control.send_keys, grid pushes → control.pane_resize_absolute,
     // DECCKM → pane_cursor_keys_mode.
-    let pty_sink: Box<dyn crate::ux::PtySink> = {
-        let control = Arc::clone(&control);
-        let current = current_pane.clone();
-        Box::new(move |bytes: &[u8]| {
-            let _ = control.send_keys(current.get(), bytes);
-        })
-    };
-    let resize_sink: Box<dyn crate::ux::ResizeSink> = {
-        let control = Arc::clone(&control);
-        let current = current_pane.clone();
-        Box::new(move |cols: u16, rows: u16| {
-            let _ = control.pane_resize_absolute(current.get(), cols, rows);
-        })
-    };
+    let pty_sink = tear_pty_sink(Arc::clone(&control), current_pane.clone());
+    let resize_sink = tear_resize_sink(Arc::clone(&control), current_pane.clone());
     // DECCKM (cursor-keys application mode) is queried per keystroke
     // via the typed `pane_cursor_keys_mode` accessor on
     // `MultiplexerControl` — no-alloc on the `InProcess` backend,
@@ -1106,8 +1117,16 @@ where
                                             let t = terminal_for_switch.read();
                                             (t.cols() as u16, t.rows() as u16)
                                         };
-                                        let _ = control_for_switch
-                                            .pane_resize_absolute(target, c.max(1), r.max(1));
+                                        if let Err(e) = control_for_switch
+                                            .pane_resize_absolute(target, c.max(1), r.max(1))
+                                        {
+                                            crate::perf::tear_write_failed(
+                                                crate::perf::TearWrite::Resize,
+                                                target,
+                                                0,
+                                                &e,
+                                            );
+                                        }
                                         tracing::info!(
                                             from = ?from,
                                             to = ?target,
@@ -1906,9 +1925,26 @@ fn run_against_pane(
 
 #[cfg(test)]
 mod tests {
-    use super::{DisplayedPaneFate, displayed_pane_fate, resolve_boot_name, with_title};
+    use super::{
+        CurrentPane, DisplayedPaneFate, displayed_pane_fate, resolve_boot_name, tear_pty_sink,
+        tear_resize_sink, with_title,
+    };
+    use crate::perf::{TEAR_WRITE_FAILURES, TearWrite};
     use madori::EventResponse;
+    use std::sync::Arc;
     use tear_types::{MultiplexerControl, PaneId, SessionId, SessionSource};
+
+    #[test]
+    fn the_tear_sinks_count_every_write_their_control_refuses() {
+        let control = Arc::new(tear_core::InProcess::new());
+        let gone = CurrentPane::Fixed(PaneId(u64::MAX));
+        let keys = TEAR_WRITE_FAILURES.get(TearWrite::Keys);
+        let resizes = TEAR_WRITE_FAILURES.get(TearWrite::Resize);
+        tear_pty_sink(Arc::clone(&control), gone.clone()).write(b"x");
+        tear_resize_sink(control, gone).resize(80, 24);
+        assert!(TEAR_WRITE_FAILURES.get(TearWrite::Keys) > keys);
+        assert!(TEAR_WRITE_FAILURES.get(TearWrite::Resize) > resizes);
+    }
 
     /// A live one-pane session on `inproc`, and its pane.
     fn live_session(inproc: &tear_core::InProcess, name: &str) -> (SessionId, PaneId) {

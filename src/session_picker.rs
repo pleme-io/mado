@@ -711,7 +711,15 @@ impl crate::prewarm::PrewarmEnv for SessionPrewarmEnv<'_> {
     fn run_command(&mut self, cmd: &str) {
         // PTY input buffering carries the keystrokes until the shell is ready,
         // so this works exactly like typing-ahead (as the kickoff did).
-        let _ = self.control.send_keys(self.pane, &kickoff_keystrokes(cmd));
+        let keys = kickoff_keystrokes(cmd);
+        if let Err(e) = self.control.send_keys(self.pane, &keys) {
+            crate::perf::tear_write_failed(
+                crate::perf::TearWrite::Prewarm,
+                self.pane,
+                keys.len(),
+                &e,
+            );
+        }
     }
 
     fn open_url(&mut self, url: &url::Url) {
