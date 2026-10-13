@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "b63d2c30b4e07bc75f5c353d12dc1c3b14707f34d9f5a22d3b446a9c5ab624c5",
+  "cargo_lock_sha256": "26bd0152698e84eb51ee0806841b4400b1a75e9d4a42df5a7f17bf89ea61f40e",
   "manifest_sha256": {
-    "Cargo.toml": "764c67f64cedff53bd26604da05ca831d1b6a8693b644764d66038566fddd1b0"
+    "Cargo.toml": "59996db7e46c4a5dc5d4217436140ee254766c9efbe8113504cf59c1784b1f94"
   },
   "target_resolves": {
     "base": {
@@ -47,7 +47,7 @@
           },
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.62",
+            "package_key": "zerocopy-0.8.63",
             "kind": "normal",
             "features": [
               "simd"
@@ -420,7 +420,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -635,7 +635,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5298,7 +5298,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "io-util"
@@ -5363,7 +5363,7 @@
           },
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.62",
+            "package_key": "zerocopy-0.8.63",
             "kind": "normal",
             "features": [
               "derive",
@@ -5412,7 +5412,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "rt",
@@ -6093,7 +6093,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "sync"
@@ -6212,7 +6212,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "io-std",
@@ -6318,7 +6318,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6408,7 +6408,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7451,7 +7451,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "macros",
@@ -7849,7 +7849,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "io-util",
@@ -8320,7 +8320,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "signal",
@@ -8786,7 +8786,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "time"
@@ -10569,7 +10569,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "io-util",
@@ -12513,7 +12513,7 @@
         "runtime_dependencies": [
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.62",
+            "package_key": "zerocopy-0.8.63",
             "kind": "normal",
             "features": [
               "simd"
@@ -12731,7 +12731,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "io-util",
@@ -13199,7 +13199,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "sync"
@@ -14268,7 +14268,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "net",
@@ -14515,7 +14515,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "macros",
@@ -15293,7 +15293,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "macros",
@@ -15924,7 +15924,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "macros",
@@ -17253,7 +17253,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "rt-multi-thread"
@@ -18046,7 +18046,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "fs",
@@ -18360,7 +18360,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "fs",
@@ -21622,7 +21622,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "macros",
@@ -22462,7 +22462,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "net",
@@ -22500,7 +22500,7 @@
           "default"
         ]
       },
-      "tokio-1.53.2": {
+      "tokio-1.53.3": {
         "runtime_dependencies": [
           {
             "name": "bytes",
@@ -22686,7 +22686,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22726,7 +22726,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "sync"
@@ -22808,7 +22808,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "sync"
@@ -23111,7 +23111,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23294,7 +23294,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -24401,7 +24401,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "fs",
@@ -24478,7 +24478,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "fs",
@@ -24588,7 +24588,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "fs",
@@ -24769,7 +24769,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.53.2",
+            "package_key": "tokio-1.53.3",
             "kind": "normal",
             "features": [
               "fs",
@@ -25539,11 +25539,11 @@
           "std"
         ]
       },
-      "zerocopy-0.8.62": {
+      "zerocopy-0.8.63": {
         "runtime_dependencies": [
           {
             "name": "zerocopy_derive",
-            "package_key": "zerocopy-derive-0.8.62",
+            "package_key": "zerocopy-derive-0.8.63",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25553,7 +25553,7 @@
           },
           {
             "name": "zerocopy_derive",
-            "package_key": "zerocopy-derive-0.8.62",
+            "package_key": "zerocopy-derive-0.8.63",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25569,7 +25569,7 @@
           "zerocopy-derive"
         ]
       },
-      "zerocopy-derive-0.8.62": {
+      "zerocopy-derive-0.8.63": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -26771,7 +26771,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -26919,7 +26919,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.188": {
+          "mado-0.1.189": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27618,7 +27618,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -31785,7 +31785,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -31986,7 +31986,7 @@
               "system"
             ]
           },
-          "mado-0.1.188": {
+          "mado-0.1.189": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32636,7 +32636,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -35930,7 +35930,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -36131,7 +36131,7 @@
               "system"
             ]
           },
-          "mado-0.1.188": {
+          "mado-0.1.189": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36781,7 +36781,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -40251,7 +40251,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -40399,7 +40399,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.188": {
+          "mado-0.1.189": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -41098,7 +41098,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -45282,7 +45282,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -45483,7 +45483,7 @@
               "system"
             ]
           },
-          "mado-0.1.188": {
+          "mado-0.1.189": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -46133,7 +46133,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -49444,7 +49444,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -49645,7 +49645,7 @@
               "system"
             ]
           },
-          "mado-0.1.188": {
+          "mado-0.1.189": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -50295,7 +50295,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.53.2",
+                "package_key": "tokio-1.53.3",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -53910,7 +53910,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.188": {
+    "mado-0.1.189": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -55066,7 +55066,7 @@
         }
       ]
     },
-    "tokio-1.53.2": {
+    "tokio-1.53.3": {
       "edition": "2021"
     },
     "tokio-macros-2.7.2": {
@@ -55473,11 +55473,11 @@
     "zeno-0.3.3": {
       "edition": "2021"
     },
-    "zerocopy-0.8.62": {
+    "zerocopy-0.8.63": {
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "zerocopy-derive-0.8.62": {
+    "zerocopy-derive-0.8.63": {
       "edition": "2021",
       "proc_macro": true
     },

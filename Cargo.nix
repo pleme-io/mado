@@ -223,7 +223,7 @@ rec {
           "perf-literal" = [ "dep:memchr" ];
           "std" = [ "memchr?/std" ];
         };
-        resolvedDefaultFeatures = [ "perf-literal" "std" ];
+        resolvedDefaultFeatures = [ "default" "perf-literal" "std" ];
       };
       "aliasable" = rec {
         crateName = "aliasable";
@@ -552,6 +552,29 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
+      "ar_archive_writer" = rec {
+        crateName = "ar_archive_writer";
+        version = "0.5.3";
+        edition = "2024";
+        sha256 = "1dhjwdapx0ydx38r7aj8w4rqmdhxs1xl2zp8xala0h11zzg5ikbk";
+        dependencies = [
+          {
+            name = "object";
+            packageId = "object";
+            usesDefaultFeatures = false;
+            features = [ "std" "read" ];
+          }
+        ];
+        devDependencies = [
+          {
+            name = "object";
+            packageId = "object";
+            usesDefaultFeatures = false;
+            features = [ "write" "xcoff" ];
+          }
+        ];
+
+      };
       "arboard" = rec {
         crateName = "arboard";
         version = "3.6.1";
@@ -683,6 +706,19 @@ rec {
         ];
         features = {
           "serde" = [ "dep:serde" ];
+        };
+      };
+      "archery" = rec {
+        crateName = "archery";
+        version = "1.2.3";
+        edition = "2024";
+        sha256 = "0pw18fg7037ipfmha8klpjblwj8297z50kwhxbdjc6bv2kp5bjik";
+        authors = [
+          "Diogo Sousa <diogogsousa@gmail.com>"
+        ];
+        features = {
+          "serde" = [ "dep:serde" ];
+          "triomphe" = [ "dep:triomphe" ];
         };
       };
       "arrayref" = rec {
@@ -911,7 +947,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "full" "parsing" "printing" "proc-macro" "visit-mut" ];
           }
@@ -1176,7 +1212,32 @@ rec {
         features = {
         };
       };
-      "bit-set" = rec {
+      "bit-set 0.11.1" = rec {
+        crateName = "bit-set";
+        version = "0.11.1";
+        edition = "2021";
+        sha256 = "0739d91jr6k2rbmbcsh26sx6srd40rcl7wkv9yj597r2wia77n2n";
+        libName = "bit_set";
+        authors = [
+          "Alexis Beingessner <a.beingessner@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "bit-vec";
+            packageId = "bit-vec 0.10.1";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "borsh" = [ "dep:borsh" "bit-vec/borsh" ];
+          "default" = [ "std" ];
+          "miniserde" = [ "dep:miniserde" "bit-vec/miniserde" ];
+          "serde" = [ "dep:serde" "bit-vec/serde" ];
+          "std" = [ "bit-vec/std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "bit-set 0.8.0" = rec {
         crateName = "bit-set";
         version = "0.8.0";
         edition = "2015";
@@ -1188,7 +1249,7 @@ rec {
         dependencies = [
           {
             name = "bit-vec";
-            packageId = "bit-vec";
+            packageId = "bit-vec 0.8.0";
             usesDefaultFeatures = false;
           }
         ];
@@ -1197,9 +1258,42 @@ rec {
           "serde" = [ "dep:serde" "bit-vec/serde" ];
           "std" = [ "bit-vec/std" ];
         };
+      };
+      "bit-vec 0.10.1" = rec {
+        crateName = "bit-vec";
+        version = "0.10.1";
+        edition = "2021";
+        sha256 = "0s8jwc28d4fyi1ivh1wj69a9y9nh1raksz1v1bp4ykvxm5gv29sp";
+        libName = "bit_vec";
+        authors = [
+          "Alexis Beingessner <a.beingessner@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "borsh";
+            packageId = "borsh";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "derive" ];
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "derive" "alloc" ];
+          }
+        ];
+        features = {
+          "borsh" = [ "dep:borsh" ];
+          "default" = [ "std" ];
+          "miniserde" = [ "dep:miniserde" ];
+          "serde" = [ "dep:serde" ];
+          "std" = [ "serde?/std" "borsh?/std" ];
+        };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
-      "bit-vec" = rec {
+      "bit-vec 0.8.0" = rec {
         crateName = "bit-vec";
         version = "0.8.0";
         edition = "2015";
@@ -1218,7 +1312,6 @@ rec {
           "serde_no_std" = [ "serde/alloc" ];
           "serde_std" = [ "std" "serde/std" ];
         };
-        resolvedDefaultFeatures = [ "default" "std" ];
       };
       "bitflags 1.3.2" = rec {
         crateName = "bitflags";
@@ -1497,14 +1590,14 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "full" "fold" ];
           }
         ];
         devDependencies = [
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "full" "fold" "parsing" ];
           }
         ];
@@ -1633,7 +1726,7 @@ rec {
           }
           {
             name = "schemars";
-            packageId = "schemars 1.2.2";
+            packageId = "schemars 1.2.3";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -1707,7 +1800,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
           }
         ];
 
@@ -1852,9 +1945,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.6.0";
+        version = "1.8.0";
         edition = "2021";
-        sha256 = "0c3n82hdi355xa6z9x4zgnpjwsh1szkkcs0zl8q8nl5ggk874j7p";
+        sha256 = "0f6q6vc8fj6xn4j1wd4yakiza6lhgwai49gp1zdwgzggh3nwjlb6";
         dependencies = [
           {
             name = "find-msvc-tools";
@@ -2190,7 +2283,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "full" ];
           }
         ];
@@ -3237,7 +3330,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "full" "extra-traits" ];
           }
         ];
@@ -3536,9 +3629,9 @@ rec {
       };
       "deranged" = rec {
         crateName = "deranged";
-        version = "0.5.8";
-        edition = "2021";
-        sha256 = "0711df3w16vx80k55ivkwzwswziinj4dz05xci3rvmn15g615n3w";
+        version = "0.5.9";
+        edition = "2024";
+        sha256 = "13nj445c8frp617vx84g1m5yp1gg63sg09gscbf907xdw8nfg7cy";
         authors = [
           "Jacob Pratt <jacob@jhpratt.dev>"
         ];
@@ -3981,7 +4074,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
           }
         ];
         features = {
@@ -4457,7 +4550,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
           }
         ];
         features = {
@@ -5081,7 +5174,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "full" ];
           }
         ];
@@ -5366,7 +5459,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "full" ];
           }
         ];
@@ -6563,13 +6656,21 @@ rec {
       };
       "hayai" = rec {
         crateName = "hayai";
-        version = "0.1.2";
+        version = "0.1.4";
         edition = "2024";
-        sha256 = "0r61qggbz1vngb5pr40y99k9vb00irqc9lwaj1bwp2v7z32nn7dq";
+        sha256 = "1xfghiylr9b4grbsmqk38a65dz3qh0lwhwasw3gi9sfz7qw4al1l";
         dependencies = [
+          {
+            name = "aho-corasick";
+            packageId = "aho-corasick";
+          }
           {
             name = "regex";
             packageId = "regex";
+          }
+          {
+            name = "regex-syntax";
+            packageId = "regex-syntax";
           }
           {
             name = "serde";
@@ -7936,6 +8037,78 @@ rec {
         };
         resolvedDefaultFeatures = [ "bmp" "png" "tiff" ];
       };
+      "imbl" = rec {
+        crateName = "imbl";
+        version = "7.0.2";
+        edition = "2018";
+        sha256 = "1v2g3z3sm0pk2pqkmwa4kmx8jfrfrj468l5qk29ysqxlp4rdifj6";
+        authors = [
+          "Bodil Stokke <bodil@bodil.org>"
+          "Joe Neeman <joeneeman@gmail.com>"
+          "Arthur Silva <arthurprs@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "archery";
+            packageId = "archery";
+          }
+          {
+            name = "equivalent";
+            packageId = "equivalent";
+          }
+          {
+            name = "imbl-sized-chunks";
+            packageId = "imbl-sized-chunks";
+          }
+          {
+            name = "rand_core";
+            packageId = "rand_core 0.9.5";
+          }
+          {
+            name = "rand_xoshiro";
+            packageId = "rand_xoshiro 0.7.0";
+          }
+          {
+            name = "wide";
+            packageId = "wide 0.7.33";
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "version_check";
+            packageId = "version_check";
+          }
+        ];
+        features = {
+          "arbitrary" = [ "dep:arbitrary" ];
+          "bincode" = [ "dep:bincode" ];
+          "proptest" = [ "dep:proptest" ];
+          "quickcheck" = [ "dep:quickcheck" ];
+          "rayon" = [ "dep:rayon" ];
+          "serde" = [ "dep:serde_core" ];
+          "triomphe" = [ "archery/triomphe" ];
+        };
+      };
+      "imbl-sized-chunks" = rec {
+        crateName = "imbl-sized-chunks";
+        version = "0.2.0";
+        edition = "2021";
+        sha256 = "1im99y02lklvq9brfn403fvfhjcml6gp961jjmbzhlr56fz1621a";
+        libName = "imbl_sized_chunks";
+        authors = [
+          "Bodil Stokke <bodil@bodil.org>"
+          "Joe Neeman <joeneeman@gmail.com>"
+          "Arthur Silva <arthurprs@gmail.com>"
+        ];
+        features = {
+          "arbitrary" = [ "dep:arbitrary" ];
+          "array-ops" = [ "dep:array-ops" ];
+          "default" = [ "std" ];
+          "refpool" = [ "dep:refpool" ];
+          "ringbuffer" = [ "array-ops" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
       "indexmap" = rec {
         crateName = "indexmap";
         version = "2.14.2";
@@ -8005,7 +8178,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "full" ];
           }
         ];
@@ -9616,9 +9789,9 @@ rec {
       };
       "kukaku" = rec {
         crateName = "kukaku";
-        version = "0.1.41";
+        version = "0.1.43";
         edition = "2024";
-        sha256 = "1fvmlnqg1q6vs3afw050gir4hdpx4k85irvyg4a9gmyxd7xinwi1";
+        sha256 = "0bqrmfv3pzhm98mvfnl8gi26qwpvls02pd3bmvzrddd72lhj376h";
         authors = [
           "pleme-io"
         ];
@@ -10018,9 +10191,9 @@ rec {
       };
       "litrs" = rec {
         crateName = "litrs";
-        version = "1.0.0";
+        version = "1.0.1";
         edition = "2021";
-        sha256 = "14p0kzzkavnngvybl88nvfwv031cc2qx4vaxpfwsiifm8grdglqi";
+        sha256 = "0w0d0gkx9ixccx9c00rq164ih9ak3jdq0jsivrpbh3czjn1y6i27";
         authors = [
           "Lukas Kalbertodt <lukas.kalbertodt@gmail.com>"
         ];
@@ -10122,16 +10295,16 @@ rec {
       };
       "mac_address" = rec {
         crateName = "mac_address";
-        version = "1.2.0";
+        version = "1.2.1";
         edition = "2018";
-        sha256 = "06pbqk1hqiraavi2wxc9gxj1g73bbm7af7ccf6sx79g9kc5barxk";
+        sha256 = "1093ipzb04xvz6692ykcap6cy9cb3mxvhazx7b36jnf4fld5il7k";
         authors = [
-          "rep-nop <repnop@outlook.com>"
+          "repnop <repnop@repnop.dev>"
         ];
         dependencies = [
           {
             name = "nix";
-            packageId = "nix 0.30.1";
+            packageId = "nix 0.31.3";
             target = { target, features }: (("linux" == target."os" or null) || ("macos" == target."os" or null) || ("freebsd" == target."os" or null) || ("netbsd" == target."os" or null) || ("openbsd" == target."os" or null) || ("android" == target."os" or null) || ("illumos" == target."os" or null));
             features = [ "net" ];
           }
@@ -10155,7 +10328,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.188";
+        version = "0.1.189";
         edition = "2024";
         crateBin = [
           {
@@ -10381,7 +10554,7 @@ rec {
           }
           {
             name = "schemars";
-            packageId = "schemars 1.2.2";
+            packageId = "schemars 1.2.3";
             features = [ "derive" ];
           }
           {
@@ -10409,11 +10582,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp";
+            packageId = "tatara-lisp 0.3.52";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval";
+            packageId = "tatara-lisp-eval 0.3.52";
           }
           {
             name = "tatara-nix";
@@ -10981,11 +11154,21 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "log" "net" "os-ext" "os-poll" ];
       };
-      "monosashi" = rec {
+      "monosashi 0.3.64" = rec {
         crateName = "monosashi";
         version = "0.3.64";
         edition = "2021";
         sha256 = "14qgxy8rqwh29i0lnygn291hgxv9lkay4i7k6bp2fv9rcnnaxwai";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+
+      };
+      "monosashi 0.4.5" = rec {
+        crateName = "monosashi";
+        version = "0.4.5";
+        edition = "2021";
+        sha256 = "1j910vz7z9w9pwj4sh3m9r3r4s37hxl72i10vp0b93p4jpv6h71a";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
@@ -11057,7 +11240,7 @@ rec {
           }
           {
             name = "bit-set";
-            packageId = "bit-set";
+            packageId = "bit-set 0.8.0";
             usesDefaultFeatures = false;
           }
           {
@@ -11389,7 +11572,7 @@ rec {
           "user" = [ "feature" ];
           "zerocopy" = [ "fs" "uio" ];
         };
-        resolvedDefaultFeatures = [ "default" "memoffset" "net" "process" "signal" "socket" "term" ];
+        resolvedDefaultFeatures = [ "default" "memoffset" "process" "signal" "socket" "term" ];
       };
       "nix 0.31.3" = rec {
         crateName = "nix";
@@ -11409,6 +11592,11 @@ rec {
             name = "libc";
             packageId = "libc";
             features = [ "extra_traits" ];
+          }
+          {
+            name = "memoffset";
+            packageId = "memoffset";
+            optional = true;
           }
         ];
         buildDependencies = [
@@ -11434,7 +11622,7 @@ rec {
           "user" = [ "feature" ];
           "zerocopy" = [ "fs" "uio" ];
         };
-        resolvedDefaultFeatures = [ "fs" "poll" "process" "signal" ];
+        resolvedDefaultFeatures = [ "default" "fs" "memoffset" "net" "poll" "process" "signal" "socket" ];
       };
       "notify" = rec {
         crateName = "notify";
@@ -14971,6 +15159,39 @@ rec {
         };
         resolvedDefaultFeatures = [ "NSString_UserNotifications" "UNError" "UNNotification" "UNNotificationAction" "UNNotificationActionIcon" "UNNotificationAttachment" "UNNotificationAttributedMessageContext" "UNNotificationCategory" "UNNotificationContent" "UNNotificationRequest" "UNNotificationResponse" "UNNotificationServiceExtension" "UNNotificationSettings" "UNNotificationSound" "UNNotificationTrigger" "UNUserNotificationCenter" "alloc" "bitflags" "block2" "default" "objc2-core-location" "std" ];
       };
+      "object" = rec {
+        crateName = "object";
+        version = "0.39.1";
+        edition = "2018";
+        sha256 = "16vkcaamik55jd9f04g73hvgsm5w636gb4w06x3nafvsih4nqnif";
+        dependencies = [
+          {
+            name = "memchr";
+            packageId = "memchr";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "all" = [ "read" "write" "build" "std" "compression" "wasm" ];
+          "alloc" = [ "dep:alloc" ];
+          "build" = [ "build_core" "write_std" "elf" ];
+          "build_core" = [ "read_core" "write_core" ];
+          "compression" = [ "dep:flate2" "dep:ruzstd" "std" ];
+          "core" = [ "dep:core" ];
+          "default" = [ "read" "compression" ];
+          "doc" = [ "all" ];
+          "pe" = [ "coff" ];
+          "read" = [ "read_core" "archive" "coff" "elf" "macho" "pe" "xcoff" ];
+          "rustc-dep-of-std" = [ "core" "alloc" "memchr/rustc-dep-of-std" ];
+          "std" = [ "memchr/std" ];
+          "unstable-all" = [ "all" "unstable" ];
+          "wasm" = [ "dep:wasmparser" ];
+          "write" = [ "write_std" "coff" "elf" "macho" "pe" "xcoff" ];
+          "write_core" = [ "dep:crc32fast" "dep:indexmap" "dep:hashbrown" ];
+          "write_std" = [ "write_core" "std" "indexmap?/std" "crc32fast?/std" ];
+        };
+        resolvedDefaultFeatures = [ "archive" "coff" "elf" "macho" "pe" "read" "read_core" "std" "xcoff" ];
+      };
       "okiba" = rec {
         crateName = "okiba";
         version = "0.2.1";
@@ -16575,7 +16796,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp";
+            packageId = "tatara-lisp 0.3.52";
             optional = true;
           }
           {
@@ -16864,9 +17085,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.41";
+        version = "0.1.43";
         edition = "2024";
-        sha256 = "0j73xpjhb1f6b5p4hz3hswjgk8p599hdvl0q00qdlmkk3y8zfnz0";
+        sha256 = "1smkz5kmrxsg3nbfniibxpz4cykacqr3r1azlc0dmcvikhjcc8vs";
         authors = [
           "pleme-io"
         ];
@@ -16934,7 +17155,7 @@ rec {
         dependencies = [
           {
             name = "toml_edit";
-            packageId = "toml_edit 0.25.16+spec-1.1.0";
+            packageId = "toml_edit 0.25.17+spec-1.1.0";
             usesDefaultFeatures = false;
             features = [ "parse" ];
           }
@@ -17092,26 +17313,36 @@ rec {
       };
       "proptest" = rec {
         crateName = "proptest";
-        version = "1.11.0";
+        version = "1.12.0";
         edition = "2021";
-        sha256 = "0i27rr5drw4ic8hjzx6i1c6q8s7kmsgpfmzy4m80ys2c6k1gqiab";
+        sha256 = "186g52z5077c7q1xqm6v0kw43wqpwgxhj074qx8swpmirh200lxq";
         authors = [
           "Jason Lingle"
         ];
         dependencies = [
           {
             name = "bit-set";
-            packageId = "bit-set";
+            packageId = "bit-set 0.11.1";
             optional = true;
           }
           {
             name = "bit-vec";
-            packageId = "bit-vec";
+            packageId = "bit-vec 0.10.1";
             optional = true;
           }
           {
             name = "bitflags";
             packageId = "bitflags 2.13.2";
+          }
+          {
+            name = "chacha20";
+            packageId = "chacha20";
+            usesDefaultFeatures = false;
+            features = [ "rng" ];
+          }
+          {
+            name = "core_detect";
+            packageId = "core_detect";
           }
           {
             name = "num-traits";
@@ -17120,14 +17351,9 @@ rec {
           }
           {
             name = "rand";
-            packageId = "rand 0.9.5";
+            packageId = "rand 0.10.3";
             usesDefaultFeatures = false;
             features = [ "alloc" ];
-          }
-          {
-            name = "rand_chacha";
-            packageId = "rand_chacha 0.9.0";
-            usesDefaultFeatures = false;
           }
           {
             name = "rand_xorshift";
@@ -17166,7 +17392,7 @@ rec {
           "proptest-macro" = [ "dep:proptest-macro" ];
           "regex-syntax" = [ "dep:regex-syntax" ];
           "rusty-fork" = [ "dep:rusty-fork" ];
-          "std" = [ "rand/std" "rand/os_rng" "regex-syntax" "num-traits/std" ];
+          "std" = [ "rand/std" "rand/sys_rng" "regex-syntax" "num-traits/std" ];
           "tempfile" = [ "dep:tempfile" ];
           "timeout" = [ "fork" "rusty-fork/timeout" ];
           "unstable" = [ "f16" ];
@@ -17182,6 +17408,26 @@ rec {
         libName = "psl_types";
         authors = [
           "rushmorem <rushmore@webenchanter.com>"
+        ];
+
+      };
+      "psm" = rec {
+        crateName = "psm";
+        version = "0.1.32";
+        edition = "2021";
+        sha256 = "08m67yndaikwq8kviipphi50lfb25ph7j3gp4w3rffz6k52h7kad";
+        authors = [
+          "Simonas Kazlauskas <psm@kazlauskas.me>"
+        ];
+        buildDependencies = [
+          {
+            name = "ar_archive_writer";
+            packageId = "ar_archive_writer";
+          }
+          {
+            name = "cc";
+            packageId = "cc";
+          }
         ];
 
       };
@@ -17272,7 +17518,7 @@ rec {
           }
           {
             name = "rand_xoshiro";
-            packageId = "rand_xoshiro";
+            packageId = "rand_xoshiro 0.8.1";
             optional = true;
           }
           {
@@ -17281,7 +17527,7 @@ rec {
           }
           {
             name = "wide";
-            packageId = "wide";
+            packageId = "wide 1.7.1";
             usesDefaultFeatures = false;
           }
         ];
@@ -17910,12 +18156,30 @@ rec {
       };
       "rand_xorshift" = rec {
         crateName = "rand_xorshift";
-        version = "0.4.0";
-        edition = "2021";
-        sha256 = "0njsn25pis742gb6b89cpq7jp48v9n23a9fvks10yczwks8n4fai";
+        version = "0.5.0";
+        edition = "2024";
+        sha256 = "1krcvzh8zb8ps8hy86lkj1wcr9zqcmp2xq0j60r72a731gw6mak0";
         authors = [
           "The Rand Project Developers"
           "The Rust Project Developers"
+        ];
+        dependencies = [
+          {
+            name = "rand_core";
+            packageId = "rand_core 0.10.1";
+          }
+        ];
+        features = {
+          "serde" = [ "dep:serde" ];
+        };
+      };
+      "rand_xoshiro 0.7.0" = rec {
+        crateName = "rand_xoshiro";
+        version = "0.7.0";
+        edition = "2021";
+        sha256 = "0h9dv9mn703zb2z5dys7vc4rzy3az8xg99fc5m8zbnh0axkg80zp";
+        authors = [
+          "The Rand Project Developers"
         ];
         dependencies = [
           {
@@ -17927,7 +18191,7 @@ rec {
           "serde" = [ "dep:serde" ];
         };
       };
-      "rand_xoshiro" = rec {
+      "rand_xoshiro 0.8.1" = rec {
         crateName = "rand_xoshiro";
         version = "0.8.1";
         edition = "2024";
@@ -18183,7 +18447,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
           }
         ];
 
@@ -18740,7 +19004,7 @@ rec {
           }
           {
             name = "schemars";
-            packageId = "schemars 1.2.2";
+            packageId = "schemars 1.2.3";
             optional = true;
             features = [ "chrono04" ];
           }
@@ -18783,7 +19047,7 @@ rec {
           }
           {
             name = "schemars";
-            packageId = "schemars 1.2.2";
+            packageId = "schemars 1.2.3";
             features = [ "chrono04" ];
           }
           {
@@ -19502,9 +19766,9 @@ rec {
       };
       "rustls-native-certs" = rec {
         crateName = "rustls-native-certs";
-        version = "0.8.4";
+        version = "0.8.5";
         edition = "2021";
-        sha256 = "0kgazl8zc1sv63qg179bz96ilzh56lzfa5k92ji7d265f4kibdfs";
+        sha256 = "1i5f916arhb4gc5qipmn6d8p81q87fv549xda969i7s6qxfky1sa";
         libName = "rustls_native_certs";
         dependencies = [
           {
@@ -19711,7 +19975,27 @@ rec {
           "no-panic" = [ "dep:no-panic" ];
         };
       };
-      "safe_arch" = rec {
+      "safe_arch 0.7.4" = rec {
+        crateName = "safe_arch";
+        version = "0.7.4";
+        edition = "2018";
+        sha256 = "08sk47n1kcm5w2di6bpgi2hsw8r2caz2230pwqvbdqfv5pl2vc4n";
+        authors = [
+          "Lokathor <zefria@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "bytemuck";
+            packageId = "bytemuck";
+            optional = true;
+          }
+        ];
+        features = {
+          "bytemuck" = [ "dep:bytemuck" ];
+        };
+        resolvedDefaultFeatures = [ "bytemuck" "default" ];
+      };
+      "safe_arch 1.2.0" = rec {
         crateName = "safe_arch";
         version = "1.2.0";
         edition = "2024";
@@ -19880,11 +20164,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "chrono" "default" "derive" "schemars_derive" ];
       };
-      "schemars 1.2.2" = rec {
+      "schemars 1.2.3" = rec {
         crateName = "schemars";
-        version = "1.2.2";
+        version = "1.2.3";
         edition = "2021";
-        sha256 = "0jng632s64njf9vghr3i1l4m15h4y85m5vhg7vkwdkdnjg978wk8";
+        sha256 = "0vnzz8smh3ixzy297898mwzfx0r5aadz2vxsbafwlxsaywk8hl5b";
         authors = [
           "Graham Esau <gesau@hotmail.co.uk>"
         ];
@@ -19906,7 +20190,7 @@ rec {
           }
           {
             name = "schemars_derive";
-            packageId = "schemars_derive 1.2.2";
+            packageId = "schemars_derive 1.2.3";
             optional = true;
           }
           {
@@ -19989,11 +20273,11 @@ rec {
         ];
 
       };
-      "schemars_derive 1.2.2" = rec {
+      "schemars_derive 1.2.3" = rec {
         crateName = "schemars_derive";
-        version = "1.2.2";
+        version = "1.2.3";
         edition = "2021";
-        sha256 = "1fp2wkdk32nv66swy7k7pz7sxygn634snlppih5jzbs6ddqng36r";
+        sha256 = "0sgwpzi91y6ibw7ns4wpqzgm9ddnmi7q8ia62am62zgsjhhakhz1";
         procMacro = true;
         authors = [
           "Graham Esau <gesau@hotmail.co.uk>"
@@ -20013,13 +20297,13 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
           }
         ];
         devDependencies = [
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "extra-traits" ];
           }
         ];
@@ -21173,7 +21457,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "derive" "parsing" "printing" "proc-macro" ];
           }
@@ -21235,7 +21519,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "derive" "parsing" "printing" ];
           }
@@ -21244,13 +21528,9 @@ rec {
       };
       "serde_json" = rec {
         crateName = "serde_json";
-        version = "1.0.151";
+        version = "1.0.154";
         edition = "2021";
-        sha256 = "051zww7lvpw147vvwss1ng6w587qyrkzg75fvj08q2dfrmgbahf8";
-        authors = [
-          "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
-          "David Tolnay <dtolnay@gmail.com>"
-        ];
+        sha256 = "1mjby21g8fxhrsfp73yz8wg6n2f4h23ah0nczds409l53f5wrsg7";
         dependencies = [
           {
             name = "itoa";
@@ -21288,7 +21568,7 @@ rec {
           "alloc" = [ "serde_core/alloc" ];
           "default" = [ "std" ];
           "indexmap" = [ "dep:indexmap" ];
-          "preserve_order" = [ "indexmap" "std" ];
+          "preserve_order" = [ "indexmap" "alloc" "dep:foldhash" ];
           "std" = [ "memchr/std" "serde_core/std" ];
         };
         resolvedDefaultFeatures = [ "alloc" "default" "float_roundtrip" "raw_value" "std" ];
@@ -21615,9 +21895,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.1080";
+        version = "0.1.1082";
         edition = "2024";
-        sha256 = "0r4ybxfmjm7ilq2d0msnf2b98b2mf4vpjnl2m6x9s8ji2kdrhsps";
+        sha256 = "0641kgmds0xcdv6hzldi92yd125sa44y3hvdjy14xyx1lc0kmy0v";
         dependencies = [
           {
             name = "arc-swap";
@@ -21660,7 +21940,7 @@ rec {
           }
           {
             name = "schemars";
-            packageId = "schemars 1.2.2";
+            packageId = "schemars 1.2.3";
           }
           {
             name = "serde";
@@ -21700,6 +21980,7 @@ rec {
           "blue" = [ "dep:blue-lang-syntax" "lisp" ];
           "cli" = [ "dep:clap" ];
           "gcp-native" = [ "dep:reqwest" "dep:tokio" ];
+          "github" = [ "dep:reqwest" "reqwest/blocking" "dep:jsonwebtoken" "dep:base64" ];
           "hotswap" = [ "dep:pleme-hotswap" "dep:blake3" ];
           "kube" = [ "kube-discovery" "dep:reqwest" "reqwest/blocking" "dep:base64" ];
           "kube-discovery" = [ "dep:kanchi" ];
@@ -21919,9 +22200,9 @@ rec {
       };
       "smallvec" = rec {
         crateName = "smallvec";
-        version = "1.16.2";
+        version = "1.16.3";
         edition = "2018";
-        sha256 = "13iai5hhwyp8z0pbn8r11q4j5956jaxhcbvvf2drm17f1q7myfgr";
+        sha256 = "06z0akmcq2zc9qg22dxda298p50gg3di5ggl3y2nllag8ypwhgav";
         authors = [
           "The Servo Project Developers"
         ];
@@ -23247,6 +23528,49 @@ rec {
           "std" = [ "alloc" ];
         };
       };
+      "stacker" = rec {
+        crateName = "stacker";
+        version = "0.1.25";
+        edition = "2021";
+        sha256 = "0rwrws4iyh8cay7pghzf2dy55pprwfn1vm805f5czfh6cza4jzvh";
+        authors = [
+          "Alex Crichton <alex@alexcrichton.com>"
+          "Simonas Kazlauskas <stacker@kazlauskas.me>"
+        ];
+        dependencies = [
+          {
+            name = "cfg-if";
+            packageId = "cfg-if";
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+          }
+          {
+            name = "psm";
+            packageId = "psm";
+          }
+          {
+            name = "windows-sys";
+            packageId = "windows-sys 0.61.2";
+            target = { target, features }: (target.name == "arm64ec-pc-windows-msvc");
+            features = [ "Win32_System_Memory" "Win32_System_Threading" "Win32_Foundation" ];
+          }
+          {
+            name = "windows-sys";
+            packageId = "windows-sys 0.61.2";
+            target = { target, features }: ((target."windows" or false) && (!("arm64ec" == target."arch" or null)));
+            features = [ "Win32_System_Memory" "Win32_System_Threading" "Win32_Foundation" ];
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "cc";
+            packageId = "cc";
+          }
+        ];
+
+      };
       "static_assertions" = rec {
         crateName = "static_assertions";
         version = "1.1.0";
@@ -23565,11 +23889,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "full" "parsing" "printing" "proc-macro" "visit-mut" ];
       };
-      "syn 3.0.6" = rec {
+      "syn 3.0.9" = rec {
         crateName = "syn";
-        version = "3.0.6";
+        version = "3.0.9";
         edition = "2021";
-        sha256 = "1vmw7s58rzrs926nv5m06x7qbgswm1aa9iw3s1bj5var47kyi4w5";
+        sha256 = "0fw28lhl90kls24q2h2sp39yjb0lsvz5cwh9fd3f3w3v9kp8v36p";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -23641,7 +23965,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             usesDefaultFeatures = false;
             features = [ "derive" "parsing" "printing" "clone-impls" "visit" "extra-traits" ];
           }
@@ -23781,7 +24105,7 @@ rec {
         ];
 
       };
-      "tatara-closed-set" = rec {
+      "tatara-closed-set 0.3.64" = rec {
         crateName = "tatara-closed-set";
         version = "0.3.64";
         edition = "2021";
@@ -23793,16 +24117,60 @@ rec {
         dependencies = [
           {
             name = "tatara-closed-set-derive";
-            packageId = "tatara-closed-set-derive";
+            packageId = "tatara-closed-set-derive 0.3.64";
           }
         ];
 
       };
-      "tatara-closed-set-derive" = rec {
+      "tatara-closed-set 0.4.5" = rec {
+        crateName = "tatara-closed-set";
+        version = "0.4.5";
+        edition = "2021";
+        sha256 = "0a4fz0nfrh6aqmgmf9j7fkvv0qq4gbj9qdq73h8ylkfdh8m9s1q3";
+        libName = "tatara_closed_set";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "tatara-closed-set-derive";
+            packageId = "tatara-closed-set-derive 0.4.5";
+          }
+        ];
+
+      };
+      "tatara-closed-set-derive 0.3.64" = rec {
         crateName = "tatara-closed-set-derive";
         version = "0.3.64";
         edition = "2021";
         sha256 = "1ly2s7nm31n1l3ha061jqvmacb7mwi8p0hpl8fwlp4jh8880agjm";
+        procMacro = true;
+        libName = "tatara_closed_set_derive";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn 2.0.119";
+            features = [ "full" ];
+          }
+        ];
+
+      };
+      "tatara-closed-set-derive 0.4.5" = rec {
+        crateName = "tatara-closed-set-derive";
+        version = "0.4.5";
+        edition = "2021";
+        sha256 = "1mp6nhsqjq4bbfkz9qlxr96jajjafblvralj2ab5fffvzsk54hxq";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -23928,7 +24296,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp";
+            packageId = "tatara-lisp 0.3.52";
           }
           {
             name = "tatara-nix";
@@ -23972,7 +24340,7 @@ rec {
         ];
 
       };
-      "tatara-lisp" = rec {
+      "tatara-lisp 0.3.52" = rec {
         crateName = "tatara-lisp";
         version = "0.3.52";
         edition = "2021";
@@ -23997,11 +24365,11 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set";
+            packageId = "tatara-closed-set 0.3.64";
           }
           {
             name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive";
+            packageId = "tatara-lisp-derive 0.3.52";
           }
           {
             name = "thiserror";
@@ -24012,7 +24380,47 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "tatara-lisp-derive" = rec {
+      "tatara-lisp 0.4.5" = rec {
+        crateName = "tatara-lisp";
+        version = "0.4.5";
+        edition = "2021";
+        sha256 = "03yc7vvgl8ni4cpinvnb1l1yc58l5b5gib060bvazmg149ixi74n";
+        libName = "tatara_lisp";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "blake3";
+            packageId = "blake3";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "tatara-closed-set";
+            packageId = "tatara-closed-set 0.4.5";
+          }
+          {
+            name = "tatara-lisp-derive";
+            packageId = "tatara-lisp-derive 0.4.5";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.21";
+          }
+        ];
+        features = {
+        };
+        resolvedDefaultFeatures = [ "default" ];
+      };
+      "tatara-lisp-derive 0.3.52" = rec {
         crateName = "tatara-lisp-derive";
         version = "0.3.52";
         edition = "2021";
@@ -24039,7 +24447,34 @@ rec {
         ];
 
       };
-      "tatara-lisp-eval" = rec {
+      "tatara-lisp-derive 0.4.5" = rec {
+        crateName = "tatara-lisp-derive";
+        version = "0.4.5";
+        edition = "2021";
+        sha256 = "1h7zcxmvn9x19rfwh57bgwzcfx2wfj7vcpkiazzb8pnx6rnx7xbj";
+        procMacro = true;
+        libName = "tatara_lisp_derive";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn 2.0.119";
+            features = [ "full" ];
+          }
+        ];
+
+      };
+      "tatara-lisp-eval 0.3.52" = rec {
         crateName = "tatara-lisp-eval";
         version = "0.3.52";
         edition = "2021";
@@ -24051,15 +24486,53 @@ rec {
         dependencies = [
           {
             name = "monosashi";
-            packageId = "monosashi";
+            packageId = "monosashi 0.3.64";
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set";
+            packageId = "tatara-closed-set 0.3.64";
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp";
+            packageId = "tatara-lisp 0.3.52";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.21";
+          }
+        ];
+
+      };
+      "tatara-lisp-eval 0.4.5" = rec {
+        crateName = "tatara-lisp-eval";
+        version = "0.4.5";
+        edition = "2021";
+        sha256 = "1md1anygx6mhf2gf08i35bx0fr7alw25kxj5q4m62qc9bpdgic1g";
+        libName = "tatara_lisp_eval";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "imbl";
+            packageId = "imbl";
+          }
+          {
+            name = "monosashi";
+            packageId = "monosashi 0.4.5";
+          }
+          {
+            name = "stacker";
+            packageId = "stacker";
+            target = { target, features }: (!(builtins.elem "wasm" target."family"));
+          }
+          {
+            name = "tatara-closed-set";
+            packageId = "tatara-closed-set 0.4.5";
+          }
+          {
+            name = "tatara-lisp";
+            packageId = "tatara-lisp 0.4.5";
           }
           {
             name = "thiserror";
@@ -24101,11 +24574,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp";
+            packageId = "tatara-lisp 0.3.52";
           }
           {
             name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive";
+            packageId = "tatara-lisp-derive 0.3.52";
           }
           {
             name = "tempfile";
@@ -24184,7 +24657,7 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set";
+            packageId = "tatara-closed-set 0.3.64";
           }
           {
             name = "tatara-core";
@@ -24192,7 +24665,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp";
+            packageId = "tatara-lisp 0.3.52";
           }
           {
             name = "thiserror";
@@ -24207,9 +24680,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.41";
+        version = "0.1.43";
         edition = "2024";
-        sha256 = "1b7b00lwmzzib6cvqnmci1fxggvll4c3qy1xnp71iw1nc483z5rl";
+        sha256 = "15kfjb2dd8bw6rrklbq0r41sqswacqp4rj68gvhdi8l37jpx3fkm";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -24250,9 +24723,9 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.41";
+        version = "0.1.43";
         edition = "2024";
-        sha256 = "0jm6ilcxwjphi7wkjrvc0bbjnfj2c34mqzg8facx4xidz92pn3jg";
+        sha256 = "1vk24hq45p3inx3fwknwkdisgyf380z20j5ghkh013kpj1xhqm61";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -24315,9 +24788,9 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.41";
+        version = "0.1.43";
         edition = "2024";
-        sha256 = "0s4l2npjvqirnvn2sk4rf4mjmpid90lkxqxil31x1f74kib5qwbc";
+        sha256 = "1vwh0s4h80xrfamsph84ygnhkiwgv97asmrhrwwmkfzyrg7ih3x7";
         libName = "tear_core";
         authors = [
           "pleme-io"
@@ -24413,9 +24886,9 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.41";
+        version = "0.1.43";
         edition = "2024";
-        sha256 = "030vk0jcgr712nf1491lyq6b0hz2kpvdnwhi5hsgl53b3cq1nsgm";
+        sha256 = "1lgm6i1q4yvc2gnsczq126gnb3nb01w9gq4cwdcrnd74i84kj7ss";
         libName = "tear_daemon";
         authors = [
           "pleme-io"
@@ -24504,9 +24977,9 @@ rec {
       };
       "tear-makimono" = rec {
         crateName = "tear-makimono";
-        version = "0.1.41";
+        version = "0.1.43";
         edition = "2024";
-        sha256 = "01p230q2xkbwbw44ih1gzdz4346jngh8jy79gy0jkn41gip38w0q";
+        sha256 = "07ajky4nxg4a4lgyrq419jgr4ci1iskf7rdviac86a90ryzcss15";
         libName = "makimono";
         authors = [
           "pleme-io"
@@ -24541,10 +25014,10 @@ rec {
       };
       "tear-tamotsu" = rec {
         crateName = "tear-tamotsu";
-        version = "0.1.41";
+        version = "0.1.43";
         edition = "2024";
         crateBin = [];
-        sha256 = "16324mkz72jh62zz3sd0j4ik189i5kb95ap45bk7h1yr59vj599g";
+        sha256 = "1x4a8sn7njby0cd2qla8al7nqywnk49ng7rbdp8k49krf3dmqywh";
         libName = "tamotsu";
         authors = [
           "pleme-io"
@@ -24593,9 +25066,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.41";
+        version = "0.1.43";
         edition = "2024";
-        sha256 = "145h1cwplf57bx6by51qdzvn9mxf9922m2j88qzg4mb1gvs2jrh5";
+        sha256 = "1s65ld87m1ph7sacrr29yq1mmpd6l481f2kl2mj2ghfmsbwd9233";
         libName = "tear_types";
         authors = [
           "pleme-io"
@@ -24829,7 +25302,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
           }
         ];
 
@@ -25357,7 +25830,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "full" ];
           }
         ];
@@ -25448,9 +25921,9 @@ rec {
       };
       "tokio-util" = rec {
         crateName = "tokio-util";
-        version = "0.7.19";
+        version = "0.7.20";
         edition = "2021";
-        sha256 = "0licqrhrawysjrsr0qw3cgzkkjph7090hlcqcm45aazmkg81aj29";
+        sha256 = "0jwagxx9vr940rlxjh0y7zimd2cbxqbjym5nz73byvm93d2wyr74";
         libName = "tokio_util";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
@@ -25652,11 +26125,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "display" "parse" "serde" ];
       };
-      "toml_edit 0.25.16+spec-1.1.0" = rec {
+      "toml_edit 0.25.17+spec-1.1.0" = rec {
         crateName = "toml_edit";
-        version = "0.25.16+spec-1.1.0";
+        version = "0.25.17+spec-1.1.0";
         edition = "2024";
-        sha256 = "08n7gybi8k7z2cjwg559l78b4hr1npig9459cwf88wdzz0x8zww8";
+        sha256 = "174w1b2fjg1jb0wi7384v1m59g7ga79458i022gafjakpddisr73";
         dependencies = [
           {
             name = "indexmap";
@@ -25689,9 +26162,9 @@ rec {
       };
       "toml_parser" = rec {
         crateName = "toml_parser";
-        version = "1.1.4+spec-1.1.0";
+        version = "1.1.5+spec-1.1.0";
         edition = "2024";
-        sha256 = "0czkx8wkqzysf5c803vf30kzlhl137kp8iqbyaf7z3kx03p11n5y";
+        sha256 = "0k3lljyi4zxchdklaqghkwbl7wkd2ab1w16hlyniqzid0fl979ms";
         dependencies = [
           {
             name = "winnow";
@@ -26600,9 +27073,9 @@ rec {
       };
       "unicode-ident" = rec {
         crateName = "unicode-ident";
-        version = "1.0.26";
+        version = "1.0.27";
         edition = "2021";
-        sha256 = "0m3915ipi4zz7isncf5k1dz47ys0nq9j7l4l2n2rm03zaxwg8ifj";
+        sha256 = "0qv54hz0sxmspjyr162z3435pnyylzjjhx3j4k1s359pqgb59ix2";
         libName = "unicode_ident";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
@@ -26949,9 +27422,9 @@ rec {
       };
       "uuid" = rec {
         crateName = "uuid";
-        version = "1.27.0";
+        version = "1.28.0";
         edition = "2021";
-        sha256 = "16h5h6bf5ybh1lj97lcdl41g7fqbiczpavpsb0zf3b63p4v7s9wp";
+        sha256 = "01mnlhz09hwdjaxwzjd6bql3fjb5zl9n8dzaxn7dvdxyhiiiihbw";
         authors = [
           "Ashley Mannix<ashleymannix@live.com.au>"
           "Dylan DPC<dylan.dpc@gmail.com>"
@@ -27076,9 +27549,9 @@ rec {
       };
       "vigy" = rec {
         crateName = "vigy";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2021";
-        sha256 = "1nz7mpzzsizppw4jpn0wm90ypbbjrzdj4pzmp0m12sg4d8yj214w";
+        sha256 = "0i0wi21ca1vf5wgbvpwbm541dvw0yfdch01v9yg4q7z5ma8sfdqs";
         authors = [
           "Pleme Team <team@pleme.io>"
         ];
@@ -27116,9 +27589,9 @@ rec {
       };
       "vigy-eval" = rec {
         crateName = "vigy-eval";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2021";
-        sha256 = "1xs7h826252s91af6scs8hkvs7skwndwpi80ck0hc20dq47d03fg";
+        sha256 = "0xjfa0nf4rnm1v6nr7ax2qcmbma2n9b0f0l1mq1lhbw45jmd20vr";
         libName = "vigy_eval";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27143,11 +27616,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp";
+            packageId = "tatara-lisp 0.4.5";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval";
+            packageId = "tatara-lisp-eval 0.4.5";
           }
           {
             name = "thiserror";
@@ -27176,9 +27649,9 @@ rec {
       };
       "vigy-mcp" = rec {
         crateName = "vigy-mcp";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2021";
-        sha256 = "167b4lc201jz1mx2fbim3k3m7if83i12nwklvh6r4jpynzs2xzpd";
+        sha256 = "1y5f3i9glg493pc20b4k435mw5l4rs52pzb86w1mpyvc73vl3hx5";
         libName = "vigy_mcp";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27219,9 +27692,9 @@ rec {
       };
       "vigy-runtime" = rec {
         crateName = "vigy-runtime";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2021";
-        sha256 = "15jrh56k2jcgyjckcfd20wmrb126nk1niapphjcxik8vj0ragdy9";
+        sha256 = "1gj8cp3n1v51nbhqbjg8k6kw7w9apy1sgybp3a18j7pcb580mmwl";
         libName = "vigy_runtime";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27278,9 +27751,9 @@ rec {
       };
       "vigy-store" = rec {
         crateName = "vigy-store";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2021";
-        sha256 = "0xg3i4awwx0c40akkxw6n0fpkkklr1wwlc0akf6xmjyj9xf0ac34";
+        sha256 = "17rgwcam61hkbxdrr9kbj95h121z5v96mn40c06apagm58p8gbnq";
         libName = "vigy_store";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27349,9 +27822,9 @@ rec {
       };
       "vigy-types" = rec {
         crateName = "vigy-types";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2021";
-        sha256 = "1kgvdizs5h1x8kk3bjbmwgaj41m3ayrhw3z6n8yqhazgrsgk6vl4";
+        sha256 = "16inmc9dd1950l3n68w31gliaccgr684kgndcjz7f3cfjcbbccyp";
         libName = "vigy_types";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27688,7 +28161,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "visit" "visit-mut" "full" "extra-traits" ];
           }
           {
@@ -28817,12 +29290,12 @@ rec {
           }
           {
             name = "bit-set";
-            packageId = "bit-set";
+            packageId = "bit-set 0.8.0";
             usesDefaultFeatures = false;
           }
           {
             name = "bit-vec";
-            packageId = "bit-vec";
+            packageId = "bit-vec 0.8.0";
             usesDefaultFeatures = false;
           }
           {
@@ -29054,7 +29527,7 @@ rec {
           }
           {
             name = "bit-set";
-            packageId = "bit-set";
+            packageId = "bit-set 0.8.0";
             optional = true;
             usesDefaultFeatures = false;
             target = { target, features }: (target."windows" or false);
@@ -29383,7 +29856,32 @@ rec {
           "web-sys" = [ "dep:web-sys" ];
         };
       };
-      "wide" = rec {
+      "wide 0.7.33" = rec {
+        crateName = "wide";
+        version = "0.7.33";
+        edition = "2018";
+        sha256 = "00yd2sg83xvfrjjlwndyk49fjx8jlmlrz8byigndig32rf7dmr8c";
+        authors = [
+          "Lokathor <zefria@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "bytemuck";
+            packageId = "bytemuck";
+          }
+          {
+            name = "safe_arch";
+            packageId = "safe_arch 0.7.4";
+            features = [ "bytemuck" ];
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "serde" = [ "dep:serde" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "wide 1.7.1" = rec {
         crateName = "wide";
         version = "1.7.1";
         edition = "2024";
@@ -29398,13 +29896,13 @@ rec {
           }
           {
             name = "safe_arch";
-            packageId = "safe_arch";
+            packageId = "safe_arch 1.2.0";
             target = { target, features }: ("x86" == target."arch" or null);
             features = [ "bytemuck" ];
           }
           {
             name = "safe_arch";
-            packageId = "safe_arch";
+            packageId = "safe_arch 1.2.0";
             target = { target, features }: ("x86_64" == target."arch" or null);
             features = [ "bytemuck" ];
           }
@@ -33714,7 +34212,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "fold" "visit" ];
           }
           {
@@ -33844,7 +34342,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "fold" "visit" ];
           }
           {
@@ -33978,7 +34476,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.6";
+            packageId = "syn 3.0.9";
             features = [ "extra-traits" ];
           }
         ];
