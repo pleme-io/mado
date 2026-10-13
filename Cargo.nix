@@ -4295,9 +4295,9 @@ rec {
       };
       "engate-attach" = rec {
         crateName = "engate-attach";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2024";
-        sha256 = "0lqnz0k465jpk5nap3hrvggfp5ap8wy2pqnv78gmj7szgr8zlif2";
+        sha256 = "02w49l2j0imwk33yjqhhd13jdblam2li866ca8h913np6l032afd";
         libName = "engate_attach";
         authors = [
           "pleme-io <ops@pleme.io>"
@@ -4335,9 +4335,9 @@ rec {
       };
       "engate-types" = rec {
         crateName = "engate-types";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2024";
-        sha256 = "17xrxpvhn7qhj8icl7n7kaa6k21rih95zi2q2qrhi2nyls4ml8sz";
+        sha256 = "1hvmp0pj4a8fxx5j0gf7vax4knaj248qam3k476a8z1ad6g3k42m";
         libName = "engate_types";
         authors = [
           "pleme-io <ops@pleme.io>"
@@ -9616,9 +9616,9 @@ rec {
       };
       "kukaku" = rec {
         crateName = "kukaku";
-        version = "0.1.39";
+        version = "0.1.41";
         edition = "2024";
-        sha256 = "099ndp05r59la7x2079nrwlhx73mdw6hh0jq42amcvq9k9i2883y";
+        sha256 = "1fvmlnqg1q6vs3afw050gir4hdpx4k85irvyg4a9gmyxd7xinwi1";
         authors = [
           "pleme-io"
         ];
@@ -10155,7 +10155,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.187";
+        version = "0.1.188";
         edition = "2024";
         crateBin = [
           {
@@ -16864,9 +16864,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.39";
+        version = "0.1.41";
         edition = "2024";
-        sha256 = "13l0xw0zj4ms0x2npkga3mdk4p721kfnb64n49jw1inljs00dzxw";
+        sha256 = "0j73xpjhb1f6b5p4hz3hswjgk8p599hdvl0q00qdlmkk3y8zfnz0";
         authors = [
           "pleme-io"
         ];
@@ -21087,6 +21087,40 @@ rec {
         ];
 
       };
+      "serde_bytes" = rec {
+        crateName = "serde_bytes";
+        version = "0.11.19";
+        edition = "2018";
+        sha256 = "1a1y1v0r9akqyvprxnmpgc0i8wybqqpvgi01mi8qxn3rkrq41m55";
+        authors = [
+          "David Tolnay <dtolnay@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "serde";
+            packageId = "serde";
+            usesDefaultFeatures = false;
+            target = { target, features }: false;
+          }
+          {
+            name = "serde_core";
+            packageId = "serde_core";
+            usesDefaultFeatures = false;
+          }
+        ];
+        devDependencies = [
+          {
+            name = "serde";
+            packageId = "serde";
+          }
+        ];
+        features = {
+          "alloc" = [ "serde_core/alloc" ];
+          "default" = [ "std" ];
+          "std" = [ "serde_core/std" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
       "serde_core" = rec {
         crateName = "serde_core";
         version = "1.0.229";
@@ -24173,9 +24207,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.39";
+        version = "0.1.41";
         edition = "2024";
-        sha256 = "1rswhaxir181lk4ybfchwggr8rynq1qkrd7dr7x64v4hpx5q8sb2";
+        sha256 = "1b7b00lwmzzib6cvqnmci1fxggvll4c3qy1xnp71iw1nc483z5rl";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -24216,9 +24250,9 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.39";
+        version = "0.1.41";
         edition = "2024";
-        sha256 = "05s6ky980hz5l8sazbabb4f4qxlczfyy9ddpy1ls66d6prsih83s";
+        sha256 = "0jm6ilcxwjphi7wkjrvc0bbjnfj2c34mqzg8facx4xidz92pn3jg";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -24281,9 +24315,9 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.39";
+        version = "0.1.41";
         edition = "2024";
-        sha256 = "1navx9zikylyixv6qvwdmhfs2cxl6vf6yavsvjyvlxw7vf6l35j7";
+        sha256 = "0s4l2npjvqirnvn2sk4rf4mjmpid90lkxqxil31x1f74kib5qwbc";
         libName = "tear_core";
         authors = [
           "pleme-io"
@@ -24379,9 +24413,9 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.39";
+        version = "0.1.41";
         edition = "2024";
-        sha256 = "16inxkgq518kbsq0rhc6mj6w6n3val0c6ibm7sh1iy7r4b2251lj";
+        sha256 = "030vk0jcgr712nf1491lyq6b0hz2kpvdnwhi5hsgl53b3cq1nsgm";
         libName = "tear_daemon";
         authors = [
           "pleme-io"
@@ -24470,9 +24504,9 @@ rec {
       };
       "tear-makimono" = rec {
         crateName = "tear-makimono";
-        version = "0.1.39";
+        version = "0.1.41";
         edition = "2024";
-        sha256 = "108dqf74xc79kzcy1b9z02w0flm81k9zqh3nqm74d5j7jrr6j8bw";
+        sha256 = "01p230q2xkbwbw44ih1gzdz4346jngh8jy79gy0jkn41gip38w0q";
         libName = "makimono";
         authors = [
           "pleme-io"
@@ -24507,10 +24541,10 @@ rec {
       };
       "tear-tamotsu" = rec {
         crateName = "tear-tamotsu";
-        version = "0.1.39";
+        version = "0.1.41";
         edition = "2024";
         crateBin = [];
-        sha256 = "0x0fghg7aq9gxq8jfs530rsxq9f1adsmfksfr63ivc00acbpj6pm";
+        sha256 = "16324mkz72jh62zz3sd0j4ik189i5kb95ap45bk7h1yr59vj599g";
         libName = "tamotsu";
         authors = [
           "pleme-io"
@@ -24559,9 +24593,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.39";
+        version = "0.1.41";
         edition = "2024";
-        sha256 = "05csnpl4mhc0m8xq97q7chxr0wykhxh2g39jvxvg341xd7magvs8";
+        sha256 = "145h1cwplf57bx6by51qdzvn9mxf9922m2j88qzg4mb1gvs2jrh5";
         libName = "tear_types";
         authors = [
           "pleme-io"
@@ -24600,6 +24634,10 @@ rec {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
+          }
+          {
+            name = "serde_bytes";
+            packageId = "serde_bytes";
           }
           {
             name = "serde_json";
@@ -33702,9 +33740,9 @@ rec {
       };
       "zerocopy" = rec {
         crateName = "zerocopy";
-        version = "0.8.61";
+        version = "0.8.62";
         edition = "2021";
-        sha256 = "0ri8ajsyghsl0fmwc55k4cj4ky042az0z5yvxd0jxhwqrq2vg7w7";
+        sha256 = "17asjqfdkqmxsx42myw1x5jlb28m5axlf9ifldqpbiy7dbsjnl46";
         dependencies = [
           {
             name = "zerocopy-derive";
@@ -33734,9 +33772,9 @@ rec {
       };
       "zerocopy-derive" = rec {
         crateName = "zerocopy-derive";
-        version = "0.8.61";
+        version = "0.8.62";
         edition = "2021";
-        sha256 = "0ncpf1fq0gv8rk4nxivdp32093d90xv75iww0gx09mh1hfi8523h";
+        sha256 = "06lx0gigf0j5pvp4dhlrv636b4mib37ijzlcc3i62rdhailj0msl";
         procMacro = true;
         libName = "zerocopy_derive";
         dependencies = [

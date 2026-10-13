@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "a9ab06a7585f6d75954f98096c41eb917230e5bcff4dde5ebc39e8742f259a67",
+  "cargo_lock_sha256": "b63d2c30b4e07bc75f5c353d12dc1c3b14707f34d9f5a22d3b446a9c5ab624c5",
   "manifest_sha256": {
-    "Cargo.toml": "c7158b594e713ea6ee4e54d7e3ef5d71c7dce11ff0fe24b86ddb265aa8f56008"
+    "Cargo.toml": "764c67f64cedff53bd26604da05ca831d1b6a8693b644764d66038566fddd1b0"
   },
   "target_resolves": {
     "base": {
@@ -93,6 +93,7 @@
         ],
         "build_dependencies": [],
         "features": [
+          "default",
           "perf-literal",
           "std"
         ]
@@ -270,6 +271,25 @@
           "std"
         ]
       },
+      "ar_archive_writer-0.5.3": {
+        "runtime_dependencies": [
+          {
+            "name": "object",
+            "package_key": "object-0.39.1",
+            "kind": "normal",
+            "features": [
+              "read",
+              "std"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "arc-swap-1.9.2": {
         "runtime_dependencies": [
           {
@@ -283,6 +303,11 @@
             "tree": "host"
           }
         ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "archery-1.2.3": {
+        "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
       },
@@ -510,7 +535,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -743,11 +768,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "bit-set-0.8.0": {
+      "bit-set-0.11.1": {
         "runtime_dependencies": [
           {
             "name": "bit_vec",
-            "package_key": "bit-vec-0.8.0",
+            "package_key": "bit-vec-0.10.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -762,13 +787,34 @@
           "std"
         ]
       },
-      "bit-vec-0.8.0": {
+      "bit-set-0.8.0": {
+        "runtime_dependencies": [
+          {
+            "name": "bit_vec",
+            "package_key": "bit-vec-0.8.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "bit-vec-0.10.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
           "default",
           "std"
         ]
+      },
+      "bit-vec-0.8.0": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
       },
       "bitflags-2.13.2": {
         "runtime_dependencies": [
@@ -930,7 +976,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "fold",
@@ -1107,7 +1153,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1147,7 +1193,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "cc-1.6.0": {
+      "cc-1.8.0": {
         "runtime_dependencies": [
           {
             "name": "find_msvc_tools",
@@ -1464,7 +1510,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "full"
@@ -1731,7 +1777,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1766,6 +1812,13 @@
           "public_suffix",
           "serde",
           "serde_json"
+        ]
+      },
+      "core_detect-1.0.0": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": [
+          "default"
         ]
       },
       "cosmic-text-0.14.2": {
@@ -2117,7 +2170,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2278,7 +2331,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2326,7 +2379,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -2667,7 +2720,7 @@
           "zeroize"
         ]
       },
-      "deranged-0.5.8": {
+      "deranged-0.5.9": {
         "runtime_dependencies": [
           {
             "name": "serde_core",
@@ -3003,7 +3056,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3019,7 +3072,7 @@
         "runtime_dependencies": [
           {
             "name": "litrs",
-            "package_key": "litrs-1.0.0",
+            "package_key": "litrs-1.0.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3508,7 +3561,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4218,7 +4271,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "full"
@@ -4610,7 +4663,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4692,7 +4745,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5257,7 +5310,7 @@
           },
           {
             "name": "tokio_util",
-            "package_key": "tokio-util-0.7.19",
+            "package_key": "tokio-util-0.7.20",
             "kind": "normal",
             "features": [
               "codec",
@@ -5491,11 +5544,31 @@
         "build_dependencies": [],
         "features": []
       },
-      "hayai-0.1.2": {
+      "hayai-0.1.4": {
         "runtime_dependencies": [
+          {
+            "name": "aho_corasick",
+            "package_key": "aho-corasick-1.1.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
           {
             "name": "regex",
             "package_key": "regex-1.13.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "regex_syntax",
+            "package_key": "regex-syntax-0.8.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5517,7 +5590,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6007,7 +6080,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [
               "const_generics",
@@ -6235,7 +6308,7 @@
           },
           {
             "name": "rustls_native_certs",
-            "package_key": "rustls-native-certs-0.8.4",
+            "package_key": "rustls-native-certs-0.8.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6524,7 +6597,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6775,7 +6848,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [
               "const_generics"
@@ -6904,6 +6977,91 @@
           "tiff"
         ]
       },
+      "imbl-7.0.2": {
+        "runtime_dependencies": [
+          {
+            "name": "archery",
+            "package_key": "archery-1.2.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "equivalent",
+            "package_key": "equivalent-1.0.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "imbl_sized_chunks",
+            "package_key": "imbl-sized-chunks-0.2.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rand_core",
+            "package_key": "rand_core-0.9.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rand_xoshiro",
+            "package_key": "rand_xoshiro-0.7.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "wide",
+            "package_key": "wide-0.7.33",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [
+          {
+            "name": "version_check",
+            "package_key": "version_check-0.9.5",
+            "kind": "build",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          }
+        ],
+        "features": []
+      },
+      "imbl-sized-chunks-0.2.0": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "std"
+        ]
+      },
       "indexmap-2.14.2": {
         "runtime_dependencies": [
           {
@@ -6968,7 +7126,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "full"
@@ -7066,7 +7224,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7157,7 +7315,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7273,7 +7431,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7358,7 +7516,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1080",
+            "package_key": "shikumi-0.1.1082",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7396,7 +7554,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7450,7 +7608,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7509,7 +7667,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7547,7 +7705,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [
               "alloc"
@@ -7618,7 +7776,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [
               "alloc"
@@ -7671,7 +7829,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7832,7 +7990,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8132,7 +8290,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8176,7 +8334,7 @@
           },
           {
             "name": "tokio_util",
-            "package_key": "tokio-util-0.7.19",
+            "package_key": "tokio-util-0.7.20",
             "kind": "normal",
             "features": [
               "codec",
@@ -8347,7 +8505,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8420,7 +8578,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8608,7 +8766,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8640,7 +8798,7 @@
           },
           {
             "name": "tokio_util",
-            "package_key": "tokio-util-0.7.19",
+            "package_key": "tokio-util-0.7.20",
             "kind": "normal",
             "features": [
               "time"
@@ -8664,7 +8822,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "kukaku-0.1.41": {
+      "kukaku-0.1.43": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -8741,7 +8899,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.6.0",
+            "package_key": "cc-1.8.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -8757,7 +8915,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.6.0",
+            "package_key": "cc-1.8.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -8933,7 +9091,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [
               "union"
@@ -9018,7 +9176,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "litrs-1.0.0": {
+      "litrs-1.0.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -9079,11 +9237,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "mac_address-1.2.0": {
+      "mac_address-1.2.1": {
         "runtime_dependencies": [
           {
             "name": "nix",
-            "package_key": "nix-0.30.1",
+            "package_key": "nix-0.31.3",
             "kind": "normal",
             "features": [
               "net"
@@ -9179,7 +9337,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1080",
+            "package_key": "shikumi-0.1.1082",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9555,6 +9713,11 @@
         "build_dependencies": [],
         "features": []
       },
+      "monosashi-0.4.5": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
       "moxcms-0.8.1": {
         "runtime_dependencies": [
           {
@@ -9768,7 +9931,7 @@
           },
           {
             "name": "unicode_ident",
-            "package_key": "unicode-ident-1.0.26",
+            "package_key": "unicode-ident-1.0.27",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9918,7 +10081,6 @@
         "features": [
           "default",
           "memoffset",
-          "net",
           "process",
           "signal",
           "socket",
@@ -9958,6 +10120,16 @@
             "optional": false,
             "target": null,
             "tree": "target"
+          },
+          {
+            "name": "memoffset",
+            "package_key": "memoffset-0.9.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
           }
         ],
         "build_dependencies": [
@@ -9973,10 +10145,14 @@
           }
         ],
         "features": [
+          "default",
           "fs",
+          "memoffset",
+          "net",
           "poll",
           "process",
-          "signal"
+          "signal",
+          "socket"
         ]
       },
       "notify-types-2.1.0": {
@@ -10106,7 +10282,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10220,6 +10396,32 @@
           "i128",
           "libm",
           "std"
+        ]
+      },
+      "object-0.39.1": {
+        "runtime_dependencies": [
+          {
+            "name": "memchr",
+            "package_key": "memchr-2.8.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "archive",
+          "coff",
+          "elf",
+          "macho",
+          "pe",
+          "read",
+          "read_core",
+          "std",
+          "xcoff"
         ]
       },
       "okiba-0.2.1": {
@@ -10814,7 +11016,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10894,7 +11096,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11925,7 +12127,7 @@
           },
           {
             "name": "hayai",
-            "package_key": "hayai-0.1.2",
+            "package_key": "hayai-0.1.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12011,7 +12213,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12328,7 +12530,7 @@
           "std"
         ]
       },
-      "praca-0.1.41": {
+      "praca-0.1.43": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
@@ -12364,7 +12566,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.41",
+            "package_key": "tear-types-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12397,7 +12599,7 @@
         "runtime_dependencies": [
           {
             "name": "toml_edit",
-            "package_key": "toml_edit-0.25.16+spec-1.1.0",
+            "package_key": "toml_edit-0.25.17+spec-1.1.0",
             "kind": "normal",
             "features": [
               "parse"
@@ -12415,7 +12617,7 @@
         "runtime_dependencies": [
           {
             "name": "unicode_ident",
-            "package_key": "unicode-ident-1.0.26",
+            "package_key": "unicode-ident-1.0.27",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12570,11 +12772,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "proptest-1.11.0": {
+      "proptest-1.12.0": {
         "runtime_dependencies": [
           {
             "name": "bit_set",
-            "package_key": "bit-set-0.8.0",
+            "package_key": "bit-set-0.11.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12584,7 +12786,7 @@
           },
           {
             "name": "bit_vec",
-            "package_key": "bit-vec-0.8.0",
+            "package_key": "bit-vec-0.10.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12595,6 +12797,28 @@
           {
             "name": "bitflags",
             "package_key": "bitflags-2.13.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "chacha20",
+            "package_key": "chacha20-0.10.2",
+            "kind": "normal",
+            "features": [
+              "rng"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "core_detect",
+            "package_key": "core_detect-1.0.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12614,7 +12838,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.9.5",
+            "package_key": "rand-0.10.3",
             "kind": "normal",
             "features": [
               "alloc"
@@ -12625,18 +12849,8 @@
             "tree": "target"
           },
           {
-            "name": "rand_chacha",
-            "package_key": "rand_chacha-0.9.0",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
             "name": "rand_xorshift",
-            "package_key": "rand_xorshift-0.4.0",
+            "package_key": "rand_xorshift-0.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12700,6 +12914,32 @@
       "psl-types-2.0.11": {
         "runtime_dependencies": [],
         "build_dependencies": [],
+        "features": []
+      },
+      "psm-0.1.32": {
+        "runtime_dependencies": [],
+        "build_dependencies": [
+          {
+            "name": "ar_archive_writer",
+            "package_key": "ar_archive_writer-0.5.3",
+            "kind": "build",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "cc",
+            "package_key": "cc-1.8.0",
+            "kind": "build",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          }
+        ],
         "features": []
       },
       "publicsuffix-2.3.0": {
@@ -13458,7 +13698,23 @@
         "build_dependencies": [],
         "features": []
       },
-      "rand_xorshift-0.4.0": {
+      "rand_xorshift-0.5.0": {
+        "runtime_dependencies": [
+          {
+            "name": "rand_core",
+            "package_key": "rand_core-0.10.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "rand_xoshiro-0.7.0": {
         "runtime_dependencies": [
           {
             "name": "rand_core",
@@ -13586,7 +13842,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13970,7 +14226,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13980,7 +14236,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14214,7 +14470,7 @@
           },
           {
             "name": "schemars",
-            "package_key": "schemars-1.2.2",
+            "package_key": "schemars-1.2.3",
             "kind": "normal",
             "features": [
               "chrono04"
@@ -14239,7 +14495,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14284,7 +14540,7 @@
           },
           {
             "name": "tokio_util",
-            "package_key": "tokio-util-0.7.19",
+            "package_key": "tokio-util-0.7.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14349,7 +14605,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14580,7 +14836,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14907,7 +15163,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14984,6 +15240,25 @@
         "build_dependencies": [],
         "features": []
       },
+      "safe_arch-0.7.4": {
+        "runtime_dependencies": [
+          {
+            "name": "bytemuck",
+            "package_key": "bytemuck-1.25.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "bytemuck",
+          "default"
+        ]
+      },
       "samba-0.1.4": {
         "runtime_dependencies": [
           {
@@ -14998,7 +15273,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15097,7 +15372,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15114,7 +15389,7 @@
           "schemars_derive"
         ]
       },
-      "schemars-1.2.2": {
+      "schemars-1.2.3": {
         "runtime_dependencies": [
           {
             "name": "chrono04",
@@ -15148,7 +15423,7 @@
           },
           {
             "name": "schemars_derive",
-            "package_key": "schemars_derive-1.2.2",
+            "package_key": "schemars_derive-1.2.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15170,7 +15445,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [
               "alloc"
@@ -15238,7 +15513,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "schemars_derive-1.2.2": {
+      "schemars_derive-1.2.3": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -15272,7 +15547,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15484,7 +15759,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -15557,7 +15832,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.27.0",
+            "package_key": "uuid-1.28.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -15763,7 +16038,7 @@
           },
           {
             "name": "unicode_ident",
-            "package_key": "unicode-ident-1.0.26",
+            "package_key": "unicode-ident-1.0.27",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15953,7 +16228,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [
               "std"
@@ -15978,7 +16253,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.27.0",
+            "package_key": "uuid-1.28.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16059,7 +16334,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [
               "std"
@@ -16094,7 +16369,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.27.0",
+            "package_key": "uuid-1.28.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16467,7 +16742,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -16552,7 +16827,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -16569,7 +16844,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "serde_json-1.0.151": {
+      "serde_json-1.0.154": {
         "runtime_dependencies": [
           {
             "name": "itoa",
@@ -16968,7 +17243,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1080",
+            "package_key": "shikumi-0.1.1082",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17015,7 +17290,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.1080": {
+      "shikumi-0.1.1082": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17107,7 +17382,7 @@
           },
           {
             "name": "schemars",
-            "package_key": "schemars-1.2.2",
+            "package_key": "schemars-1.2.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17129,7 +17404,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17320,7 +17595,7 @@
           "std"
         ]
       },
-      "smallvec-1.16.2": {
+      "smallvec-1.16.3": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -17715,7 +17990,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [
               "raw_value"
@@ -17737,7 +18012,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17822,7 +18097,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.27.0",
+            "package_key": "uuid-1.28.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18024,7 +18299,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18466,7 +18741,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18532,7 +18807,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.27.0",
+            "package_key": "uuid-1.28.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18832,7 +19107,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [
               "raw_value"
@@ -18854,7 +19129,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [
               "serde"
@@ -18924,7 +19199,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.27.0",
+            "package_key": "uuid-1.28.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19163,7 +19438,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.27.0",
+            "package_key": "uuid-1.28.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19187,6 +19462,53 @@
       "stable_deref_trait-1.2.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
+        "features": []
+      },
+      "stacker-0.1.25": {
+        "runtime_dependencies": [
+          {
+            "name": "cfg_if",
+            "package_key": "cfg-if-1.0.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "libc",
+            "package_key": "libc-0.2.190",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "psm",
+            "package_key": "psm-0.1.32",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [
+          {
+            "name": "cc",
+            "package_key": "cc-1.8.0",
+            "kind": "build",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          }
+        ],
         "features": []
       },
       "static_assertions-1.1.0": {
@@ -19493,7 +19815,7 @@
           },
           {
             "name": "unicode_ident",
-            "package_key": "unicode-ident-1.0.26",
+            "package_key": "unicode-ident-1.0.27",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19538,7 +19860,7 @@
           },
           {
             "name": "unicode_ident",
-            "package_key": "unicode-ident-1.0.26",
+            "package_key": "unicode-ident-1.0.27",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19560,7 +19882,7 @@
           "visit-mut"
         ]
       },
-      "syn-3.0.6": {
+      "syn-3.0.9": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -19584,7 +19906,7 @@
           },
           {
             "name": "unicode_ident",
-            "package_key": "unicode-ident-1.0.26",
+            "package_key": "unicode-ident-1.0.27",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19651,7 +19973,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -19745,7 +20067,61 @@
         "build_dependencies": [],
         "features": []
       },
+      "tatara-closed-set-0.4.5": {
+        "runtime_dependencies": [
+          {
+            "name": "tatara_closed_set_derive",
+            "package_key": "tatara-closed-set-derive-0.4.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "tatara-closed-set-derive-0.3.64": {
+        "runtime_dependencies": [
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.107",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.47",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [
+              "full"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "tatara-closed-set-derive-0.4.5": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -19874,7 +20250,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19894,7 +20270,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1080",
+            "package_key": "shikumi-0.1.1082",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19934,7 +20310,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.27.0",
+            "package_key": "uuid-1.28.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -19977,7 +20353,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20095,7 +20471,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20139,7 +20515,115 @@
           "default"
         ]
       },
+      "tatara-lisp-0.4.5": {
+        "runtime_dependencies": [
+          {
+            "name": "blake3",
+            "package_key": "blake3-1.8.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.154",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_closed_set",
+            "package_key": "tatara-closed-set-0.4.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp_derive",
+            "package_key": "tatara-lisp-derive-0.4.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.21",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default"
+        ]
+      },
       "tatara-lisp-derive-0.3.52": {
+        "runtime_dependencies": [
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.107",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.47",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [
+              "full"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "tatara-lisp-derive-0.4.5": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20223,6 +20707,72 @@
         "build_dependencies": [],
         "features": []
       },
+      "tatara-lisp-eval-0.4.5": {
+        "runtime_dependencies": [
+          {
+            "name": "imbl",
+            "package_key": "imbl-7.0.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "monosashi",
+            "package_key": "monosashi-0.4.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "stacker",
+            "package_key": "stacker-0.1.25",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": "cfg(not(target_family = \"wasm\"))",
+            "tree": "target"
+          },
+          {
+            "name": "tatara_closed_set",
+            "package_key": "tatara-closed-set-0.4.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.4.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.21",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "tatara-nix-0.2.568": {
         "runtime_dependencies": [
           {
@@ -20259,7 +20809,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20437,7 +20987,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20509,7 +21059,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.41": {
+      "tear-client-0.1.43": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -20553,7 +21103,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.41",
+            "package_key": "tear-config-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20563,7 +21113,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.41",
+            "package_key": "tear-types-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20578,7 +21128,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.41": {
+      "tear-config-0.1.43": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20666,7 +21216,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1080",
+            "package_key": "shikumi-0.1.1082",
             "kind": "normal",
             "features": [
               "cli"
@@ -20678,7 +21228,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.41",
+            "package_key": "tear-types-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20710,7 +21260,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.41": {
+      "tear-core-0.1.43": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20816,7 +21366,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20826,7 +21376,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.41",
+            "package_key": "tear-config-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20836,7 +21386,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.41",
+            "package_key": "tear-makimono-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20846,7 +21396,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.41",
+            "package_key": "tear-tamotsu-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20856,7 +21406,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.41",
+            "package_key": "tear-types-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20911,7 +21461,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.41": {
+      "tear-daemon-0.1.43": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20980,7 +21530,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.41",
+            "package_key": "praca-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21002,7 +21552,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21022,7 +21572,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.41",
+            "package_key": "tear-config-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21032,7 +21582,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.41",
+            "package_key": "tear-core-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21042,7 +21592,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.41",
+            "package_key": "tear-makimono-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21052,7 +21602,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.41",
+            "package_key": "tear-tamotsu-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21062,7 +21612,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.41",
+            "package_key": "tear-types-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21100,7 +21650,7 @@
           "default"
         ]
       },
-      "tear-makimono-0.1.41": {
+      "tear-makimono-0.1.43": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -21116,7 +21666,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21126,7 +21676,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.41",
+            "package_key": "tear-types-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21160,7 +21710,7 @@
           "default"
         ]
       },
-      "tear-tamotsu-0.1.41": {
+      "tear-tamotsu-0.1.43": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21231,7 +21781,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.41",
+            "package_key": "tear-makimono-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21255,7 +21805,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.41": {
+      "tear-types-0.1.43": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21309,7 +21859,7 @@
           },
           {
             "name": "kukaku",
-            "package_key": "kukaku-0.1.41",
+            "package_key": "kukaku-0.1.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21351,7 +21901,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21565,7 +22115,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21669,7 +22219,7 @@
         "runtime_dependencies": [
           {
             "name": "deranged",
-            "package_key": "deranged-0.5.8",
+            "package_key": "deranged-0.5.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21816,7 +22366,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21892,7 +22442,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22106,7 +22656,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "full"
@@ -22194,7 +22744,7 @@
           "time"
         ]
       },
-      "tokio-util-0.7.19": {
+      "tokio-util-0.7.20": {
         "runtime_dependencies": [
           {
             "name": "bytes",
@@ -22436,7 +22986,7 @@
           "serde"
         ]
       },
-      "toml_edit-0.25.16+spec-1.1.0": {
+      "toml_edit-0.25.17+spec-1.1.0": {
         "runtime_dependencies": [
           {
             "name": "indexmap",
@@ -22462,7 +23012,7 @@
           },
           {
             "name": "toml_parser",
-            "package_key": "toml_parser-1.1.4+spec-1.1.0",
+            "package_key": "toml_parser-1.1.5+spec-1.1.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22486,7 +23036,7 @@
           "parse"
         ]
       },
-      "toml_parser-1.1.4+spec-1.1.0": {
+      "toml_parser-1.1.5+spec-1.1.0": {
         "runtime_dependencies": [
           {
             "name": "winnow",
@@ -22571,7 +23121,7 @@
           },
           {
             "name": "tokio_util",
-            "package_key": "tokio-util-0.7.19",
+            "package_key": "tokio-util-0.7.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -22754,7 +23304,7 @@
           },
           {
             "name": "tokio_util",
-            "package_key": "tokio-util-0.7.19",
+            "package_key": "tokio-util-0.7.20",
             "kind": "normal",
             "features": [
               "io"
@@ -23112,7 +23662,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23132,7 +23682,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23354,7 +23904,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "unicode-ident-1.0.26": {
+      "unicode-ident-1.0.27": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -23546,7 +24096,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23621,7 +24171,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.27.0",
+            "package_key": "uuid-1.28.0",
             "kind": "normal",
             "features": [
               "serde"
@@ -23640,7 +24190,7 @@
           "uuid"
         ]
       },
-      "uuid-1.27.0": {
+      "uuid-1.28.0": {
         "runtime_dependencies": [
           {
             "name": "getrandom",
@@ -23702,11 +24252,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-0.1.7": {
+      "vigy-0.1.8": {
         "runtime_dependencies": [
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.7",
+            "package_key": "vigy-eval-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23716,7 +24266,7 @@
           },
           {
             "name": "vigy_mcp",
-            "package_key": "vigy-mcp-0.1.7",
+            "package_key": "vigy-mcp-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23726,7 +24276,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.7",
+            "package_key": "vigy-runtime-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23736,7 +24286,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.7",
+            "package_key": "vigy-store-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23746,7 +24296,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.7",
+            "package_key": "vigy-types-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23760,7 +24310,7 @@
           "mcp"
         ]
       },
-      "vigy-eval-0.1.7": {
+      "vigy-eval-0.1.8": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -23796,7 +24346,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23806,7 +24356,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.52",
+            "package_key": "tatara-lisp-0.4.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23816,7 +24366,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.3.52",
+            "package_key": "tatara-lisp-eval-0.4.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23880,7 +24430,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.7",
+            "package_key": "vigy-types-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23892,7 +24442,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-mcp-0.1.7": {
+      "vigy-mcp-0.1.8": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -23918,7 +24468,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23957,7 +24507,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.7",
+            "package_key": "vigy-runtime-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23967,7 +24517,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.7",
+            "package_key": "vigy-types-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23979,7 +24529,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-runtime-0.1.7": {
+      "vigy-runtime-0.1.8": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24003,7 +24553,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24077,7 +24627,7 @@
           },
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.7",
+            "package_key": "vigy-eval-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24087,7 +24637,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.7",
+            "package_key": "vigy-store-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24097,7 +24647,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.7",
+            "package_key": "vigy-types-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24109,7 +24659,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-store-0.1.7": {
+      "vigy-store-0.1.8": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24184,7 +24734,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24248,7 +24798,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.27.0",
+            "package_key": "uuid-1.28.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -24261,7 +24811,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.7",
+            "package_key": "vigy-types-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24273,7 +24823,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-types-0.1.7": {
+      "vigy-types-0.1.8": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -24299,7 +24849,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24348,7 +24898,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.27.0",
+            "package_key": "uuid-1.28.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -24423,7 +24973,7 @@
           },
           {
             "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
+            "package_key": "serde_json-1.0.154",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24623,7 +25173,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24633,7 +25183,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.2",
+            "package_key": "smallvec-1.16.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24804,6 +25354,37 @@
         "build_dependencies": [],
         "features": []
       },
+      "wide-0.7.33": {
+        "runtime_dependencies": [
+          {
+            "name": "bytemuck",
+            "package_key": "bytemuck-1.25.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "safe_arch",
+            "package_key": "safe_arch-0.7.4",
+            "kind": "normal",
+            "features": [
+              "bytemuck"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "std"
+        ]
+      },
       "winnow-0.7.15": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -24925,7 +25506,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "fold",
@@ -25068,7 +25649,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "fold",
@@ -25205,7 +25786,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [
               "extra-traits"
@@ -25427,7 +26008,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -26007,7 +26588,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-3.0.6",
+                "package_key": "syn-3.0.9",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -26338,7 +26919,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.187": {
+          "mado-0.1.188": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26816,7 +27397,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.41",
+                "package_key": "praca-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26861,7 +27442,7 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-1.2.2",
+                "package_key": "schemars-1.2.3",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -26885,7 +27466,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [
                   "float_roundtrip"
@@ -26917,7 +27498,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1080",
+                "package_key": "shikumi-0.1.1082",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -26969,7 +27550,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.41",
+                "package_key": "tear-client-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26981,7 +27562,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.41",
+                "package_key": "tear-config-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26991,7 +27572,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.41",
+                "package_key": "tear-core-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27003,7 +27584,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.41",
+                "package_key": "tear-types-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27095,7 +27676,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.7",
+                "package_key": "vigy-0.1.8",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -29277,7 +29858,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -29371,7 +29952,7 @@
               "time"
             ]
           },
-          "rustls-native-certs-0.8.4": {
+          "rustls-native-certs-0.8.5": {
             "runtime_dependencies": [
               {
                 "name": "pki_types",
@@ -29618,7 +30199,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29799,7 +30380,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30160,7 +30741,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -30647,7 +31228,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -31405,7 +31986,7 @@
               "system"
             ]
           },
-          "mado-0.1.187": {
+          "mado-0.1.188": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31834,7 +32415,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.41",
+                "package_key": "praca-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31879,7 +32460,7 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-1.2.2",
+                "package_key": "schemars-1.2.3",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -31903,7 +32484,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [
                   "float_roundtrip"
@@ -31935,7 +32516,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1080",
+                "package_key": "shikumi-0.1.1082",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31987,7 +32568,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.41",
+                "package_key": "tear-client-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31999,7 +32580,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.41",
+                "package_key": "tear-config-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32009,7 +32590,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.41",
+                "package_key": "tear-core-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32021,7 +32602,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.41",
+                "package_key": "tear-types-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32113,7 +32694,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.7",
+                "package_key": "vigy-0.1.8",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -32404,7 +32985,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -32647,7 +33228,7 @@
               "time"
             ]
           },
-          "rustls-native-certs-0.8.4": {
+          "rustls-native-certs-0.8.5": {
             "runtime_dependencies": [
               {
                 "name": "openssl_probe",
@@ -33061,7 +33642,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33144,7 +33725,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -33170,7 +33751,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -33711,7 +34292,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34035,7 +34616,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -34792,7 +35373,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -35550,7 +36131,7 @@
               "system"
             ]
           },
-          "mado-0.1.187": {
+          "mado-0.1.188": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35979,7 +36560,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.41",
+                "package_key": "praca-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36024,7 +36605,7 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-1.2.2",
+                "package_key": "schemars-1.2.3",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -36048,7 +36629,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [
                   "float_roundtrip"
@@ -36080,7 +36661,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1080",
+                "package_key": "shikumi-0.1.1082",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -36132,7 +36713,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.41",
+                "package_key": "tear-client-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36144,7 +36725,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.41",
+                "package_key": "tear-config-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36154,7 +36735,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.41",
+                "package_key": "tear-core-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36166,7 +36747,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.41",
+                "package_key": "tear-types-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36258,7 +36839,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.7",
+                "package_key": "vigy-0.1.8",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -36549,7 +37130,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -36792,7 +37373,7 @@
               "time"
             ]
           },
-          "rustls-native-certs-0.8.4": {
+          "rustls-native-certs-0.8.5": {
             "runtime_dependencies": [
               {
                 "name": "openssl_probe",
@@ -37206,7 +37787,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37289,7 +37870,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -37315,7 +37896,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -37856,7 +38437,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38180,7 +38761,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -38923,7 +39504,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -39184,13 +39765,6 @@
             "features": [
               "default",
               "link"
-            ]
-          },
-          "core_detect-1.0.0": {
-            "runtime_dependencies": [],
-            "build_dependencies": [],
-            "features": [
-              "default"
             ]
           },
           "cpufeatures-0.2.17": {
@@ -39494,7 +40068,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-3.0.6",
+                "package_key": "syn-3.0.9",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -39825,7 +40399,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.187": {
+          "mado-0.1.188": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40303,7 +40877,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.41",
+                "package_key": "praca-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40348,7 +40922,7 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-1.2.2",
+                "package_key": "schemars-1.2.3",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -40372,7 +40946,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [
                   "float_roundtrip"
@@ -40404,7 +40978,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1080",
+                "package_key": "shikumi-0.1.1082",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -40456,7 +41030,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.41",
+                "package_key": "tear-client-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40468,7 +41042,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.41",
+                "package_key": "tear-config-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40478,7 +41052,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.41",
+                "package_key": "tear-core-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40490,7 +41064,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.41",
+                "package_key": "tear-types-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40582,7 +41156,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.7",
+                "package_key": "vigy-0.1.8",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -42744,7 +43318,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -42838,7 +43412,7 @@
               "time"
             ]
           },
-          "rustls-native-certs-0.8.4": {
+          "rustls-native-certs-0.8.5": {
             "runtime_dependencies": [
               {
                 "name": "pki_types",
@@ -43104,7 +43678,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43285,7 +43859,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43646,7 +44220,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -44167,7 +44741,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -44336,13 +44910,6 @@
             "build_dependencies": [],
             "features": [
               "rng"
-            ]
-          },
-          "core_detect-1.0.0": {
-            "runtime_dependencies": [],
-            "build_dependencies": [],
-            "features": [
-              "default"
             ]
           },
           "cpufeatures-0.2.17": {
@@ -44916,7 +45483,7 @@
               "system"
             ]
           },
-          "mado-0.1.187": {
+          "mado-0.1.188": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45345,7 +45912,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.41",
+                "package_key": "praca-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45390,7 +45957,7 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-1.2.2",
+                "package_key": "schemars-1.2.3",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -45414,7 +45981,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [
                   "float_roundtrip"
@@ -45446,7 +46013,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1080",
+                "package_key": "shikumi-0.1.1082",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -45498,7 +46065,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.41",
+                "package_key": "tear-client-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45510,7 +46077,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.41",
+                "package_key": "tear-config-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45520,7 +46087,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.41",
+                "package_key": "tear-core-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45532,7 +46099,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.41",
+                "package_key": "tear-types-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45624,7 +46191,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.7",
+                "package_key": "vigy-0.1.8",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -45895,7 +46462,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -46138,7 +46705,7 @@
               "time"
             ]
           },
-          "rustls-native-certs-0.8.4": {
+          "rustls-native-certs-0.8.5": {
             "runtime_dependencies": [
               {
                 "name": "openssl_probe",
@@ -46571,7 +47138,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46654,7 +47221,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -46680,7 +47247,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -47221,7 +47788,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47545,7 +48112,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -48336,7 +48903,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -48505,13 +49072,6 @@
             "build_dependencies": [],
             "features": [
               "rng"
-            ]
-          },
-          "core_detect-1.0.0": {
-            "runtime_dependencies": [],
-            "build_dependencies": [],
-            "features": [
-              "default"
             ]
           },
           "cpufeatures-0.2.17": {
@@ -49085,7 +49645,7 @@
               "system"
             ]
           },
-          "mado-0.1.187": {
+          "mado-0.1.188": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49514,7 +50074,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.41",
+                "package_key": "praca-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49559,7 +50119,7 @@
               },
               {
                 "name": "schemars",
-                "package_key": "schemars-1.2.2",
+                "package_key": "schemars-1.2.3",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -49583,7 +50143,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [
                   "float_roundtrip"
@@ -49615,7 +50175,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1080",
+                "package_key": "shikumi-0.1.1082",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -49667,7 +50227,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.41",
+                "package_key": "tear-client-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49679,7 +50239,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.41",
+                "package_key": "tear-config-0.1.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49689,7 +50249,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.41",
+                "package_key": "tear-core-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49701,7 +50261,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.41",
+                "package_key": "tear-types-0.1.43",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49793,7 +50353,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.7",
+                "package_key": "vigy-0.1.8",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -50064,7 +50624,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -50307,7 +50867,7 @@
               "time"
             ]
           },
-          "rustls-native-certs-0.8.4": {
+          "rustls-native-certs-0.8.5": {
             "runtime_dependencies": [
               {
                 "name": "openssl_probe",
@@ -50740,7 +51300,7 @@
               },
               {
                 "name": "serde_json",
-                "package_key": "serde_json-1.0.151",
+                "package_key": "serde_json-1.0.154",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50823,7 +51383,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -50849,7 +51409,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.6.0",
+                "package_key": "cc-1.8.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -51390,7 +51950,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51714,7 +52274,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.2",
+                "package_key": "smallvec-1.16.3",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -52371,11 +52931,17 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
+    "ar_archive_writer-0.5.3": {
+      "edition": "2024"
+    },
     "arboard-3.6.1": {
       "edition": "2021"
     },
     "arc-swap-1.9.2": {
       "edition": "2018"
+    },
+    "archery-1.2.3": {
+      "edition": "2024"
     },
     "arrayref-0.3.9": {
       "edition": "2015"
@@ -52438,8 +53004,14 @@
     "bincode-1.3.3": {
       "edition": "2015"
     },
+    "bit-set-0.11.1": {
+      "edition": "2021"
+    },
     "bit-set-0.8.0": {
       "edition": "2015"
+    },
+    "bit-vec-0.10.1": {
+      "edition": "2021"
     },
     "bit-vec-0.8.0": {
       "edition": "2015"
@@ -52539,7 +53111,7 @@
     "cast-0.3.0": {
       "edition": "2018"
     },
-    "cc-1.6.0": {
+    "cc-1.8.0": {
       "edition": "2021"
     },
     "cfg-if-1.0.5": {
@@ -52719,8 +53291,8 @@
     "der-0.7.10": {
       "edition": "2021"
     },
-    "deranged-0.5.8": {
-      "edition": "2021"
+    "deranged-0.5.9": {
+      "edition": "2024"
     },
     "derive_more-1.0.0": {
       "edition": "2021"
@@ -53036,7 +53608,7 @@
     "hashlink-0.9.1": {
       "edition": "2018"
     },
-    "hayai-0.1.2": {
+    "hayai-0.1.4": {
       "edition": "2024"
     },
     "headers-0.4.2": {
@@ -53145,6 +53717,12 @@
       "edition": "2024"
     },
     "image-0.25.10": {
+      "edition": "2021"
+    },
+    "imbl-7.0.2": {
+      "edition": "2018"
+    },
+    "imbl-sized-chunks-0.2.0": {
       "edition": "2021"
     },
     "indexmap-2.14.2": {
@@ -53259,7 +53837,7 @@
     "kube-runtime-0.99.0": {
       "edition": "2021"
     },
-    "kukaku-0.1.41": {
+    "kukaku-0.1.43": {
       "edition": "2024"
     },
     "lazy_static-1.5.1": {
@@ -53311,7 +53889,7 @@
     "litemap-0.8.3": {
       "edition": "2021"
     },
-    "litrs-1.0.0": {
+    "litrs-1.0.1": {
       "edition": "2021"
     },
     "lock_api-0.4.14": {
@@ -53329,10 +53907,10 @@
     "mac-0.1.1": {
       "edition": "2015"
     },
-    "mac_address-1.2.0": {
+    "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.187": {
+    "mado-0.1.188": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53408,6 +53986,9 @@
       "edition": "2021"
     },
     "monosashi-0.3.64": {
+      "edition": "2021"
+    },
+    "monosashi-0.4.5": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -53546,6 +54127,10 @@
     },
     "objc2-user-notifications-0.3.2": {
       "edition": "2021"
+    },
+    "object-0.39.1": {
+      "edition": "2018",
+      "build_script": "build.rs"
     },
     "okiba-0.2.1": {
       "edition": "2024"
@@ -53794,7 +54379,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.41": {
+    "praca-0.1.43": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -53817,11 +54402,15 @@
     "profiling-1.0.18": {
       "edition": "2018"
     },
-    "proptest-1.11.0": {
+    "proptest-1.12.0": {
       "edition": "2021"
     },
     "psl-types-2.0.11": {
       "edition": "2018"
+    },
+    "psm-0.1.32": {
+      "edition": "2021",
+      "build_script": "build.rs"
     },
     "publicsuffix-2.3.0": {
       "edition": "2018"
@@ -53887,7 +54476,10 @@
     "rand_pcg-0.10.2": {
       "edition": "2024"
     },
-    "rand_xorshift-0.4.0": {
+    "rand_xorshift-0.5.0": {
+      "edition": "2024"
+    },
+    "rand_xoshiro-0.7.0": {
       "edition": "2021"
     },
     "rand_xoshiro-0.8.1": {
@@ -53972,7 +54564,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "rustls-native-certs-0.8.4": {
+    "rustls-native-certs-0.8.5": {
       "edition": "2021"
     },
     "rustls-pki-types-1.15.1": {
@@ -53999,6 +54591,9 @@
     "ryu-1.0.23": {
       "edition": "2021"
     },
+    "safe_arch-0.7.4": {
+      "edition": "2018"
+    },
     "safe_arch-1.2.0": {
       "edition": "2024"
     },
@@ -54012,14 +54607,14 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "schemars-1.2.2": {
+    "schemars-1.2.3": {
       "edition": "2021"
     },
     "schemars_derive-0.8.22": {
       "edition": "2021",
       "proc_macro": true
     },
-    "schemars_derive-1.2.2": {
+    "schemars_derive-1.2.3": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -54123,7 +54718,7 @@
         "path": "lib.rs"
       }
     },
-    "serde_json-1.0.151": {
+    "serde_json-1.0.154": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -54160,7 +54755,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.1080": {
+    "shikumi-0.1.1082": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -54191,7 +54786,7 @@
       "edition": "2018",
       "build_script": "build.rs"
     },
-    "smallvec-1.16.2": {
+    "smallvec-1.16.3": {
       "edition": "2018"
     },
     "smithay-client-toolkit-0.19.2": {
@@ -54242,6 +54837,10 @@
     "stable_deref_trait-1.2.1": {
       "edition": "2015"
     },
+    "stacker-0.1.25": {
+      "edition": "2021",
+      "build_script": "build.rs"
+    },
     "static_assertions-1.1.0": {
       "edition": "2015"
     },
@@ -54287,7 +54886,7 @@
     "syn-2.0.119": {
       "edition": "2021"
     },
-    "syn-3.0.6": {
+    "syn-3.0.9": {
       "edition": "2021"
     },
     "sync_wrapper-1.0.2": {
@@ -54315,7 +54914,14 @@
     "tatara-closed-set-0.3.64": {
       "edition": "2021"
     },
+    "tatara-closed-set-0.4.5": {
+      "edition": "2021"
+    },
     "tatara-closed-set-derive-0.3.64": {
+      "edition": "2021",
+      "proc_macro": true
+    },
+    "tatara-closed-set-derive-0.4.5": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -54331,11 +54937,21 @@
     "tatara-lisp-0.3.52": {
       "edition": "2021"
     },
+    "tatara-lisp-0.4.5": {
+      "edition": "2021"
+    },
     "tatara-lisp-derive-0.3.52": {
       "edition": "2021",
       "proc_macro": true
     },
+    "tatara-lisp-derive-0.4.5": {
+      "edition": "2021",
+      "proc_macro": true
+    },
     "tatara-lisp-eval-0.3.52": {
+      "edition": "2021"
+    },
+    "tatara-lisp-eval-0.4.5": {
       "edition": "2021"
     },
     "tatara-nix-0.2.568": {
@@ -54350,26 +54966,26 @@
         }
       ]
     },
-    "tear-client-0.1.41": {
+    "tear-client-0.1.43": {
       "edition": "2024"
     },
-    "tear-config-0.1.41": {
+    "tear-config-0.1.43": {
       "edition": "2024"
     },
-    "tear-core-0.1.41": {
+    "tear-core-0.1.43": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.41": {
+    "tear-daemon-0.1.43": {
       "edition": "2024"
     },
-    "tear-makimono-0.1.41": {
+    "tear-makimono-0.1.43": {
       "edition": "2024",
       "lib_target": {
         "name": "makimono",
         "path": "src/lib.rs"
       }
     },
-    "tear-tamotsu-0.1.41": {
+    "tear-tamotsu-0.1.43": {
       "edition": "2024",
       "lib_target": {
         "name": "tamotsu",
@@ -54382,7 +54998,7 @@
         }
       ]
     },
-    "tear-types-0.1.41": {
+    "tear-types-0.1.43": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
@@ -54463,7 +55079,7 @@
     "tokio-stream-0.1.19": {
       "edition": "2021"
     },
-    "tokio-util-0.7.19": {
+    "tokio-util-0.7.20": {
       "edition": "2021"
     },
     "toml-0.8.23": {
@@ -54478,10 +55094,10 @@
     "toml_edit-0.22.27": {
       "edition": "2021"
     },
-    "toml_edit-0.25.16+spec-1.1.0": {
+    "toml_edit-0.25.17+spec-1.1.0": {
       "edition": "2024"
     },
-    "toml_parser-1.1.4+spec-1.1.0": {
+    "toml_parser-1.1.5+spec-1.1.0": {
       "edition": "2024"
     },
     "toml_write-0.1.2": {
@@ -54565,7 +55181,7 @@
     "unicode-ccc-0.2.0": {
       "edition": "2018"
     },
-    "unicode-ident-1.0.26": {
+    "unicode-ident-1.0.27": {
       "edition": "2021"
     },
     "unicode-linebreak-0.1.5": {
@@ -54631,7 +55247,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "uuid-1.27.0": {
+    "uuid-1.28.0": {
       "edition": "2021"
     },
     "validit-0.2.6": {
@@ -54643,22 +55259,22 @@
     "version_check-0.9.5": {
       "edition": "2015"
     },
-    "vigy-0.1.7": {
+    "vigy-0.1.8": {
       "edition": "2021"
     },
-    "vigy-eval-0.1.7": {
+    "vigy-eval-0.1.8": {
       "edition": "2021"
     },
-    "vigy-mcp-0.1.7": {
+    "vigy-mcp-0.1.8": {
       "edition": "2021"
     },
-    "vigy-runtime-0.1.7": {
+    "vigy-runtime-0.1.8": {
       "edition": "2021"
     },
-    "vigy-store-0.1.7": {
+    "vigy-store-0.1.8": {
       "edition": "2021"
     },
-    "vigy-types-0.1.7": {
+    "vigy-types-0.1.8": {
       "edition": "2021"
     },
     "vte-0.15.0": {
@@ -54798,6 +55414,9 @@
       ]
     },
     "whoami-1.6.1": {
+      "edition": "2018"
+    },
+    "wide-0.7.33": {
       "edition": "2018"
     },
     "wide-1.7.1": {
