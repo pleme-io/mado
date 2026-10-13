@@ -291,6 +291,24 @@ pub fn sanitize_paste(text: &str, bracketed: bool) -> Vec<u8> {
     }
 }
 
+const DROP_ESCAPED: &[char] = &[
+    ' ', '\t', '\\', '\'', '"', '`', '$', '(', ')', '[', ']', '{', '}', '<', '>', '!', '?', '*',
+    '&', ';', '|', '#', '~', '=', '%', '^',
+];
+
+#[must_use]
+pub fn dropped_path_text(path: &str) -> String {
+    let mut out = String::with_capacity(path.len() + 8);
+    for ch in path.chars() {
+        if DROP_ESCAPED.contains(&ch) {
+            out.push('\\');
+        }
+        out.push(ch);
+    }
+    out.push(' ');
+    out
+}
+
 // ── Clipboard image paste (ghostty parity) ──────────────────────────
 //
 // OSC 52 is text-only — it has no MIME concept and cannot carry image

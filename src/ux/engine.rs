@@ -2393,16 +2393,16 @@ impl InputEngine {
     }
 
     /// A file was drag-and-dropped onto the window: insert its
-    /// shell-quoted path into the PTY as a bracketed paste — the
+    /// backslash-escaped path into the PTY as a bracketed paste — the
     /// ghostty contract, so a dragged screenshot becomes a path a TUI
     /// (Claude Code, `$EDITOR`) or the shell can open. Routed through
     /// the ONE guarded paste write (`write_paste`) so it gets the same
     /// PasteGuard sanitization + bracketed framing as any other paste,
     /// with a trailing space so successive drops stay separated.
     pub fn drop_file(&mut self, path: &std::path::Path) -> EventOutcome {
-        let mut s = crate::dir_picker::shell_quote_path(&path.to_string_lossy());
-        s.push(' ');
-        self.write_paste(&s);
+        self.write_paste(&crate::clipboard_store::dropped_path_text(
+            &path.to_string_lossy(),
+        ));
         EventOutcome::consumed()
     }
 
@@ -5765,5 +5765,193 @@ mod tests {
             start_offset,
             "auto-scroll off: a past-edge drag leaves the viewport frozen"
         );
+    }
+
+    fn claude_code_unescape(text: &str) -> String {
+        let t = text.trim();
+        let t = if (t.starts_with('"') && t.ends_with('"'))
+            || (t.starts_with('\'') && t.ends_with('\''))
+        {
+            &t[1..t.len() - 1]
+        } else {
+            t
+        };
+        let mut out = String::new();
+        let mut chars = t.chars();
+        while let Some(c) = chars.next() {
+            if c == '\\' {
+                if let Some(n) = chars.next() {
+                    out.push(n);
+                }
+            } else {
+                out.push(c);
+            }
+        }
+        out
+    }
+
+    const DROP_PATHS: &[&str] = &[
+        "/tmp/shot.png",
+        "/Users/op/Desktop/Screenshot 2026-10-13 at 9.41.00\u{202f}AM.png",
+        "/Users/op/it's here.png",
+        "/Users/op/say \"hi\".png",
+        "/Users/op/ünï cödé 画像.png",
+        "/Users/op/a (1) [x] & $y; `z` #!.png",
+        "/Users/op/back\\slash.png",
+    ];
+
+    #[test]
+    fn dropped_file_reaches_a_bracketed_app_as_one_framed_path_it_can_unescape() {
+        for path in DROP_PATHS {
+            for kind in [SinkKind::Closure, SinkKind::Control] {
+                let mut h = Harness::new(kind);
+                h.feed(b"\x1b[?2004h");
+                h.engine.drop_file(std::path::Path::new(path));
+                let sent = h.sent_bytes();
+                assert_eq!(sent.len(), 3, "{path}: framed as one bracketed paste");
+                assert_eq!(sent[0], b"\x1b[200~".to_vec());
+                assert_eq!(sent[2], b"\x1b[201~".to_vec());
+                let body = String::from_utf8(sent[1].clone()).expect("utf8 body");
+                assert!(body.ends_with(' '), "{path}: trailing separator");
+                assert_eq!(
+                    claude_code_unescape(&body),
+                    *path,
+                    "{path}: the receiving app recovers the exact path from {body:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn dropped_file_without_bracketed_paste_is_the_same_text_unframed() {
+        for path in DROP_PATHS {
+            let mut h = Harness::new(SinkKind::Closure);
+            h.engine.drop_file(std::path::Path::new(path));
+            let sent = h.sent_bytes();
+            assert_eq!(
+                sent.len(),
+                1,
+                "{path}: no framing when the app never armed ?2004"
+            );
+            let body = String::from_utf8(sent[0].clone()).expect("utf8 body");
+            assert_eq!(body, crate::clipboard_store::dropped_path_text(path));
+            assert_eq!(claude_code_unescape(&body), *path);
+        }
+    }
+
+    #[test]
+    fn dropped_path_escapes_like_ghostty() {
+        assert_eq!(
+            crate::clipboard_store::dropped_path_text("/Users/op/it's a b.png"),
+            "/Users/op/it\\'s\\ a\\ b.png "
+        );
+        assert_eq!(
+            crate::clipboard_store::dropped_path_text("/tmp/ünï.png"),
+            "/tmp/ünï.png "
+        );
+    }
+
+    fn ctrl() -> Modifiers {
+        Modifiers {
+            ctrl: true,
+            ..no_mods()
+        }
+    }
+
+    fn cmd() -> Modifiers {
+        Modifiers {
+            meta: true,
+            ..no_mods()
+        }
+    }
+
+    #[test]
+    fn ctrl_v_reaches_the_app_under_every_keyboard_protocol() {
+        let cases: &[(&[u8], &[u8])] = &[
+            (b"", b"\x16"),
+            (b"\x1b[>4;2m", b"\x16"),
+            (b"\x1b[>1u", b"\x1b[118;5u"),
+            (b"\x1b[>5u", b"\x1b[118;5u"),
+            (b"\x1b[?1049h\x1b[>5u", b"\x1b[118;5u"),
+            (b"\x1b[>5u\x1b[<u", b"\x16"),
+        ];
+        for (setup, want) in cases {
+            for text in [Some("v"), Some("\u{16}"), None] {
+                for kind in [SinkKind::Closure, SinkKind::Control] {
+                    let mut h = Harness::new(kind);
+                    h.feed(b"\x1b[?2004h");
+                    h.feed(setup);
+                    h.clear_sent();
+                    let out = h.key(KeyCode::Char('v'), text, ctrl());
+                    assert!(
+                        out.consumed,
+                        "ctrl+v after {setup:?} is consumed by the PTY write"
+                    );
+                    assert_eq!(
+                        h.sent_bytes(),
+                        vec![want.to_vec()],
+                        "ctrl+v after {setup:?} with text {text:?} is the app's paste key, not a mado action"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn cmd_v_is_mados_paste_under_every_keyboard_protocol() {
+        for setup in [&b""[..], b"\x1b[>4;2m", b"\x1b[>1u", b"\x1b[>5u"] {
+            let mut h = Harness::new(SinkKind::Closure);
+            h.feed(b"\x1b[?2004h");
+            h.feed(setup);
+            h.clipboard.copy_text("hello").unwrap();
+            h.clear_sent();
+            h.key(KeyCode::Char('v'), Some("v"), cmd());
+            assert_eq!(
+                h.sent_bytes(),
+                vec![
+                    b"\x1b[200~".to_vec(),
+                    b"hello".to_vec(),
+                    b"\x1b[201~".to_vec()
+                ],
+                "cmd+v after {setup:?} pastes, never leaks a v or a CSI-u"
+            );
+        }
+    }
+
+    #[test]
+    fn pasting_a_clipboard_image_leaves_the_image_on_the_clipboard() {
+        use hasami::ClipboardImage;
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"\x1b[?2004h\x1b[>5u");
+        h.clipboard.set_image(ClipboardImage {
+            width: 1,
+            height: 1,
+            rgba: vec![0, 255, 0, 255],
+        });
+        h.key(KeyCode::Char('v'), Some("v"), cmd());
+        h.key(KeyCode::Char('v'), Some("v"), ctrl());
+        h.feed(b"\x1b]52;c;?\x1b\\");
+        h.feed(b"\x1b]52;c;!!!\x1b\\");
+        let effects = h.terminal.write().drain_side_effects();
+        assert!(
+            effects.clipboard.is_none(),
+            "an OSC 52 query or garbage writes nothing"
+        );
+        let img = h
+            .clipboard
+            .paste_image()
+            .expect("the image is still on the clipboard");
+        assert_eq!((img.width, img.height), (1, 1));
+        assert!(
+            h.clipboard.paste_text().is_err(),
+            "no paste path replaced the image with text"
+        );
+        for sent in h.sent_bytes() {
+            if let Ok(p) = String::from_utf8(sent) {
+                if p.ends_with(".png") {
+                    let _ = std::fs::remove_file(p);
+                }
+            }
+        }
     }
 }
