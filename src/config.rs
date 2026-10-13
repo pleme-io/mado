@@ -733,6 +733,8 @@ pub struct MadoTearConfig {
     /// [`default_true`], so the switcher works out of the box fleet-wide.
     #[serde(default = "default_true")]
     pub session_switching: bool,
+    #[serde(default = "default_true")]
+    pub resident_adopt: bool,
     /// Auto-attach-on-cd — the headline praça automation. When the
     /// *displayed* session's shell `cd`s into a DIFFERENT project, mado
     /// auto-switches its pane to that project's session (spawning +
@@ -2064,6 +2066,7 @@ impl Default for MadoTearConfig {
             pane: None,
             impose: None,
             session_switching: true,
+            resident_adopt: true,
             auto_attach: AutoAttachMode::default(),
             session_picker_anchor: PickerAnchor::default(),
             // Prescribed: surface presets (empty until saved) + auto-badge
@@ -3583,6 +3586,7 @@ impl MadoConfig {
                 // Runtime re-attach is opt-in everywhere; bare keeps
                 // the legacy one-shot binding.
                 session_switching: false,
+                resident_adopt: false,
                 // Auto-attach is opt-in too; bare = no cd-driven moves.
                 auto_attach: AutoAttachMode::Off,
                 session_picker_anchor: PickerAnchor::default(),
@@ -7391,6 +7395,7 @@ mod coverage {
         "tear.impose",
         "tear.mode",
         "tear.pane_fate",
+        "tear.resident_adopt",
         "tear.runtime",
         "tear.session_name",
         "tear.session_picker_anchor",

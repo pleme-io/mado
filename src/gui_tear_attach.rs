@@ -258,7 +258,18 @@ pub fn try_run_default(
     // dropping them (`Capability::SpawnArgs` — tear-client's
     // `require_spawn_args`), so a stale daemon surfaces as the typed
     // error below, never as a login shell that quietly isn't one.
-    let created = if resident {
+    let adopted = (resident && config.tear.resident_adopt)
+        .then(|| {
+            let sessions = tear.list_sessions().ok()?;
+            adoptable_session(&sessions, |pane| {
+                tear.pane_subscriber_count(pane).unwrap_or(1)
+            })
+        })
+        .flatten();
+    let created = if let Some(sid) = adopted {
+        tracing::info!(session = %sid, "mado resident: adopting detached tear session");
+        Ok(sid)
+    } else if resident {
         // The env rides ON the request: a resident daemon serves every
         // window, so a global env would let two windows swap directories.
         // A daemon without `spawn-env` refuses here, typed, before sending.
@@ -307,7 +318,12 @@ pub fn try_run_default(
         }
     };
 
-    let pane_id = match session.windows.values().next().map(|w| w.active_pane) {
+    let pane_id = match session
+        .windows
+        .get(&session.active_window)
+        .or_else(|| session.windows.values().next())
+        .map(|w| w.active_pane)
+    {
         Some(id) => id,
         None => {
             tracing::warn!(
@@ -398,6 +414,25 @@ pub fn try_run_default(
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
     }
+}
+
+pub(crate) fn adoptable_session(
+    sessions: &[tear_types::TearSession],
+    subscribers: impl Fn(PaneId) -> u32,
+) -> Option<tear_types::SessionId> {
+    sessions
+        .iter()
+        .filter(|s| s.source == SessionSource::Named("mado".into()))
+        .filter_map(|s| {
+            let pane = s
+                .windows
+                .get(&s.active_window)
+                .or_else(|| s.windows.values().next())?
+                .active_pane;
+            (subscribers(pane) == 0).then_some(s)
+        })
+        .max_by_key(|s| s.created_at_unix)
+        .map(|s| s.id)
 }
 
 /// Refactored unified renderer + event loop for both daemon-mode
@@ -1941,13 +1976,51 @@ fn run_against_pane(
 #[cfg(test)]
 mod tests {
     use super::{
-        CurrentPane, DisplayedPaneFate, displayed_pane_fate, pump_displayed, resolve_boot_name,
-        tear_pty_sink, tear_resize_sink, with_title,
+        CurrentPane, DisplayedPaneFate, adoptable_session, displayed_pane_fate, pump_displayed,
+        resolve_boot_name, tear_pty_sink, tear_resize_sink, with_title,
     };
     use crate::perf::{TEAR_WRITE_FAILURES, TearWrite};
     use madori::EventResponse;
     use std::sync::Arc;
     use tear_types::{MultiplexerControl, PaneId, SessionId, SessionSource};
+
+    #[test]
+    fn resident_windows_adopt_the_newest_detached_mado_session_only() {
+        let tear = tear_core::InProcess::new();
+        let mado = || SessionSource::Named("mado".into());
+        let viewed = tear
+            .new_session_with_source("a", "/bin/sh", mado())
+            .unwrap();
+        let mut detached = tear
+            .new_session_with_source("b", "/bin/sh", mado())
+            .unwrap();
+        let agent = tear
+            .new_session_with_source("c", "/bin/sh", SessionSource::Agent)
+            .unwrap();
+        let mut sessions = tear.list_sessions().unwrap();
+        for s in &mut sessions {
+            s.created_at_unix = match s.id {
+                id if id == viewed => 3,
+                id if id == agent => 4,
+                _ => 2,
+            };
+        }
+        let pane_of = |sid: SessionId| {
+            let s = sessions.iter().find(|s| s.id == sid).unwrap();
+            s.windows[&s.active_window].active_pane
+        };
+        let viewed_pane = pane_of(viewed);
+        let attached = |p: PaneId| u32::from(p == viewed_pane);
+        assert_eq!(adoptable_session(&sessions, attached), Some(detached));
+
+        detached = viewed;
+        assert_eq!(adoptable_session(&sessions, |_| 0), Some(detached));
+        assert_eq!(adoptable_session(&sessions, |_| 1), None);
+        assert_eq!(adoptable_session(&[], |_| 0), None);
+        for sid in [viewed, agent] {
+            tear.kill_session(sid).ok();
+        }
+    }
 
     #[test]
     fn the_tear_sinks_count_every_write_their_control_refuses() {

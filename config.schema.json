@@ -1108,6 +1108,11 @@
         "poll"
       ]
     },
+    "resident_adopt": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
     "runtime": {
       "default": "embedded",
       "description": "Where tear's runtime LIVES. `Embedded` (default) runs tear's\nPTY+grid in-process via `tear_core::InProcess`; `Daemon` talks\nover Unix socket to the tear-daemon process; `Resident` does the\nsame with sessions that outlive the window. See [`TearRuntime`]\nfor the latency/multi-attach tradeoff.",
