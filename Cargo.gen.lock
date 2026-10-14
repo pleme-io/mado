@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "d2c32e0d2d87ee52bb19d0b9ccc2cc11a6d292e70d50a17688b3d27910de2fa9",
+  "cargo_lock_sha256": "633cf7dd0b421bec2f1bce9580b103bdc0545f3633d2a8ab6445ee42e84a8609",
   "manifest_sha256": {
-    "Cargo.toml": "1b63f56ec10788219e9a2ba05df2be615950de305b6273c32e2634c2708f75f9"
+    "Cargo.toml": "26fb5fd7982392755f457fe319b7b9dcdd66221d3be452d675974855f0e00a5e"
   },
   "target_resolves": {
     "base": {
@@ -6298,7 +6298,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.45",
+            "package_key": "rustls-0.23.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -8258,7 +8258,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.45",
+            "package_key": "rustls-0.23.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13167,7 +13167,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.45",
+            "package_key": "rustls-0.23.46",
             "kind": "normal",
             "features": [
               "std"
@@ -13317,7 +13317,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.45",
+            "package_key": "rustls-0.23.46",
             "kind": "normal",
             "features": [
               "std"
@@ -14191,7 +14191,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.45",
+            "package_key": "rustls-0.23.46",
             "kind": "normal",
             "features": [
               "std",
@@ -14922,7 +14922,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "rustls-0.23.45": {
+      "rustls-0.23.46": {
         "runtime_dependencies": [
           {
             "name": "log",
@@ -17964,7 +17964,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.45",
+            "package_key": "rustls-0.23.46",
             "kind": "normal",
             "features": [
               "std",
@@ -22674,7 +22674,7 @@
         "runtime_dependencies": [
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.45",
+            "package_key": "rustls-0.23.46",
             "kind": "normal",
             "features": [
               "std"
@@ -26919,7 +26919,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.190": {
+          "mado-0.1.191": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31986,7 +31986,7 @@
               "system"
             ]
           },
-          "mado-0.1.190": {
+          "mado-0.1.191": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36131,7 +36131,7 @@
               "system"
             ]
           },
-          "mado-0.1.190": {
+          "mado-0.1.191": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40399,7 +40399,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.190": {
+          "mado-0.1.191": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45483,7 +45483,7 @@
               "system"
             ]
           },
-          "mado-0.1.190": {
+          "mado-0.1.191": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49645,7 +49645,7 @@
               "system"
             ]
           },
-          "mado-0.1.190": {
+          "mado-0.1.191": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -53910,7 +53910,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.190": {
+    "mado-0.1.191": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54560,7 +54560,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "rustls-0.23.45": {
+    "rustls-0.23.46": {
       "edition": "2021",
       "build_script": "build.rs"
     },

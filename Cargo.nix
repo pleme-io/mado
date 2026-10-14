@@ -4558,9 +4558,9 @@ rec {
       };
       "equivalent" = rec {
         crateName = "equivalent";
-        version = "1.0.2";
+        version = "1.0.3";
         edition = "2015";
-        sha256 = "03swzqznragy8n0x31lqc78g2af054jwivp7lkrbrc0khz74lyl7";
+        sha256 = "09nqddaa84mix3vil6r02jlmya3qypi4j45dhzb8yphf83ap9l80";
 
       };
       "errno" = rec {
@@ -10328,7 +10328,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.190";
+        version = "0.1.191";
         edition = "2024";
         crateBin = [
           {
