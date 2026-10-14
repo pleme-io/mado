@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "26bd0152698e84eb51ee0806841b4400b1a75e9d4a42df5a7f17bf89ea61f40e",
+  "cargo_lock_sha256": "d2c32e0d2d87ee52bb19d0b9ccc2cc11a6d292e70d50a17688b3d27910de2fa9",
   "manifest_sha256": {
-    "Cargo.toml": "59996db7e46c4a5dc5d4217436140ee254766c9efbe8113504cf59c1784b1f94"
+    "Cargo.toml": "1b63f56ec10788219e9a2ba05df2be615950de305b6273c32e2634c2708f75f9"
   },
   "target_resolves": {
     "base": {
@@ -3573,7 +3573,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "equivalent-1.0.2": {
+      "equivalent-1.0.3": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -5472,7 +5472,7 @@
           },
           {
             "name": "equivalent",
-            "package_key": "equivalent-1.0.2",
+            "package_key": "equivalent-1.0.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6991,7 +6991,7 @@
           },
           {
             "name": "equivalent",
-            "package_key": "equivalent-1.0.2",
+            "package_key": "equivalent-1.0.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7066,7 +7066,7 @@
         "runtime_dependencies": [
           {
             "name": "equivalent",
-            "package_key": "equivalent-1.0.2",
+            "package_key": "equivalent-1.0.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -26919,7 +26919,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.189": {
+          "mado-0.1.190": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31986,7 +31986,7 @@
               "system"
             ]
           },
-          "mado-0.1.189": {
+          "mado-0.1.190": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36131,7 +36131,7 @@
               "system"
             ]
           },
-          "mado-0.1.189": {
+          "mado-0.1.190": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40399,7 +40399,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.189": {
+          "mado-0.1.190": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45483,7 +45483,7 @@
               "system"
             ]
           },
-          "mado-0.1.189": {
+          "mado-0.1.190": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49645,7 +49645,7 @@
               "system"
             ]
           },
-          "mado-0.1.189": {
+          "mado-0.1.190": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -53404,7 +53404,7 @@
       "edition": "2024",
       "proc_macro": true
     },
-    "equivalent-1.0.2": {
+    "equivalent-1.0.3": {
       "edition": "2015"
     },
     "errno-0.3.14": {
@@ -53910,7 +53910,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.189": {
+    "mado-0.1.190": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",

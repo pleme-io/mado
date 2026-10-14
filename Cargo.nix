@@ -10328,7 +10328,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.189";
+        version = "0.1.190";
         edition = "2024";
         crateBin = [
           {
@@ -25695,9 +25695,9 @@ rec {
       };
       "tokio" = rec {
         crateName = "tokio";
-        version = "1.53.2";
+        version = "1.53.3";
         edition = "2021";
-        sha256 = "0i202ksji8q2asvii0adzgi8m0z93z3j7apn62qfh8d6qzy92pz9";
+        sha256 = "0kny1nnbpy11dllv6ncxy3n804wh0ddn3msq78rxl744f7x3acyf";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -34238,9 +34238,9 @@ rec {
       };
       "zerocopy" = rec {
         crateName = "zerocopy";
-        version = "0.8.62";
+        version = "0.8.63";
         edition = "2021";
-        sha256 = "17asjqfdkqmxsx42myw1x5jlb28m5axlf9ifldqpbiy7dbsjnl46";
+        sha256 = "1n1fm40mq4adw83hvn56j6rhnph0lldccx11jq01l6863f7izzp5";
         dependencies = [
           {
             name = "zerocopy-derive";
@@ -34270,9 +34270,9 @@ rec {
       };
       "zerocopy-derive" = rec {
         crateName = "zerocopy-derive";
-        version = "0.8.62";
+        version = "0.8.63";
         edition = "2021";
-        sha256 = "06lx0gigf0j5pvp4dhlrv636b4mib37ijzlcc3i62rdhailj0msl";
+        sha256 = "0zqc4g3yf378dkbsr68h1jjx3n0d4k4zvnxf83bv8gr9hfnd6fl6";
         procMacro = true;
         libName = "zerocopy_derive";
         dependencies = [
