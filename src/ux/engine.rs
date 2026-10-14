@@ -1573,11 +1573,13 @@ impl InputEngine {
         // keystroke would.
         self.terminal.write().scroll_to_bottom();
         if bracketed {
-            self.pty.write(b"\x1b[200~");
-        }
-        self.pty.write(&safe);
-        if bracketed {
-            self.pty.write(b"\x1b[201~");
+            let mut framed = Vec::with_capacity(safe.len() + 12);
+            framed.extend_from_slice(b"\x1b[200~");
+            framed.extend_from_slice(&safe);
+            framed.extend_from_slice(b"\x1b[201~");
+            self.pty.write(&framed);
+        } else {
+            self.pty.write(&safe);
         }
     }
 
@@ -4424,11 +4426,7 @@ mod tests {
             assert!(matches!(out, ActionOutcome::Consumed(_)));
             assert_eq!(
                 h.sent_bytes(),
-                vec![
-                    b"\x1b[200~".to_vec(),
-                    b"echo hirm -rf /".to_vec(),
-                    b"\x1b[201~".to_vec(),
-                ],
+                vec![b"\x1b[200~echo hirm -rf /\x1b[201~".to_vec()],
                 "paste must be framed AND PasteGuard-sanitized in every sink config"
             );
         }
@@ -4450,10 +4448,13 @@ mod tests {
             let out = h.engine.apply_action(Action::Paste, &mut h.renderer);
             assert!(matches!(out, ActionOutcome::Consumed(_)));
             let sent = h.sent_bytes();
-            assert_eq!(sent.len(), 3, "the pasted path is bracketed-framed");
-            assert_eq!(sent[0], b"\x1b[200~".to_vec());
-            assert_eq!(sent[2], b"\x1b[201~".to_vec());
-            let path = String::from_utf8(sent[1].clone()).expect("path is utf8");
+            assert_eq!(sent.len(), 1, "the pasted path is one framed write");
+            let framed = String::from_utf8(sent[0].clone()).expect("path is utf8");
+            let path = framed
+                .strip_prefix("\x1b[200~")
+                .and_then(|p| p.strip_suffix("\x1b[201~"))
+                .expect("bracketed framing")
+                .to_string();
             assert!(
                 path.contains("mado-clip-") && path.ends_with(".png"),
                 "pasted a mado clipboard-png path, got {path:?}"
@@ -4478,13 +4479,41 @@ mod tests {
         h.engine.apply_action(Action::Paste, &mut h.renderer);
         assert_eq!(
             h.sent_bytes(),
-            vec![
-                b"\x1b[200~".to_vec(),
-                b"plain text".to_vec(),
-                b"\x1b[201~".to_vec()
-            ],
+            vec![b"\x1b[200~plain text\x1b[201~".to_vec()],
             "no image ⇒ ordinary bracketed text paste"
         );
+    }
+
+    #[test]
+    fn paste_and_drop_reach_the_pty_as_one_atomic_framed_write() {
+        for kind in [SinkKind::Closure, SinkKind::Control] {
+            let mut h = Harness::new(kind);
+            h.feed(b"\x1b[?2004h");
+            h.clipboard.set_image(hasami::ClipboardImage {
+                width: 1,
+                height: 1,
+                rgba: vec![0, 0, 255, 255],
+            });
+            h.engine.apply_action(Action::Paste, &mut h.renderer);
+            h.engine
+                .drop_file(std::path::Path::new("/tmp/shot it's.png"));
+            let sent = h.sent_bytes();
+            assert_eq!(sent.len(), 2, "one write per paste, one per drop: {sent:?}");
+            for w in &sent {
+                assert!(w.starts_with(b"\x1b[200~") && w.ends_with(b"\x1b[201~"));
+            }
+            let image = String::from_utf8(sent[0].clone()).unwrap();
+            assert!(image.contains("mado-clip-") && image.contains(".png"));
+            assert_eq!(
+                sent[1],
+                b"\x1b[200~/tmp/shot\\ it\\'s.png \x1b[201~".to_vec()
+            );
+            let _ = std::fs::remove_file(
+                image
+                    .trim_start_matches("\x1b[200~")
+                    .trim_end_matches("\x1b[201~"),
+            );
+        }
     }
 
     // ── Capability parity: search overlay ────────────────────────
@@ -5808,10 +5837,12 @@ mod tests {
                 h.feed(b"\x1b[?2004h");
                 h.engine.drop_file(std::path::Path::new(path));
                 let sent = h.sent_bytes();
-                assert_eq!(sent.len(), 3, "{path}: framed as one bracketed paste");
-                assert_eq!(sent[0], b"\x1b[200~".to_vec());
-                assert_eq!(sent[2], b"\x1b[201~".to_vec());
-                let body = String::from_utf8(sent[1].clone()).expect("utf8 body");
+                assert_eq!(sent.len(), 1, "{path}: framed as one bracketed paste");
+                let framed = String::from_utf8(sent[0].clone()).expect("utf8 body");
+                let body = framed
+                    .strip_prefix("\x1b[200~")
+                    .and_then(|b| b.strip_suffix("\x1b[201~"))
+                    .expect("bracketed framing");
                 assert!(body.ends_with(' '), "{path}: trailing separator");
                 assert_eq!(
                     claude_code_unescape(&body),
@@ -5908,11 +5939,7 @@ mod tests {
             h.key(KeyCode::Char('v'), Some("v"), cmd());
             assert_eq!(
                 h.sent_bytes(),
-                vec![
-                    b"\x1b[200~".to_vec(),
-                    b"hello".to_vec(),
-                    b"\x1b[201~".to_vec()
-                ],
+                vec![b"\x1b[200~hello\x1b[201~".to_vec()],
                 "cmd+v after {setup:?} pastes, never leaks a v or a CSI-u"
             );
         }
