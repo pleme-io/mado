@@ -211,7 +211,7 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
             "mado-host",
             ExtArity::Exact(0),
             |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
-                let h = hostname_best_effort();
+                let h = crate::host::short_hostname();
                 Ok(ExtValue::Str(std::sync::Arc::from(h.as_str())))
             },
         );
@@ -404,13 +404,6 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
             },
         );
     })
-}
-
-fn hostname_best_effort() -> String {
-    // Use std's env first (cheap), fall back to a generic name.
-    std::env::var("HOSTNAME")
-        .or_else(|_| std::env::var("HOST"))
-        .unwrap_or_else(|_| "unknown".to_string())
 }
 
 fn probe_tear_attached() -> bool {

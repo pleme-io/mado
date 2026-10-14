@@ -1128,6 +1128,15 @@
       "description": "Session name to attach to / create on first attach. None\n= let mado generate a unique name from the current\ntimestamp.",
       "type": "nullOrStr"
     },
+    "session_naming": {
+      "default": "fleet",
+      "description": "How mado reacts when the *displayed* session's shell `cd`s into a\n**different** project than the one it's currently seated at — the\nheadline praça automation. See [`MadoTearConfig::auto_attach`].\n\nMaps one-to-one onto [`praca::AttachPolicy`]:\n  * `Off` → `PickerOnly` (praca always decides `Stay`) — today's\n    behaviour: a `cd` never moves the pane. **The default.**\n  * `AutoSwitch` → `AutoSwitch` — a cross-project `cd` switches the\n    displayed pane to that project's session (spawning + naming +\n    binding it if none exists yet).\n  * `Suggest` → `SuggestOnly` — praca computes the same decision but\n    wraps it; mado surfaces it (status-line hint / log) and never\n    moves the pane behind the operator's back.\n\nAuto-attach drives the runtime switch channel, so it additionally\nREQUIRES `session_switching = true`. When `auto_attach != Off` but\n`session_switching == false`, mado logs a one-time warning and\nbehaves as `Off` (the switch channel has no drainer to post into).",
+      "type": "enum",
+      "values": [
+        "fleet",
+        "directory"
+      ]
+    },
     "session_picker_anchor": {
       "default": "center",
       "description": "Where the Ctrl-S session picker overlay is anchored on screen.\n**Defaults [`PickerAnchor::Center`]** — a centred popup (the\nfzf/Telescope feel). `Bottom` rises from the bottom edge (Ctrl-R /\nCtrl-T feel); `Top` drops from the top.",

@@ -215,6 +215,7 @@ pub fn try_run_default(
     let session_name = resolve_boot_name(
         config.tear.session_name.as_deref(),
         config.boot_spawn_cwd().as_deref(),
+        config.tear.session_naming,
     )
     .render(ishou_tokens::SessionNameStyle::Glyph);
 
@@ -376,6 +377,7 @@ pub fn try_run_default(
         let boot_name = resolve_boot_name(
             config.tear.session_name.as_deref(),
             config.boot_spawn_cwd().as_deref(),
+            config.tear.session_naming,
         );
         let picker = config.tear.session_switching.then(|| {
             build_session_picker_bridge(
@@ -1550,6 +1552,7 @@ fn try_run_default_embedded(
     let boot_name = resolve_boot_name(
         config.tear.session_name.as_deref(),
         config.boot_spawn_cwd().as_deref(),
+        config.tear.session_naming,
     );
     let session_name = boot_name.render(ishou_tokens::SessionNameStyle::Glyph);
 
@@ -1874,10 +1877,19 @@ fn run_against_embedded_pane(
 fn resolve_boot_name(
     override_name: Option<&str>,
     spawn_cwd: Option<&Path>,
+    naming: crate::config::SessionNaming,
 ) -> ishou_tokens::ResolvedName {
     use ishou_tokens::{FleetSessionNames, NameContext};
     if let Some(explicit) = override_name {
         return FleetSessionNames::resolve(NameContext::Override(explicit));
+    }
+    if naming == crate::config::SessionNaming::Directory {
+        let name = directory_session_name(
+            spawn_cwd,
+            dirs::home_dir().as_deref(),
+            &crate::host::short_hostname(),
+        );
+        return FleetSessionNames::resolve(NameContext::Override(&name));
     }
     match spawn_cwd {
         Some(cwd) => {
@@ -1886,6 +1898,14 @@ fn resolve_boot_name(
         }
         None => FleetSessionNames::resolve(NameContext::Default),
     }
+}
+
+fn directory_session_name(spawn_cwd: Option<&Path>, home: Option<&Path>, host: &str) -> String {
+    spawn_cwd
+        .map(praca::project::project_root)
+        .filter(|root| Some(root.as_path()) != home && root.parent().is_some())
+        .and_then(|root| root.file_name().map(|n| n.to_string_lossy().into_owned()))
+        .unwrap_or_else(|| host.to_owned())
 }
 
 /// If the operator declared `tear.impose.*` overrides, fetch the
@@ -1976,13 +1996,34 @@ fn run_against_pane(
 #[cfg(test)]
 mod tests {
     use super::{
-        CurrentPane, DisplayedPaneFate, adoptable_session, displayed_pane_fate, pump_displayed,
-        resolve_boot_name, tear_pty_sink, tear_resize_sink, with_title,
+        CurrentPane, DisplayedPaneFate, adoptable_session, directory_session_name,
+        displayed_pane_fate, pump_displayed, resolve_boot_name, tear_pty_sink, tear_resize_sink,
+        with_title,
     };
     use crate::perf::{TEAR_WRITE_FAILURES, TearWrite};
     use madori::EventResponse;
     use std::sync::Arc;
     use tear_types::{MultiplexerControl, PaneId, SessionId, SessionSource};
+
+    #[test]
+    fn directory_naming_uses_the_project_folder_and_the_host_at_home() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = tmp.path().join("nix");
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
+        std::fs::create_dir_all(repo.join("lib")).unwrap();
+        let home = tmp.path();
+        assert_eq!(
+            directory_session_name(Some(&repo.join("lib")), Some(home), "ryn"),
+            "nix"
+        );
+        assert_eq!(directory_session_name(Some(home), Some(home), "ryn"), "ryn");
+        assert_eq!(directory_session_name(None, Some(home), "ryn"), "ryn");
+        assert_eq!(
+            directory_session_name(Some(std::path::Path::new("/")), Some(home), "ryn"),
+            "ryn"
+        );
+        assert!(!crate::host::short_hostname().contains('.'));
+    }
 
     #[test]
     fn resident_windows_adopt_the_newest_detached_mado_session_only() {
@@ -2293,8 +2334,16 @@ mod tests {
         let expected_emoji =
             ishou_tokens::FleetSessionNames::from_project_path(&project_root, Emoji).to_string();
 
-        let a = resolve_boot_name(None, Some(nested.as_path()));
-        let b = resolve_boot_name(None, Some(nested.as_path()));
+        let a = resolve_boot_name(
+            None,
+            Some(nested.as_path()),
+            crate::config::SessionNaming::Fleet,
+        );
+        let b = resolve_boot_name(
+            None,
+            Some(nested.as_path()),
+            crate::config::SessionNaming::Fleet,
+        );
         assert_eq!(
             a.render(Emoji),
             expected_emoji,
@@ -2320,7 +2369,7 @@ mod tests {
     #[test]
     fn resolve_boot_name_none_is_the_branded_default() {
         use ishou_tokens::SessionNameStyle::{Emoji, Glyph};
-        let name = resolve_boot_name(None, None);
+        let name = resolve_boot_name(None, None, crate::config::SessionNaming::Fleet);
         assert_eq!(name.render(Emoji), "🌑 rime", "picker projection");
         assert_eq!(name.render(Glyph), "◉ rime", "grid-safe prompt projection");
         assert_eq!(name.word(), "rime");
@@ -2332,7 +2381,11 @@ mod tests {
     #[test]
     fn resolve_boot_name_override_wins_verbatim() {
         use ishou_tokens::SessionNameStyle::{Emoji, Glyph};
-        let name = resolve_boot_name(Some("billing-stack"), Some(std::path::Path::new("/code/x")));
+        let name = resolve_boot_name(
+            Some("billing-stack"),
+            Some(std::path::Path::new("/code/x")),
+            crate::config::SessionNaming::Directory,
+        );
         assert_eq!(name.render(Emoji), "billing-stack");
         assert_eq!(name.render(Glyph), "billing-stack");
     }

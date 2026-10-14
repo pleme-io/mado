@@ -38,6 +38,7 @@ mod glyph_class;
 mod grid_col;
 mod grid_damage;
 mod gui_tear_attach;
+mod host;
 mod janitors;
 mod kanshou_state;
 mod keybind;

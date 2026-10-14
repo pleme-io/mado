@@ -735,6 +735,8 @@ pub struct MadoTearConfig {
     pub session_switching: bool,
     #[serde(default = "default_true")]
     pub resident_adopt: bool,
+    #[serde(default)]
+    pub session_naming: SessionNaming,
     /// Auto-attach-on-cd — the headline praça automation. When the
     /// *displayed* session's shell `cd`s into a DIFFERENT project, mado
     /// auto-switches its pane to that project's session (spawning +
@@ -2067,6 +2069,7 @@ impl Default for MadoTearConfig {
             impose: None,
             session_switching: true,
             resident_adopt: true,
+            session_naming: SessionNaming::default(),
             auto_attach: AutoAttachMode::default(),
             session_picker_anchor: PickerAnchor::default(),
             // Prescribed: surface presets (empty until saved) + auto-badge
@@ -2219,6 +2222,16 @@ impl TearRuntime {
 /// REQUIRES `session_switching = true`. When `auto_attach != Off` but
 /// `session_switching == false`, mado logs a one-time warning and
 /// behaves as `Off` (the switch channel has no drainer to post into).
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum SessionNaming {
+    #[default]
+    Fleet,
+    Directory,
+}
+
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
 )]
@@ -3587,6 +3600,7 @@ impl MadoConfig {
                 // the legacy one-shot binding.
                 session_switching: false,
                 resident_adopt: false,
+                session_naming: SessionNaming::default(),
                 // Auto-attach is opt-in too; bare = no cd-driven moves.
                 auto_attach: AutoAttachMode::Off,
                 session_picker_anchor: PickerAnchor::default(),
@@ -7398,6 +7412,7 @@ mod coverage {
         "tear.resident_adopt",
         "tear.runtime",
         "tear.session_name",
+        "tear.session_naming",
         "tear.session_picker_anchor",
         "tear.session_picker_badges",
         "tear.session_picker_surface_presets",

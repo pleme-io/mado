@@ -176,6 +176,22 @@
             default = "auto_switch";
             description = "Auto-attach-on-cd (praca automation): when the displayed session cds into a different project — off = never move the pane (Rust default); auto_switch = switch to that project's session, spawning one if needed (fleet default); suggest = surface the decision, never move the pane. Requires session_switching = true.";
           };
+          resident_adopt = {
+            type = "bool";
+            default = true;
+            description = "Under runtime = resident, a new window attaches to the newest mado session no other window shows, and creates a session only when none is free.";
+          };
+          session_naming = {
+            type    = "enum";
+            values  = [ "fleet" "directory" ];
+            default = "fleet";
+            description = "Boot session name when session_name is unset: fleet = the curated word hashed from the project path (◉ rime); directory = the project folder's name, or the short hostname at home.";
+          };
+          session_picker_surface_presets = {
+            type = "bool";
+            default = true;
+            description = "Show saved session presets as ○ latent rows in the Ctrl-S picker. false = the picker lists live sessions only.";
+          };
           pane_fate = {
             type    = "enum";
             values  = [ "edge" "poll" ];
