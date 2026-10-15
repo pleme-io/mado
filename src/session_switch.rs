@@ -32,6 +32,12 @@ use std::sync::{Arc, Mutex};
 
 use tear_types::PaneId;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SwitchRequest {
+    pub pane: PaneId,
+    pub forced: bool,
+}
+
 /// Cross-thread single-slot switch-request channel. Cloning shares
 /// the underlying slot (Arc semantics) — the kanshou query thread
 /// posts, the GUI event loop takes. Last write wins: posting a new
@@ -39,7 +45,7 @@ use tear_types::PaneId;
 #[derive(Debug, Clone, Default)]
 pub struct SwitchRequests {
     /// The pending switch target, if any. `None` = no switch pending.
-    pending: Arc<Mutex<Option<PaneId>>>,
+    pending: Arc<Mutex<Option<SwitchRequest>>>,
     /// Whether a switchable event loop has registered as the drainer.
     sink_attached: Arc<AtomicBool>,
 }
@@ -49,10 +55,21 @@ impl SwitchRequests {
     /// kanshou query thread (`switch_session` handler). Last write
     /// wins — a pending target not yet taken is overwritten.
     pub fn post(&self, pane: PaneId) {
+        self.put(SwitchRequest {
+            pane,
+            forced: false,
+        });
+    }
+
+    pub fn post_reattach(&self, pane: PaneId) {
+        self.put(SwitchRequest { pane, forced: true });
+    }
+
+    fn put(&self, request: SwitchRequest) {
         *self
             .pending
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(pane);
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(request);
         crate::ring::WINDOW.ring();
     }
 
@@ -61,6 +78,11 @@ impl SwitchRequests {
     /// is pending.
     #[must_use]
     pub fn take(&self) -> Option<PaneId> {
+        self.take_request().map(|r| r.pane)
+    }
+
+    #[must_use]
+    pub fn take_request(&self) -> Option<SwitchRequest> {
         self.pending
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)

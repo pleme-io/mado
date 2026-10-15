@@ -956,6 +956,7 @@ impl InputEngine {
                 OverlayEffect::SessionPickerRenameCommit => self.session_picker_rename_commit(),
                 OverlayEffect::SessionPickerRenameCancel => self.session_picker_rename_cancel(),
                 OverlayEffect::SessionPickerDelete => self.session_picker_delete(),
+                OverlayEffect::SessionPickerReattach => self.session_picker_reattach(),
             }
         }
     }
@@ -1346,6 +1347,28 @@ impl InputEngine {
     ///   the notice says so rather than doing nothing silently.
     ///
     /// No bridge (switching disabled) → inert, like every other picker verb.
+    fn session_picker_reattach(&mut self) {
+        use crate::session_picker::RowKind;
+        let Some(bridge) = self.session_picker_bridge.as_ref() else {
+            return;
+        };
+        let now = crate::auto_attach::now_unix_seconds();
+        let selected = {
+            let mut sp = self.session_picker.lock().unwrap();
+            let kind = sp.selected_row().map(|r| r.kind.clone());
+            sp.close();
+            kind
+        };
+        match selected {
+            Some(RowKind::Switch(session)) => {
+                if !bridge.reattach(session, now) {
+                    tracing::warn!(session = %session, "session reattach: session not found after resync");
+                }
+            }
+            _ => bridge.refresh(now),
+        }
+    }
+
     fn session_picker_delete(&mut self) {
         use crate::session_picker::RowKind;
         let Some(bridge) = self.session_picker_bridge.as_ref() else {

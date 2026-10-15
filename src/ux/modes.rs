@@ -115,6 +115,7 @@ pub(crate) enum OverlayKeyClass {
     /// Overlay-local exactly like [`Self::CtrlE`]: with no overlay open a
     /// bare Ctrl-D still falls through to the PTY as EOF.
     CtrlD,
+    CtrlR,
     Other,
 }
 
@@ -162,6 +163,7 @@ impl OverlayKey {
             KeyCode::Char('p' | 'P') if ctrl_only => OverlayKeyClass::CtrlP,
             KeyCode::Char('e' | 'E') if ctrl_only => OverlayKeyClass::CtrlE,
             KeyCode::Char('d' | 'D') if ctrl_only => OverlayKeyClass::CtrlD,
+            KeyCode::Char('r' | 'R') if ctrl_only => OverlayKeyClass::CtrlR,
             KeyCode::Escape => OverlayKeyClass::Escape,
             KeyCode::Enter => OverlayKeyClass::Enter,
             KeyCode::Up => OverlayKeyClass::Up,
@@ -251,6 +253,7 @@ pub(crate) enum OverlayEffect {
     /// catalog. The picker stays open on a re-listed board with the cursor
     /// on the row that slid into the deleted one's place.
     SessionPickerDelete,
+    SessionPickerReattach,
 }
 
 /// Whether the keystroke was consumed by the overlay or continues
@@ -511,7 +514,7 @@ impl Overlay {
                     // gestures only — inert in the dir picker, and consumed so
                     // they cannot leak to the PTY (a Ctrl-D here was an inert
                     // consume before it had a class, too).
-                    OverlayKeyClass::CtrlE | OverlayKeyClass::CtrlD => {
+                    OverlayKeyClass::CtrlE | OverlayKeyClass::CtrlD | OverlayKeyClass::CtrlR => {
                         overlay_step(Overlay::DirPicker, Consumed, vec![])
                     }
                     OverlayKeyClass::Other => {
@@ -611,6 +614,11 @@ impl Overlay {
                         Consumed,
                         vec![OverlayEffect::SessionPickerDelete],
                     ),
+                    OverlayKeyClass::CtrlR => overlay_step(
+                        Overlay::None,
+                        Consumed,
+                        vec![OverlayEffect::SessionPickerReattach],
+                    ),
                     OverlayKeyClass::Other => {
                         if k.plain
                             && let Some(t) = k.text
@@ -686,7 +694,8 @@ impl Overlay {
                     | OverlayKeyClass::CtrlN
                     | OverlayKeyClass::CtrlP
                     | OverlayKeyClass::CtrlE
-                    | OverlayKeyClass::CtrlD => {
+                    | OverlayKeyClass::CtrlD
+                    | OverlayKeyClass::CtrlR => {
                         overlay_step(Overlay::SessionRename, Consumed, vec![])
                     }
                     OverlayKeyClass::Other => {
@@ -1435,6 +1444,37 @@ mod tests {
     /// the keyboard, and it keeps the picker open. Everywhere else it is the
     /// state's existing answer for a ctrl chord — an inert consume in an open
     /// overlay, and a fall-through (the shell's EOF) with no overlay open.
+    #[test]
+    fn ctrl_r_reattaches_only_in_the_session_picker() {
+        let ctrl = Modifiers {
+            ctrl: true,
+            alt: false,
+            shift: false,
+            meta: false,
+        };
+        for ch in ['r', 'R'] {
+            let k = OverlayKey::lower(None, KeyCode::Char(ch), Some("\u{12}"), ctrl);
+            assert_eq!(k.key, OverlayKeyClass::CtrlR);
+        }
+        let ctrl_r = || OverlayEvent::Key(key(None, OverlayKeyClass::CtrlR, None, false));
+        for state in all_overlay_states() {
+            let step = state.on_event(ctrl_r());
+            let reattaches = step.effects.contains(&OverlayEffect::SessionPickerReattach);
+            match state {
+                Overlay::SessionPicker => {
+                    assert_eq!(step.effects, vec![OverlayEffect::SessionPickerReattach]);
+                    assert_eq!(step.state, Overlay::None);
+                    assert_eq!(step.routing, OverlayRouting::Consumed);
+                }
+                Overlay::None => {
+                    assert_eq!(step.routing, OverlayRouting::FallThrough);
+                    assert!(!reattaches);
+                }
+                _ => assert!(!reattaches, "{state:?}"),
+            }
+        }
+    }
+
     #[test]
     fn ctrl_d_deletes_only_in_the_session_picker_and_keeps_it_open() {
         // The raw keystroke lowers to the class — ctrl alone, either case.

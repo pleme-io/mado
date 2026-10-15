@@ -180,6 +180,10 @@ pub trait SessionPickerBridge: Send {
         false
     }
 
+    fn reattach(&self, _session: SessionId, _now: u64) -> bool {
+        false
+    }
+
     /// Spawn a session aimed at a task suggestion (by id) and switch to it —
     /// the [`RowKind::Suggestion`] accept path. Looks the suggestion up in the
     /// store, spawns into its target cwd with its emoji-native name, indexes +
@@ -1036,6 +1040,16 @@ impl SessionPickerBridge for PracaPickerBridge {
 
     fn delete_preset(&self, def_id: DefinitionId) -> bool {
         delete_preset(&self.praca, def_id)
+    }
+
+    fn reattach(&self, session: SessionId, now: u64) -> bool {
+        self.refresh(now);
+        let Some(pane) = self.first_pane_of(session) else {
+            return false;
+        };
+        self.praca().record_visit(session, now);
+        self.switch.post_reattach(pane);
+        true
     }
 
     fn refresh(&self, now: u64) {

@@ -1112,8 +1112,8 @@ where
                     None
                 };
                 let pending = reqs
-                    .take()
-                    .map(|t| (t, false))
+                    .take_request()
+                    .map(|r| (r.pane, r.forced))
                     .or(reattach.map(|t| (t, true)));
                 if let Some((target, forced)) = pending {
                     let from = current_pane_for_switch
