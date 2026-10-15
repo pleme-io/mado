@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "633cf7dd0b421bec2f1bce9580b103bdc0545f3633d2a8ab6445ee42e84a8609",
+  "cargo_lock_sha256": "dce9ca6be00aaa4a6fd54c9ea257fa4b5597bc236fada4dad524a476105a2891",
   "manifest_sha256": {
-    "Cargo.toml": "26fb5fd7982392755f457fe319b7b9dcdd66221d3be452d675974855f0e00a5e"
+    "Cargo.toml": "99251e0c912ed1a8107d935b8ab4e86f4a47da8cc200022cd3524bf19432a65b"
   },
   "target_resolves": {
     "base": {
@@ -5392,7 +5392,7 @@
         "runtime_dependencies": [
           {
             "name": "arboard",
-            "package_key": "arboard-3.6.1",
+            "package_key": "arboard-3.7.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8822,7 +8822,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "kukaku-0.1.43": {
+      "kukaku-0.1.44": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -12530,7 +12530,7 @@
           "std"
         ]
       },
-      "praca-0.1.43": {
+      "praca-0.1.44": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
@@ -12566,7 +12566,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.43",
+            "package_key": "tear-types-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21059,7 +21059,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.43": {
+      "tear-client-0.1.44": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -21103,7 +21103,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.43",
+            "package_key": "tear-config-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21113,7 +21113,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.43",
+            "package_key": "tear-types-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21128,7 +21128,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.43": {
+      "tear-config-0.1.44": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21228,7 +21228,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.43",
+            "package_key": "tear-types-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21260,7 +21260,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.43": {
+      "tear-core-0.1.44": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21376,7 +21376,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.43",
+            "package_key": "tear-config-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21386,7 +21386,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.43",
+            "package_key": "tear-makimono-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21396,7 +21396,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.43",
+            "package_key": "tear-tamotsu-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21406,7 +21406,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.43",
+            "package_key": "tear-types-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21461,7 +21461,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.43": {
+      "tear-daemon-0.1.44": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21530,7 +21530,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.43",
+            "package_key": "praca-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21572,7 +21572,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.43",
+            "package_key": "tear-config-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21582,7 +21582,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.43",
+            "package_key": "tear-core-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21592,7 +21592,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.43",
+            "package_key": "tear-makimono-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21602,7 +21602,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.43",
+            "package_key": "tear-tamotsu-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21612,7 +21612,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.43",
+            "package_key": "tear-types-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21650,7 +21650,7 @@
           "default"
         ]
       },
-      "tear-makimono-0.1.43": {
+      "tear-makimono-0.1.44": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -21676,7 +21676,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.43",
+            "package_key": "tear-types-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21710,7 +21710,7 @@
           "default"
         ]
       },
-      "tear-tamotsu-0.1.43": {
+      "tear-tamotsu-0.1.44": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21781,7 +21781,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.43",
+            "package_key": "tear-makimono-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21805,7 +21805,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.43": {
+      "tear-types-0.1.44": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21859,7 +21859,7 @@
           },
           {
             "name": "kukaku",
-            "package_key": "kukaku-0.1.43",
+            "package_key": "kukaku-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25845,7 +25845,7 @@
     "targets": {
       "aarch64-apple-darwin": {
         "overrides": {
-          "arboard-3.6.1": {
+          "arboard-3.7.0": {
             "runtime_dependencies": [
               {
                 "name": "image",
@@ -26919,7 +26919,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.191": {
+          "mado-0.1.192": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27397,7 +27397,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.43",
+                "package_key": "praca-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27550,7 +27550,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.43",
+                "package_key": "tear-client-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27562,7 +27562,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.43",
+                "package_key": "tear-config-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27572,7 +27572,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.43",
+                "package_key": "tear-core-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27584,7 +27584,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.43",
+                "package_key": "tear-types-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31080,7 +31080,7 @@
               "std"
             ]
           },
-          "arboard-3.6.1": {
+          "arboard-3.7.0": {
             "runtime_dependencies": [
               {
                 "name": "image",
@@ -31986,7 +31986,7 @@
               "system"
             ]
           },
-          "mado-0.1.191": {
+          "mado-0.1.192": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32415,7 +32415,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.43",
+                "package_key": "praca-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32568,7 +32568,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.43",
+                "package_key": "tear-client-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32580,7 +32580,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.43",
+                "package_key": "tear-config-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32590,7 +32590,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.43",
+                "package_key": "tear-core-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32602,7 +32602,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.43",
+                "package_key": "tear-types-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35225,7 +35225,7 @@
               "std"
             ]
           },
-          "arboard-3.6.1": {
+          "arboard-3.7.0": {
             "runtime_dependencies": [
               {
                 "name": "image",
@@ -36131,7 +36131,7 @@
               "system"
             ]
           },
-          "mado-0.1.191": {
+          "mado-0.1.192": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36560,7 +36560,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.43",
+                "package_key": "praca-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36713,7 +36713,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.43",
+                "package_key": "tear-client-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36725,7 +36725,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.43",
+                "package_key": "tear-config-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36735,7 +36735,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.43",
+                "package_key": "tear-core-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36747,7 +36747,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.43",
+                "package_key": "tear-types-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -39331,7 +39331,7 @@
       },
       "x86_64-apple-darwin": {
         "overrides": {
-          "arboard-3.6.1": {
+          "arboard-3.7.0": {
             "runtime_dependencies": [
               {
                 "name": "image",
@@ -40399,7 +40399,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.191": {
+          "mado-0.1.192": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40877,7 +40877,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.43",
+                "package_key": "praca-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41030,7 +41030,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.43",
+                "package_key": "tear-client-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -41042,7 +41042,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.43",
+                "package_key": "tear-config-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41052,7 +41052,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.43",
+                "package_key": "tear-core-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -41064,7 +41064,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.43",
+                "package_key": "tear-types-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44583,7 +44583,7 @@
               "std"
             ]
           },
-          "arboard-3.6.1": {
+          "arboard-3.7.0": {
             "runtime_dependencies": [
               {
                 "name": "image",
@@ -45483,7 +45483,7 @@
               "system"
             ]
           },
-          "mado-0.1.191": {
+          "mado-0.1.192": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45912,7 +45912,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.43",
+                "package_key": "praca-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46065,7 +46065,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.43",
+                "package_key": "tear-client-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -46077,7 +46077,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.43",
+                "package_key": "tear-config-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46087,7 +46087,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.43",
+                "package_key": "tear-core-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -46099,7 +46099,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.43",
+                "package_key": "tear-types-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48745,7 +48745,7 @@
               "std"
             ]
           },
-          "arboard-3.6.1": {
+          "arboard-3.7.0": {
             "runtime_dependencies": [
               {
                 "name": "image",
@@ -49645,7 +49645,7 @@
               "system"
             ]
           },
-          "mado-0.1.191": {
+          "mado-0.1.192": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -50074,7 +50074,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.43",
+                "package_key": "praca-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50227,7 +50227,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.43",
+                "package_key": "tear-client-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -50239,7 +50239,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.43",
+                "package_key": "tear-config-0.1.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50249,7 +50249,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.43",
+                "package_key": "tear-core-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -50261,7 +50261,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.43",
+                "package_key": "tear-types-0.1.44",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -52934,7 +52934,7 @@
     "ar_archive_writer-0.5.3": {
       "edition": "2024"
     },
-    "arboard-3.6.1": {
+    "arboard-3.7.0": {
       "edition": "2021"
     },
     "arc-swap-1.9.2": {
@@ -53837,7 +53837,7 @@
     "kube-runtime-0.99.0": {
       "edition": "2021"
     },
-    "kukaku-0.1.43": {
+    "kukaku-0.1.44": {
       "edition": "2024"
     },
     "lazy_static-1.5.1": {
@@ -53910,7 +53910,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.191": {
+    "mado-0.1.192": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54379,7 +54379,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.43": {
+    "praca-0.1.44": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -54966,26 +54966,26 @@
         }
       ]
     },
-    "tear-client-0.1.43": {
+    "tear-client-0.1.44": {
       "edition": "2024"
     },
-    "tear-config-0.1.43": {
+    "tear-config-0.1.44": {
       "edition": "2024"
     },
-    "tear-core-0.1.43": {
+    "tear-core-0.1.44": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.43": {
+    "tear-daemon-0.1.44": {
       "edition": "2024"
     },
-    "tear-makimono-0.1.43": {
+    "tear-makimono-0.1.44": {
       "edition": "2024",
       "lib_target": {
         "name": "makimono",
         "path": "src/lib.rs"
       }
     },
-    "tear-tamotsu-0.1.43": {
+    "tear-tamotsu-0.1.44": {
       "edition": "2024",
       "lib_target": {
         "name": "tamotsu",
@@ -54998,7 +54998,7 @@
         }
       ]
     },
-    "tear-types-0.1.43": {
+    "tear-types-0.1.44": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {

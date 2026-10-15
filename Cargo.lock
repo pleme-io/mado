@@ -189,9 +189,9 @@ dependencies = [
 
 [[package]]
 name = "arboard"
-version = "3.6.1"
+version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0348a1c054491f4bfe6ab86a7b6ab1e44e45d899005de92f58b3df180b36ddaf"
+checksum = "aeb9553e62312c8756a5979254fc6d7da8bbeb5986a1e17037fab932f7037917"
 dependencies = [
  "clipboard-win",
  "image",
@@ -203,7 +203,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
  "x11rb",
 ]
 
@@ -3195,9 +3195,9 @@ dependencies = [
 
 [[package]]
 name = "kukaku"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d09c212115a7b596ffae6bb42b80a6fb726c447c885ab72b4a15fe3bb6ab192f"
+checksum = "39139876f7245efd087232ff169201390f3e51087b0c09ac1f66a5a84d9dd276"
 dependencies = [
  "serde",
 ]
@@ -3382,7 +3382,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.191"
+version = "0.1.192"
 dependencies = [
  "anyhow",
  "awase",
@@ -4975,9 +4975,9 @@ dependencies = [
 
 [[package]]
 name = "praca"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a23c6249c71b3da00a35f853c32666a7a46feed2b46eb961d4ff75c67f9b3ea"
+checksum = "949d42faff422e79c9bc39e22d781bec860005e6efbb6910311ef00e1fb7da2b"
 dependencies = [
  "ishou-tokens",
  "serde",
@@ -7116,9 +7116,9 @@ dependencies = [
 
 [[package]]
 name = "tear-client"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75bad1af3c83a2d8e07ec8c84c2e668a6bac03c9002f3a73367ca1d6c4926e96"
+checksum = "31c2a91dd65e0d2022bf7cdd9caed8a90fde422f0181802fc190ad4e1863badd"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -7130,9 +7130,9 @@ dependencies = [
 
 [[package]]
 name = "tear-config"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1540c7b90778e00e084af48203e40c3f9a7639bdc4eee46b771dc42302462ee"
+checksum = "232dc8fd5489d4c1dc661315e09f36b0cde2eaf3238f0f8db346360505973398"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -7150,9 +7150,9 @@ dependencies = [
 
 [[package]]
 name = "tear-core"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a70f18cfcbfebb5939cf3057ad4eda8fc709edf304c1abab72b90304890690ef"
+checksum = "f3785ad32fe2262617daecffbd197bb161e2790214ac234fbb168dcf953f80b3"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7177,9 +7177,9 @@ dependencies = [
 
 [[package]]
 name = "tear-daemon"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a1f39098ae4349b59e38ce0977800cb8e659f11017fa6ed136c7b824334f5d1"
+checksum = "9e540de6f8ccb7d75aa6c2700d8c15ef73568f85a25fcee1a6b2aff8e2469a28"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7202,9 +7202,9 @@ dependencies = [
 
 [[package]]
 name = "tear-makimono"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2568cdbecf202983988abbe5e3a68e2132929f4c81e0ec1f258abc6e899f521d"
+checksum = "5ae9cffaf86c6d3aefc39159494b254a03f95f003a74d7fcdcca97c1cdae186c"
 dependencies = [
  "serde",
  "serde_json",
@@ -7215,9 +7215,9 @@ dependencies = [
 
 [[package]]
 name = "tear-tamotsu"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "907b5cdb70792632d16d2b9f671399967b6c0f5548512c1a037e497bac468af4"
+checksum = "bb59a81a59d09eee9f59bad21233cd9278265a30fe446913aa80af974079c3b7"
 dependencies = [
  "anyhow",
  "ciborium",
@@ -7231,9 +7231,9 @@ dependencies = [
 
 [[package]]
 name = "tear-types"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6388d4f8d2d5c1276415740a1710a1a6dd5a03f649e4cc943ef0867a50a3c5e8"
+checksum = "d9f38245385954fe7dd68aa81ed44cb3686c6cd047d88036de7f1f11fa51d28a"
 dependencies = [
  "anyhow",
  "blake3",
