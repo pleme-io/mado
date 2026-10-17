@@ -8,7 +8,7 @@
     substrate.url = "github:pleme-io/substrate";
 
     # ishou is mado-specific variance — the fleet typography source.
-    # Mado's HM module reads `ishou.packages.${system}.fleet-fonts`
+    # Mado's HM module reads ishou's committed `rendered/fleet-fonts.nix`
     # to resolve canonical font_family / font_italic defaults and
     # install the underlying nixpkgs font packages. Aligned to
     # substrate's nixpkgs pin to avoid the two-nixpkgs diamond.
@@ -402,8 +402,7 @@
       # every character' bug).
       extraHmConfigFn = { cfg, pkgs, lib, ... }:
         let
-          fleetFonts = import "${ishou.packages.${pkgs.stdenv.hostPlatform.system}.fleet-fonts}"
-            { inherit pkgs; };
+          fleetFonts = import (ishou + "/rendered/fleet-fonts.nix") { inherit pkgs; };
           resolvedFontFamily = if cfg.fontFamily != null
             then cfg.fontFamily
             else fleetFonts.primary.name;
