@@ -691,9 +691,9 @@ rec {
       };
       "arc-swap" = rec {
         crateName = "arc-swap";
-        version = "1.9.2";
+        version = "1.9.3";
         edition = "2018";
-        sha256 = "02w1n3kiz02ml6is3biqia4bgxcf7dml2m9mrd2v3w5f9nzc0jf0";
+        sha256 = "0vmfc2wjnn7gyjfawvnq6a5pxsbiq1rbzzmra0p6969vv6rn429q";
         libName = "arc_swap";
         authors = [
           "Michal 'vorner' Vaner <vorner@vorner.cz>"
@@ -705,6 +705,7 @@ rec {
           }
         ];
         features = {
+          "internal-test-strategies" = [ "rwlock-strategy" ];
           "serde" = [ "dep:serde" ];
         };
       };
@@ -815,9 +816,9 @@ rec {
       };
       "async-compression" = rec {
         crateName = "async-compression";
-        version = "0.4.50";
+        version = "0.4.51";
         edition = "2018";
-        sha256 = "18gmagyzh9584n0j0smnq2kcx0a819141s6lpan92diynjcvs6gf";
+        sha256 = "0w39jjbw7j882lbcmbp80h6pwksa5s4ha7i3z1hlkci005j5amwx";
         libName = "async_compression";
         authors = [
           "Wim Looman <wim@nemo157.com>"
@@ -870,6 +871,7 @@ rec {
           "xz2" = [ "compression-codecs/xz2" "xz" ];
           "zlib" = [ "compression-codecs/zlib" ];
           "zstd" = [ "compression-codecs/zstd" ];
+          "zstd-mzstd" = [ "compression-codecs/zstd-mzstd" ];
           "zstdmt" = [ "compression-codecs/zstdmt" "zstd" ];
         };
         resolvedDefaultFeatures = [ "brotli" "gzip" "tokio" ];
@@ -1945,9 +1947,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.8.0";
+        version = "1.9.0";
         edition = "2021";
-        sha256 = "0f6q6vc8fj6xn4j1wd4yakiza6lhgwai49gp1zdwgzggh3nwjlb6";
+        sha256 = "1pz4mvzdqmskrkiyp7hzvmqfnfqnx92a764y5zmlj975r1xgcyw7";
         dependencies = [
           {
             name = "find-msvc-tools";
@@ -2369,9 +2371,9 @@ rec {
       };
       "combine" = rec {
         crateName = "combine";
-        version = "4.6.8";
+        version = "4.6.9";
         edition = "2018";
-        sha256 = "0ppwzwdmszpan9ybx1myc6ldg5zih2sazf9idckdxrh9gn9j1hyg";
+        sha256 = "14izj50knw6rgl6ky3903k43pnl6qjgyw4d30n6ljdb4jykfnmj3";
         authors = [
           "Markus Westerlind <marwes91@gmail.com>"
         ];
@@ -2416,9 +2418,9 @@ rec {
       };
       "compression-codecs" = rec {
         crateName = "compression-codecs";
-        version = "0.4.45";
+        version = "0.4.46";
         edition = "2018";
-        sha256 = "0jk12ybh2wl2lg14g4x4qkl0npf4vyw34djx0wbm7bd01d39iz4q";
+        sha256 = "1zm8kfqdlwvf14izzcg3i1hkadwlhfwqs7ykigs9ja0v221ndqya";
         libName = "compression_codecs";
         authors = [
           "Wim Looman <wim@nemo157.com>"
@@ -2463,6 +2465,7 @@ rec {
           "xz2" = [ "xz" ];
           "zlib" = [ "flate2" ];
           "zstd" = [ "libzstd" "zstd-safe" ];
+          "zstd-mzstd" = [ "dep:mzstd" ];
           "zstd-safe" = [ "dep:zstd-safe" ];
           "zstdmt" = [ "zstd" "zstd-safe/zstdmt" ];
         };
@@ -2470,9 +2473,9 @@ rec {
       };
       "compression-core" = rec {
         crateName = "compression-core";
-        version = "0.4.33";
+        version = "0.4.34";
         edition = "2018";
-        sha256 = "056ll4gqcx1kfkg0837j2nni7n8i3m3ns3rc20nw7b7nm57cr33f";
+        sha256 = "0sn32gnrjjwrvqm5aijqgrarar1vcdi7b1fjbn6vyd65xn4xmg9f";
         libName = "compression_core";
         authors = [
           "Wim Looman <wim@nemo157.com>"
@@ -4917,9 +4920,9 @@ rec {
       };
       "find-msvc-tools" = rec {
         crateName = "find-msvc-tools";
-        version = "0.1.14";
+        version = "0.1.15";
         edition = "2021";
-        sha256 = "112ljldlv150fpl8xr2jl5czg51k3kdfn6cy5fqdsvkl14sgpp5f";
+        sha256 = "0j5sh4lb7g8xh6kd67s0vz037ah5hlp9f2rbgbg9f41rqmf92rhw";
         libName = "find_msvc_tools";
 
       };
@@ -5039,9 +5042,9 @@ rec {
       };
       "font-types" = rec {
         crateName = "font-types";
-        version = "0.12.6";
+        version = "0.12.7";
         edition = "2021";
-        sha256 = "0x323bz4q4b4jrvhchg77ip9cg8g16nxzv0yxy1vvcvs3h4dk4kc";
+        sha256 = "0pgks8skqzhjidjpxkyp154rl335pjf7yf6ydh17jjj6h7byjnl3";
         libName = "font_types";
         dependencies = [
           {
@@ -8490,9 +8493,9 @@ rec {
       };
       "izumi" = rec {
         crateName = "izumi";
-        version = "0.1.22";
+        version = "0.1.24";
         edition = "2024";
-        sha256 = "1dj41g3bhy3hrpj6gnj387ggwhg2pqn4c1cm93hzc1m7hw9y0gja";
+        sha256 = "0wbl38dj72d4a9r31fpc4n59lzlln50icjwhaqi657f792d4rqp6";
         authors = [
           "pleme-io"
         ];
@@ -8558,9 +8561,9 @@ rec {
       };
       "izumi-config" = rec {
         crateName = "izumi-config";
-        version = "0.1.22";
+        version = "0.1.24";
         edition = "2024";
-        sha256 = "1sm1s6qgfr314g18dy1qgwmccz7r5gxzqynkkmiydkvk7ax43l1z";
+        sha256 = "1cwl9jp72rxs21ldhjclkm8qa4zqggxwsfgk4ni1h8kf0s5nkcna";
         libName = "izumi_config";
         authors = [
           "pleme-io"
@@ -8584,9 +8587,9 @@ rec {
       };
       "izumi-sources" = rec {
         crateName = "izumi-sources";
-        version = "0.1.22";
+        version = "0.1.24";
         edition = "2024";
-        sha256 = "1w10wg0b4z5c8y1xddkvcz2lcwkd57jflrnjsn6hqfxb02n08wdk";
+        sha256 = "0x8y0p9d8jg69941h7z9jbpdh65wyfjql6iay9nph16cvk5im32c";
         libName = "izumi_sources";
         authors = [
           "pleme-io"
@@ -9829,9 +9832,9 @@ rec {
       };
       "libc" = rec {
         crateName = "libc";
-        version = "0.2.190";
+        version = "0.2.191";
         edition = "2021";
-        sha256 = "0y5yap4bfp7rfsldcbk9pb5alcgygca5xn1n2pmh181zdpf3spff";
+        sha256 = "02i4j7pjh129y92rijaia4576131fa2xjsii1dc3c1fnlv4qgkb5";
         features = {
           "default" = [ "std" ];
           "rustc-dep-of-std" = [ "align" "rustc-std-workspace-core" ];
@@ -9926,7 +9929,7 @@ rec {
           }
           {
             name = "redox_syscall";
-            packageId = "redox_syscall 0.9.4";
+            packageId = "redox_syscall 0.9.5";
             optional = true;
           }
         ];
@@ -10328,7 +10331,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.193";
+        version = "0.1.194";
         edition = "2024";
         crateBin = [
           {
@@ -18330,11 +18333,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "userspace" ];
       };
-      "redox_syscall 0.9.4" = rec {
+      "redox_syscall 0.9.5" = rec {
         crateName = "redox_syscall";
-        version = "0.9.4";
+        version = "0.9.5";
         edition = "2021";
-        sha256 = "03p257wq9i52i5h5ns9v0xx03fycgcq17bdcwwqzmil7ka9p0ybk";
+        sha256 = "1zb8g34sfgrbvja7lgay2isggkj461qf86mdchawn7ml8mc8f32q";
         libName = "syscall";
         authors = [
           "Jeremy Soller <jackpot51@gmail.com>"
@@ -20080,9 +20083,9 @@ rec {
       };
       "schannel" = rec {
         crateName = "schannel";
-        version = "0.1.29";
+        version = "0.1.30";
         edition = "2018";
-        sha256 = "0ffrzz5vf2s3gnzvphgb5gg8fqifvryl07qcf7q3x1scj3jbghci";
+        sha256 = "1das969n0zgq630zx56mcw062aky4g57fdl19nxl3s4f9m13rclw";
         authors = [
           "Steven Fackler <sfackler@gmail.com>"
           "Steffen Butzer <steffen.butzer@outlook.com>"
@@ -25640,10 +25643,10 @@ rec {
       };
       "todoku" = rec {
         crateName = "todoku";
-        version = "0.1.8";
+        version = "0.1.9";
         edition = "2024";
         crateBin = [];
-        sha256 = "050hp9qfbz30hcjpc893q9wyzmbpyq5v5vhdzjbgzzjkylla2vyk";
+        sha256 = "0axq88p9dbcg0q4vfsjhgyny27vaxsnk0xd701n6dpia5p6q7s3f";
         dependencies = [
           {
             name = "async-trait";
@@ -27100,9 +27103,9 @@ rec {
       };
       "unicode-normalization" = rec {
         crateName = "unicode-normalization";
-        version = "0.1.25";
+        version = "0.1.26";
         edition = "2018";
-        sha256 = "1s76dcrxw7vs32yhpi0p074apdc3s7lak7809f3qvclwij3zdm2z";
+        sha256 = "0pd8b0kx8kf0zkfzhr1xn3q5kfwwgsn07q8ykaxb722j7nq3zkbm";
         libName = "unicode_normalization";
         authors = [
           "kwantam <kwantam@gmail.com>"
@@ -27554,9 +27557,9 @@ rec {
       };
       "vigy" = rec {
         crateName = "vigy";
-        version = "0.1.8";
+        version = "0.1.9";
         edition = "2021";
-        sha256 = "0i0wi21ca1vf5wgbvpwbm541dvw0yfdch01v9yg4q7z5ma8sfdqs";
+        sha256 = "1q5m6mdsmlbdal74a6866pzk4xxc5ldvqki2n84yxmmykspvjsyb";
         authors = [
           "Pleme Team <team@pleme.io>"
         ];
@@ -27594,9 +27597,9 @@ rec {
       };
       "vigy-eval" = rec {
         crateName = "vigy-eval";
-        version = "0.1.8";
+        version = "0.1.9";
         edition = "2021";
-        sha256 = "0xjfa0nf4rnm1v6nr7ax2qcmbma2n9b0f0l1mq1lhbw45jmd20vr";
+        sha256 = "1cxv99s6cl8b8b7vj9mgs0qinqpnjiwq3wxprgc1vv3myfk7dn66";
         libName = "vigy_eval";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27654,9 +27657,9 @@ rec {
       };
       "vigy-mcp" = rec {
         crateName = "vigy-mcp";
-        version = "0.1.8";
+        version = "0.1.9";
         edition = "2021";
-        sha256 = "1y5f3i9glg493pc20b4k435mw5l4rs52pzb86w1mpyvc73vl3hx5";
+        sha256 = "10y4hsxj8x2cmdpfkin66vf481s45b65b7bzihj3vx5v08awh9r6";
         libName = "vigy_mcp";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27697,9 +27700,9 @@ rec {
       };
       "vigy-runtime" = rec {
         crateName = "vigy-runtime";
-        version = "0.1.8";
+        version = "0.1.9";
         edition = "2021";
-        sha256 = "1gj8cp3n1v51nbhqbjg8k6kw7w9apy1sgybp3a18j7pcb580mmwl";
+        sha256 = "1n53h5rzrbs29mgq1apn3k3v0jmbw9hsnk9maibpcxqfr2n8ds4p";
         libName = "vigy_runtime";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27756,9 +27759,9 @@ rec {
       };
       "vigy-store" = rec {
         crateName = "vigy-store";
-        version = "0.1.8";
+        version = "0.1.9";
         edition = "2021";
-        sha256 = "17rgwcam61hkbxdrr9kbj95h121z5v96mn40c06apagm58p8gbnq";
+        sha256 = "0y5wshrcz4y8r7h9dfvsmnn6nlmjdq68smbbjh9jik63dqgh49py";
         libName = "vigy_store";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27827,9 +27830,9 @@ rec {
       };
       "vigy-types" = rec {
         crateName = "vigy-types";
-        version = "0.1.8";
+        version = "0.1.9";
         edition = "2021";
-        sha256 = "16inmc9dd1950l3n68w31gliaccgr684kgndcjz7f3cfjcbbccyp";
+        sha256 = "011p0qlm5rh4xvsn53q50770iynz0m4hfswwpszrdnj6apb0n1rv";
         libName = "vigy_types";
         authors = [
           "Pleme Team <team@pleme.io>"
