@@ -2201,6 +2201,7 @@ pub struct Terminal {
     // Critical dispatch fire once per request, not once per frame
     // while the level stays high).
     attention_edge: bool,
+    output_since_drain: bool,
 
     // Command-completion tracking (OSC 133 C→D). `command_start_ms` is
     // stamped at the C (output-start) mark; `command_used_alt_screen`
@@ -2409,6 +2410,7 @@ impl Terminal {
             user_marks: crate::osc_1337::UserMarkHistory::with_capacity(max_scrollback.max(256)),
             attention_requested: false,
             attention_edge: false,
+            output_since_drain: false,
             command_start_ms: None,
             command_used_alt_screen: false,
             pending_command_completion: None,
@@ -2567,6 +2569,7 @@ impl Terminal {
     // ── Public API ──────────────────────────────────────────────────
 
     pub fn feed(&mut self, input: &[u8]) {
+        self.output_since_drain |= !input.is_empty();
         let mut parser = std::mem::take(&mut self.parser);
         let mut feeder = std::mem::take(&mut self.feeder);
         feeder.feed(input, |segment| match segment {
@@ -3245,7 +3248,25 @@ impl Terminal {
             },
             attention: std::mem::replace(&mut self.attention_edge, false),
             command_completion: self.pending_command_completion.take(),
+            output: std::mem::replace(&mut self.output_since_drain, false)
+                .then(|| self.screen_tail(crate::pane_alert::SCREEN_TAIL_ROWS)),
         }
+    }
+
+    #[must_use]
+    pub fn screen_tail(&self, rows: usize) -> String {
+        let grid = self.grid();
+        let all: Vec<&[Cell]> = grid.visible_rows_iter().collect();
+        let mut out = String::with_capacity(rows * self.cols);
+        for row in &all[all.len().saturating_sub(rows)..] {
+            let mut line = String::with_capacity(self.cols);
+            for cell in row.iter().filter(|c| c.width != 0) {
+                cell.write_to(&mut line);
+            }
+            out.push_str(line.trim_end());
+            out.push('\n');
+        }
+        out
     }
 
     /// Inject a deterministic wall-clock for mark timestamps. The

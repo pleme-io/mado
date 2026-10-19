@@ -1610,15 +1610,131 @@ impl CommandCompletionConfig {
     /// core: enabled ∧ not-a-TUI ∧ slow-enough ∧ outcome-wanted ∧ away.
     #[must_use]
     pub fn should_notify(&self, c: &crate::ux::CommandCompletion, focused: bool) -> bool {
-        self.enabled
-            && !(self.respect_alt_screen && c.used_alt_screen)
+        self.enabled && self.qualifies(c) && !(self.only_when_unfocused && focused)
+    }
+
+    #[must_use]
+    pub fn qualifies(&self, c: &crate::ux::CommandCompletion) -> bool {
+        !(self.respect_alt_screen && c.used_alt_screen)
             && c.duration_ms >= self.min_duration_ms
             && (if c.succeeded() {
                 self.notify_on_success
             } else {
                 self.notify_on_failure
             })
-            && !(self.only_when_unfocused && focused)
+    }
+}
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, schemars::JsonSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum AlertDelivery {
+    Off,
+    #[default]
+    Badge,
+    Notify,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct PaneAlertReasons {
+    #[schemars(
+        description = "A command ran at least notifications.command_completion.min_duration_ms and finished (OSC 133 D)."
+    )]
+    pub long_command: AlertDelivery,
+    #[schemars(description = "The pane went quiet after sustained output.")]
+    pub idle: AlertDelivery,
+    #[schemars(
+        description = "A known input prompt settled at the bottom of the pane (Claude Code's input box or permission prompt, (y/n), password)."
+    )]
+    pub waiting_for_input: AlertDelivery,
+    #[schemars(description = "The pane rang the bell (BEL).")]
+    pub bell: AlertDelivery,
+}
+
+impl Default for PaneAlertReasons {
+    fn default() -> Self {
+        Self {
+            long_command: AlertDelivery::Notify,
+            idle: AlertDelivery::Badge,
+            waiting_for_input: AlertDelivery::Notify,
+            bell: AlertDelivery::Badge,
+        }
+    }
+}
+
+impl PaneAlertReasons {
+    #[must_use]
+    pub fn delivery(&self, reason: crate::pane_alert::AlertReason) -> AlertDelivery {
+        use crate::pane_alert::AlertReason;
+        match reason {
+            AlertReason::LongCommand => self.long_command,
+            AlertReason::Idle => self.idle,
+            AlertReason::WaitingForInput => self.waiting_for_input,
+            AlertReason::Bell => self.bell,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct PaneAlertsConfig {
+    #[schemars(
+        description = "Watch the pane while mado is unfocused and raise a badge, a single dock bounce and optionally a notification when it needs you."
+    )]
+    pub enabled: bool,
+    #[schemars(description = "Prefix the window (tab) title gets while an alert is pending.")]
+    pub badge: String,
+    #[schemars(description = "Bounce the dock once when an alert is raised.")]
+    pub flash: bool,
+    #[schemars(description = "Seconds of continuous output that arm the idle alert.")]
+    pub idle_sustain_secs: u64,
+    #[schemars(
+        description = "Seconds of silence after sustained output that raise the idle alert."
+    )]
+    pub idle_quiet_secs: u64,
+    #[schemars(description = "How long (ms) a prompt shape must stay on screen before it alerts.")]
+    pub prompt_settle_ms: u64,
+    #[schemars(
+        description = "Minimum seconds between two flashes or notifications from this pane."
+    )]
+    pub cooldown_secs: u64,
+    pub reasons: PaneAlertReasons,
+}
+
+impl Default for PaneAlertsConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl PaneAlertsConfig {
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            enabled: false,
+            ..Self::prescribed()
+        }
+    }
+
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self {
+            enabled: true,
+            badge: "● ".to_owned(),
+            flash: true,
+            idle_sustain_secs: 10,
+            idle_quiet_secs: 30,
+            prompt_settle_ms: 750,
+            cooldown_secs: 10,
+            reasons: PaneAlertReasons::default(),
+        }
+    }
+
+    #[must_use]
+    pub fn owns_long_command_banner(&self) -> bool {
+        self.enabled && self.reasons.long_command != AlertDelivery::Off
     }
 }
 
@@ -1696,6 +1812,7 @@ pub struct NotificationsConfig {
     /// Show OSC 9;4 (ConEmu) command progress in the dock badge (e.g.
     /// `45%`), taking precedence over the unread count while active.
     pub progress_dock: bool,
+    pub pane_alerts: PaneAlertsConfig,
 }
 
 impl Default for NotificationsConfig {
@@ -1720,6 +1837,7 @@ impl NotificationsConfig {
             osc: OscNotifyConfig::bare(),
             badge_unread: false,
             progress_dock: false,
+            pane_alerts: PaneAlertsConfig::bare(),
         }
     }
 
@@ -1739,6 +1857,7 @@ impl NotificationsConfig {
             osc: OscNotifyConfig::prescribed(),
             badge_unread: true,
             progress_dock: true,
+            pane_alerts: PaneAlertsConfig::prescribed(),
         }
     }
 }
@@ -7358,6 +7477,17 @@ mod coverage {
         "notifications.command_completion.respect_alt_screen",
         "notifications.enabled",
         "notifications.history_capacity",
+        "notifications.pane_alerts.badge",
+        "notifications.pane_alerts.cooldown_secs",
+        "notifications.pane_alerts.enabled",
+        "notifications.pane_alerts.flash",
+        "notifications.pane_alerts.idle_quiet_secs",
+        "notifications.pane_alerts.idle_sustain_secs",
+        "notifications.pane_alerts.prompt_settle_ms",
+        "notifications.pane_alerts.reasons.bell",
+        "notifications.pane_alerts.reasons.idle",
+        "notifications.pane_alerts.reasons.long_command",
+        "notifications.pane_alerts.reasons.waiting_for_input",
         "notifications.progress_dock",
         "notifications.rate_limit_per_min",
         "notifications.when",

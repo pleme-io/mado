@@ -77,6 +77,7 @@ mod notify_center;
 // non-macOS build broke (E0432/E0433 ×8) and nothing caught it, because
 // mado is only ever built for Linux on one fleet node.
 mod osc_1337;
+mod pane_alert;
 mod panel_fit;
 mod perf;
 mod picker;
@@ -1337,6 +1338,9 @@ fn main() -> anyhow::Result<()> {
                     }
                     if let Some(f) = follow_os.as_ref() {
                         demand = demand.with(madori::FrameDemand::At(f.next_poll()));
+                    }
+                    if let Some(at) = notify_center.pane_alert_deadline() {
+                        demand = demand.with(madori::FrameDemand::At(at));
                     }
                     renderer.set_loop_demand(demand);
                     // ONE typed drain + ONE shared consumer — the M4

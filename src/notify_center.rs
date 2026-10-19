@@ -176,6 +176,9 @@ pub struct NotificationCenter {
     /// Active command progress (OSC 9;4). While `Some`, it takes badge
     /// precedence over the unread count.
     progress: Option<DockProgress>,
+    alerts: crate::pane_alert::Detector,
+    base_title: Option<String>,
+    pane_flash: bool,
 }
 
 impl NotificationCenter {
@@ -190,6 +193,9 @@ impl NotificationCenter {
             badge_count: 0,
             last_focused: true,
             progress: None,
+            alerts: crate::pane_alert::Detector::new(&cfg.pane_alerts),
+            base_title: None,
+            pane_flash: false,
         }
     }
 
@@ -254,7 +260,94 @@ impl NotificationCenter {
     /// Re-apply config on hot-reload.
     pub fn reconfigure(&mut self, cfg: &NotificationsConfig) {
         self.gate.reconfigure(cfg);
+        self.alerts.reconfigure(&cfg.pane_alerts);
         self.cfg = cfg.clone();
+    }
+
+    #[must_use]
+    pub fn pane_alerts_own_long_command(&self) -> bool {
+        self.cfg.pane_alerts.owns_long_command_banner()
+    }
+
+    pub fn take_pane_flash(&mut self) -> bool {
+        std::mem::take(&mut self.pane_flash)
+    }
+
+    #[must_use]
+    pub fn pane_alert_deadline(&self) -> Option<Instant> {
+        self.alerts.next_deadline()
+    }
+
+    pub fn pane_alert(
+        &mut self,
+        now: Instant,
+        input: crate::pane_alert::Input<'_>,
+        detail: Option<&str>,
+        focused: bool,
+    ) -> bool {
+        use crate::pane_alert::Outcome;
+        let Some(outcome) = self.alerts.step(now, input) else {
+            return false;
+        };
+        if let Outcome::Raised { reason, delivery } = outcome {
+            if let Some(d) = detail {
+                self.alerts.set_detail(d.to_owned());
+            }
+            if self.alerts.config().flash {
+                self.pane_flash = true;
+                crate::platform::request_dock_attention_once();
+            }
+            if delivery == crate::config::AlertDelivery::Notify {
+                let n = self.pane_alert_notification(reason, detail);
+                self.notify_with(&n, NotifyWhen::Always, focused);
+            } else if self.cfg.badge_unread {
+                self.badge_count = self.badge_count.saturating_add(1);
+                self.refresh_badge();
+            }
+        }
+        crate::pane_alert::publish(self.alerts.alert(), self.base_title.as_deref());
+        true
+    }
+
+    fn pane_alert_notification(
+        &self,
+        reason: crate::pane_alert::AlertReason,
+        detail: Option<&str>,
+    ) -> Notification {
+        use crate::pane_alert::AlertReason;
+        let title = self.base_title.clone().unwrap_or_else(|| "mado".to_owned());
+        let body = match (reason, detail) {
+            (_, Some(d)) => d.to_owned(),
+            (AlertReason::WaitingForInput, None) => self
+                .alerts
+                .alert()
+                .and_then(|a| a.prompt)
+                .map_or("Waiting for input", crate::pane_alert::PromptKind::label)
+                .to_owned(),
+            (AlertReason::LongCommand, None) => "Command finished".to_owned(),
+            (AlertReason::Idle, None) => "Output went quiet".to_owned(),
+            (AlertReason::Bell, None) => "Bell".to_owned(),
+        };
+        Notification::new(title, body)
+            .urgency(tsuuchi::Urgency::Normal)
+            .group(format!("pane-alert-{}", reason.slug()))
+    }
+
+    pub fn pane_title(&mut self, drained: Option<String>, dirty: bool) -> Option<String> {
+        let changed = drained.is_some();
+        if let Some(t) = drained {
+            self.base_title = Some(t);
+            if let Some(a) = self.alerts.alert() {
+                crate::pane_alert::publish(Some(a), self.base_title.as_deref());
+            }
+        }
+        (changed || dirty).then(|| {
+            crate::pane_alert::badged_title(
+                self.alerts.config(),
+                self.base_title.as_deref().unwrap_or("mado"),
+                self.alerts.alert().is_some(),
+            )
+        })
     }
 
     /// Whether a BEL should raise a desktop notification.
@@ -556,5 +649,101 @@ mod tests {
         // Clearing progress reverts to the unread count.
         center.set_progress(DockProgress::Clear);
         assert_eq!(center.badge_label().as_deref(), Some("1"));
+    }
+
+    fn alert_center() -> NotificationCenter {
+        let dispatcher = NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()));
+        NotificationCenter::new(dispatcher, &cfg())
+    }
+
+    const CLAUDE_WAITING: &str = "────────────────\n❯ \n────────────────\n";
+
+    #[test]
+    fn a_waiting_pane_badges_its_title_and_notifies_with_it() {
+        use crate::pane_alert::Input;
+        let mut center = alert_center();
+        let t0 = Instant::now();
+        assert_eq!(
+            center
+                .pane_title(Some("agent run".to_owned()), false)
+                .as_deref(),
+            Some("agent run")
+        );
+        center.pane_alert(t0, Input::Focus(false), None, false);
+        assert!(
+            center.pane_alert(
+                t0,
+                Input::Output {
+                    tail: Some(CLAUDE_WAITING)
+                },
+                None,
+                false
+            ) == false
+        );
+        assert!(center.pane_alert(t0 + Duration::from_secs(1), Input::Tick, None, false));
+        assert_eq!(
+            center.pane_title(None, true).as_deref(),
+            Some("● agent run")
+        );
+        let delivered = center.recent(10);
+        assert_eq!(delivered.len(), 1);
+        assert_eq!(delivered[0].notification.title, "agent run");
+        assert_eq!(
+            delivered[0].notification.body,
+            "Claude Code is waiting for input"
+        );
+        assert!(center.pane_alert(t0 + Duration::from_secs(2), Input::Focus(true), None, true));
+        assert_eq!(center.pane_title(None, true).as_deref(), Some("agent run"));
+    }
+
+    #[test]
+    fn a_badge_only_reason_never_reaches_the_backend() {
+        use crate::pane_alert::Input;
+        let mut center = alert_center();
+        let t0 = Instant::now();
+        center.pane_alert(t0, Input::Focus(false), None, false);
+        assert!(center.pane_alert(t0, Input::Bell, None, false));
+        assert!(center.recent(10).is_empty());
+        assert_eq!(
+            center.badge_count(),
+            1,
+            "a badge-only alert still counts on the dock"
+        );
+        assert!(center.take_pane_flash());
+        assert!(!center.take_pane_flash(), "the in-window flash fires once");
+        assert_eq!(center.pane_title(None, true).as_deref(), Some("● mado"));
+        center.on_frame(false);
+        center.on_frame(true);
+        assert_eq!(center.badge_count(), 0);
+    }
+
+    #[test]
+    fn a_long_command_notifies_once_through_the_pane_alert() {
+        use crate::pane_alert::Input;
+        let mut center = alert_center();
+        assert!(center.pane_alerts_own_long_command());
+        let t0 = Instant::now();
+        center.pane_alert(t0, Input::Focus(false), None, false);
+        center.pane_alert(
+            t0,
+            Input::CommandFinished { qualifies: true },
+            Some("✓ Command finished · Done in 12.0s"),
+            false,
+        );
+        let delivered = center.recent(10);
+        assert_eq!(delivered.len(), 1);
+        assert_eq!(
+            delivered[0].notification.body,
+            "✓ Command finished · Done in 12.0s"
+        );
+    }
+
+    #[test]
+    fn disabled_pane_alerts_leave_the_legacy_banner_in_charge() {
+        let mut c = cfg();
+        c.pane_alerts.enabled = false;
+        let dispatcher = NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()));
+        let center = NotificationCenter::new(dispatcher, &c);
+        assert!(!center.pane_alerts_own_long_command());
     }
 }

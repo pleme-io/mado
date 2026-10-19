@@ -162,6 +162,14 @@ pub fn request_dock_attention() {
     tracing::debug!("dock attention requested — no platform surface on this OS");
 }
 
+pub fn request_dock_attention_once() {
+    #[cfg(target_os = "macos")]
+    macos::request_attention(false);
+
+    #[cfg(not(target_os = "macos"))]
+    tracing::debug!("one-shot dock attention requested — no platform surface on this OS");
+}
+
 /// Ring the system audible bell — `None` plays the classic system beep
 /// (`NSBeep`); `Some(name)` plays a named `NSSound` (e.g. `"Basso"`,
 /// `"Ping"`), falling back to `NSBeep` when the name is unknown. Playback

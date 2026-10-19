@@ -1405,18 +1405,20 @@ impl MadoMcp {
     }
 
     #[tool(
-        description = "Read the current OSC 1337 RequestAttention flag. Returns `{attention_requested}`. Used by escriba workflows that want to know whether a terminal is currently asking for user attention (e.g., long-running test signals completion)."
+        description = "Read whether mado needs the operator. Returns `{attention_requested, pane_alert, pane_alert_outcome, needs_attention, live_gui_pid}`: `attention_requested` is the OSC 1337 RequestAttention flag this MCP server holds; `pane_alert` is the LIVE GUI's pending pane-activity alert forwarded via kanshou (`{reason: waiting_for_input|long_command|idle|bell, prompt, title, detail, age_ms}`, null when none), with `pane_alert_outcome` found / empty / blind (blind = no GUI reachable, so nothing is known about its panes). The alert clears when the operator focuses the pane."
     )]
     async fn attention_get(&self) -> String {
-        let guard = self
+        let requested = *self
             .state
             .attention
             .lock()
             .expect("attention lock poisoned");
-        serde_json::json!({
-            "attention_requested": *guard,
-        })
-        .to_string()
+        let live =
+            kanshou::mcp::forward_status("mado", &kanshou::Query::field(["pane_alert"]), || {
+                Ok(serde_json::json!({ "alert": serde_json::Value::Null }))
+            })
+            .await;
+        attention_answer(requested, live).to_string()
     }
 
     #[tool(
@@ -2456,6 +2458,32 @@ where
             format!("invalid {label}: {e}"),
             [format!("a valid {label}")],
         ),
+    })
+}
+
+fn attention_answer(requested: bool, live: kanshou::mcp::ForwardOutcome) -> serde_json::Value {
+    let (outcome, pid, alert) = match live {
+        kanshou::mcp::ForwardOutcome::Live { pid, value } => {
+            let alert = value
+                .get("alert")
+                .cloned()
+                .unwrap_or(serde_json::Value::Null);
+            let outcome = if alert.is_null() { "empty" } else { "found" };
+            (outcome, serde_json::json!(pid), alert)
+        }
+        kanshou::mcp::ForwardOutcome::LiveError { pid, .. } => {
+            ("blind", serde_json::json!(pid), serde_json::Value::Null)
+        }
+        kanshou::mcp::ForwardOutcome::Fallback { .. } => {
+            ("blind", serde_json::Value::Null, serde_json::Value::Null)
+        }
+    };
+    serde_json::json!({
+        "attention_requested": requested,
+        "pane_alert": alert,
+        "pane_alert_outcome": outcome,
+        "needs_attention": requested || !alert.is_null(),
+        "live_gui_pid": pid,
     })
 }
 
@@ -4369,6 +4397,42 @@ mod tests {
         let raw = server.attention_get().await;
         let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
         assert_eq!(parsed["attention_requested"], true);
+    }
+
+    #[test]
+    fn attention_answer_carries_the_live_pane_alert() {
+        let live = kanshou::mcp::ForwardOutcome::Live {
+            pid: 42,
+            value: serde_json::json!({ "alert": { "reason": "waiting_for_input", "title": "agent" } }),
+        };
+        let a = attention_answer(false, live);
+        assert_eq!(a["pane_alert"]["reason"], "waiting_for_input");
+        assert_eq!(a["pane_alert_outcome"], "found");
+        assert_eq!(a["needs_attention"], true);
+        assert_eq!(a["attention_requested"], false);
+        assert_eq!(a["live_gui_pid"], 42);
+    }
+
+    #[test]
+    fn attention_answer_never_reads_an_unreachable_gui_as_calm() {
+        let none = attention_answer(
+            false,
+            kanshou::mcp::ForwardOutcome::Live {
+                pid: 7,
+                value: serde_json::json!({ "alert": null }),
+            },
+        );
+        assert_eq!(none["pane_alert_outcome"], "empty");
+        assert_eq!(none["needs_attention"], false);
+        let blind = attention_answer(
+            true,
+            kanshou::mcp::ForwardOutcome::Fallback {
+                value: serde_json::Value::Null,
+            },
+        );
+        assert_eq!(blind["pane_alert_outcome"], "blind");
+        assert_eq!(blind["needs_attention"], true);
+        assert!(blind["live_gui_pid"].is_null());
     }
 
     #[test]

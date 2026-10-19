@@ -1371,6 +1371,9 @@ where
                         std::time::Instant::now() + crate::platform::STYLING_RETRY,
                     ));
                 }
+                if let Some(at) = notify_center.pane_alert_deadline() {
+                    demand = demand.with(madori::FrameDemand::At(at));
+                }
                 renderer.set_loop_demand(demand);
             }
 

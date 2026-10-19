@@ -22,6 +22,8 @@
 /// `Normal`; OSC 1337 `RequestAttention` routes `Critical`.
 pub use tsuuchi::Urgency;
 
+use crate::pane_alert::Input as PaneInput;
+
 /// One typed desktop notification queued by the terminal (OSC 9 /
 /// OSC 777;notify / OSC 99). The queue carries ONLY notifications —
 /// `ConEmu` progress (OSC 9;4) lives in its own typed lane
@@ -112,6 +114,7 @@ pub struct TerminalSideEffects {
     /// raw fact (exit + duration + whether a TUI ran). `apply_side_effects`
     /// decides the exit-status glow + the away-notification against config.
     pub command_completion: Option<CommandCompletion>,
+    pub output: Option<String>,
 }
 
 /// One completed shell command, derived from the OSC 133 `C`→`D` span.
@@ -170,6 +173,8 @@ pub fn apply_side_effects(
     // Per-frame focus tick — clears the dock badge on the unfocused→
     // focused transition.
     notify.on_frame(focused);
+    let now = std::time::Instant::now();
+    let mut alert_dirty = notify.pane_alert(now, PaneInput::Focus(focused), None, focused);
     if let Some(clip) = effects.clipboard
         && let Err(e) = clipboard.copy_text(&clip)
     {
@@ -180,6 +185,7 @@ pub fn apply_side_effects(
         // the desktop banner are opt-in (`notifications.bell.audible` /
         // `.notify`, default off — bells are frequent).
         renderer.trigger_bell();
+        alert_dirty |= notify.pane_alert(now, PaneInput::Bell, None, focused);
         if notify.bell_audible() {
             crate::platform::ring_bell(notify.bell_sound_name());
         }
@@ -244,15 +250,29 @@ pub fn apply_side_effects(
         // Away-notification for a long-running command. `should_notify`
         // already applied the focus gate (`only_when_unfocused`), so the
         // dispatch uses `Always` — double-gating here would silently drop it.
-        if notify.command_completion().should_notify(&cc, focused) {
-            notify.notify_with(
-                &completion_notification(&cc),
-                crate::config::NotifyWhen::Always,
-                focused,
-            );
+        let summary = completion_notification(&cc);
+        let qualifies = notify.command_completion().qualifies(&cc);
+        alert_dirty |= notify.pane_alert(
+            now,
+            PaneInput::CommandFinished { qualifies },
+            Some(&format!("{} · {}", summary.title, summary.body)),
+            focused,
+        );
+        if !notify.pane_alerts_own_long_command()
+            && notify.command_completion().should_notify(&cc, focused)
+        {
+            notify.notify_with(&summary, crate::config::NotifyWhen::Always, focused);
         }
     }
-    effects.title
+    if let Some(tail) = effects.output.as_deref() {
+        alert_dirty |=
+            notify.pane_alert(now, PaneInput::Output { tail: Some(tail) }, None, focused);
+    }
+    alert_dirty |= notify.pane_alert(now, PaneInput::Tick, None, focused);
+    if notify.take_pane_flash() {
+        renderer.trigger_bell();
+    }
+    notify.pane_title(effects.title, alert_dirty)
 }
 
 /// A clean command that ran at least this long (ms) still earns a success

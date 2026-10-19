@@ -625,6 +625,25 @@
       "description": "Terminal notification-escape protocol toggles.",
       "type": "object"
     },
+    "pane_alerts": {
+      "default": {
+        "badge": "● ",
+        "cooldown_secs": 10,
+        "enabled": true,
+        "flash": true,
+        "idle_quiet_secs": 30,
+        "idle_sustain_secs": 10,
+        "prompt_settle_ms": 750,
+        "reasons": {
+          "bell": "badge",
+          "idle": "badge",
+          "long_command": "notify",
+          "waiting_for_input": "notify"
+        }
+      },
+      "description": "",
+      "type": "object"
+    },
     "progress_dock": {
       "default": true,
       "description": "Show OSC 9;4 (ConEmu) command progress in the dock badge (e.g.\n`45%`), taking precedence over the unread count while active.",

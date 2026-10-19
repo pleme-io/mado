@@ -101,6 +101,7 @@ const READ_ONLY_LEAVES: &[&str] = &[
     "pane_snapshot_embedded",
     "browser_snapshot_get",
     "browser_surfaces",
+    "pane_alert",
 ];
 
 impl Introspect for MadoAppState {
@@ -127,6 +128,9 @@ impl MadoAppState {
         };
         match first {
             "frame_perf" => Ok(crate::perf::frame_perf()),
+            "pane_alert" => Ok(serde_json::json!({
+                "alert": crate::pane_alert::snapshot(std::time::Instant::now()),
+            })),
             // ── ★ S4: WHAT THE CLIENT BELIEVES ABOUT ITS OWN GEOMETRY ────
             //
             // The other half of a size disagreement. omoya publishes the
@@ -1089,6 +1093,7 @@ impl MadoAppState {
         "browser_snapshot",
         "browser_snapshot_get",
         "browser_surfaces",
+        "pane_alert",
     ];
 }
 

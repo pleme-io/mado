@@ -167,6 +167,64 @@ is emitted by `Terminal` and *all* policy lives in `apply_side_effects` +
 config — the signal stays a pure fact (TYPED-SPEC discipline). Try it inside
 a Mado.app window with `mado feedback-test`.
 
+## Pane activity alerts — shipped
+
+A long agent session (Claude Code) in a background mado window no longer has
+to be polled. While the window is unfocused, `src/pane_alert.rs` watches the
+pane and raises an alert for one of four reasons:
+
+| Reason | Fires when | Default |
+|---|---|---|
+| `waiting_for_input` | a prompt shape from the typed table (`PROMPT_SHAPES`) has stayed on the bottom 24 rows for `prompt_settle_ms`: Claude Code's input box (a `❯` line under a `─` rule, with no "esc to interrupt" spinner), its permission prompt ("Do you want to…" + `❯ 1.`), a `(y/n)`-style confirm, a password or passphrase prompt | notify |
+| `long_command` | an OSC 133 `D` closes a command that passes `notifications.command_completion` (≥ `min_duration_ms`, not a TUI, outcome wanted) | notify |
+| `idle` | output ran for `idle_sustain_secs` (gaps under 5 s) and then stopped for `idle_quiet_secs` | badge |
+| `bell` | BEL | badge |
+
+An alert prefixes the window title with `badge` (visible in the native tab
+label, the Window menu and window switchers; mado's flush titlebar hides the
+title text itself), adds one to the dock badge (`badge_unread`), and with
+`flash` plays the visual-bell flash in the window and bounces the dock once.
+A `notify` reason also sends one banner titled with the pane's title through
+the notification center, so it goes to shirase when its socket is live
+(`backend: auto`). It is published to
+the kanshou leaf `pane_alert`, which `attention_get` forwards as `pane_alert`.
+Focusing the window clears it.
+
+The detector is a pure state machine (`Detector::step(now, Input)`), so every
+rule is a unit test: one alert at a time, a higher reason escalates the badge,
+each reason flashes at most once per alert, and nothing flashes twice inside
+`cooldown_secs`, which a focus round-trip does not reset. A prompt already on
+screen when focus leaves was seen, so it does not alert; the idle timer and the
+prompt-settle timer are frame deadlines, so an idle window wakes only when one
+is due.
+
+When pane alerts are enabled and `long_command` is not `off`, they own the
+long-command banner and the older `command_completion` banner stays quiet, so a
+finished command produces one notification, not two.
+
+```yaml
+notifications:
+  pane_alerts:
+    enabled: true
+    badge: "● "
+    flash: true
+    idle_sustain_secs: 10
+    idle_quiet_secs: 30
+    prompt_settle_ms: 750
+    cooldown_secs: 10
+    reasons:
+      waiting_for_input: notify
+      long_command: notify
+      idle: badge
+      bell: badge
+```
+
+Scope: mado renders one tear pane per window, so "pane not focused" is "its
+window is not key". Panes that no mado window is attached to send mado no
+bytes and are not watched; covering them needs tear to publish per-pane
+activity. Shirase has no action routing back into mado yet, so clicking a
+banner informs rather than focusing the pane.
+
 ## Milestones
 
 - **M0 (this arc — shipped):** L0 tsuuchi extension · L1 native backend +
