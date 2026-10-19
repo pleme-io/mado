@@ -189,6 +189,7 @@ pub struct MadoConfig {
 #[serde(default, deny_unknown_fields)]
 pub struct AttachmentsConfig {
     pub pill: bool,
+    pub temp_ttl_secs: u64,
 }
 
 impl Default for AttachmentsConfig {
@@ -200,12 +201,18 @@ impl Default for AttachmentsConfig {
 impl AttachmentsConfig {
     #[must_use]
     pub const fn bare() -> Self {
-        Self { pill: false }
+        Self {
+            pill: false,
+            temp_ttl_secs: crate::clipboard_store::DEFAULT_TEMP_TTL_SECS,
+        }
     }
 
     #[must_use]
     pub const fn prescribed() -> Self {
-        Self { pill: true }
+        Self {
+            pill: true,
+            temp_ttl_secs: crate::clipboard_store::DEFAULT_TEMP_TTL_SECS,
+        }
     }
 }
 
@@ -7548,6 +7555,7 @@ mod coverage {
         "appearance.foreground",
         "appearance.opacity",
         "attachments.pill",
+        "attachments.temp_ttl_secs",
         "behavior.confirm_close",
         "behavior.copy_on_select",
         "behavior.deselect_on_copy",

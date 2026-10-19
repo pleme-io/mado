@@ -63,6 +63,11 @@
       "default": true,
       "description": "",
       "type": "bool"
+    },
+    "temp_ttl_secs": {
+      "default": 86400,
+      "description": "",
+      "type": "int"
     }
   },
   "behavior": {

@@ -483,6 +483,7 @@ impl ConfigHotReload {
         let new = self.source.take_if_dirty()?;
         let applied = self.applier.apply_delta(&new, target);
         tracing::info!(setter_calls = applied, "config reload delta applied");
+        crate::clipboard_store::set_temp_ttl_secs(new.attachments.temp_ttl_secs);
         if let Some(ctl) = crate::suggest::engine_control() {
             ctl.swap(
                 new.suggestions.clone(),

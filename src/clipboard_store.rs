@@ -319,11 +319,15 @@ pub fn dropped_path_text(path: &str) -> String {
 // (`ClipboardProvider::paste_image`); this owns the terminal-side policy
 // of materializing it into a pasteable file.
 
-/// How long a clipboard-image temp PNG lives before the next image paste
-/// reaps it. Matches ghostty's 24h retention — long enough that a pasted
-/// path stays valid across a work session, short enough that `$TMPDIR`
-/// doesn't accumulate screenshots forever.
-const CLIPBOARD_PNG_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+/// How long an owned temp file lives before the sweeper reaps it, unless
+/// `attachments.temp_ttl_secs` says otherwise. Matches ghostty's 24h
+/// retention — long enough that a pasted path stays valid across a work
+/// session, short enough that `$TMPDIR` doesn't accumulate screenshots
+/// forever.
+pub const DEFAULT_TEMP_TTL_SECS: u64 = 24 * 60 * 60;
+
+static TEMP_TTL_SECS: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(DEFAULT_TEMP_TTL_SECS);
 
 /// Filename prefix for mado's clipboard-image temp PNGs. Owned (not the
 /// bare `clipboard-` ghostty uses) so the reaper only ever deletes
@@ -388,10 +392,61 @@ pub const DROP_TEMP: OwnedTemp = OwnedTemp::new("mado-drop-", None);
 
 pub const OWNED_TEMPS: [OwnedTemp; 2] = [CLIPBOARD_PNG, DROP_TEMP];
 
-pub fn reap_owned_temps(dir: &std::path::Path) {
-    for temp in OWNED_TEMPS {
-        temp.reap(dir, CLIPBOARD_PNG_MAX_AGE);
+#[must_use]
+pub const fn ttl_from_secs(secs: u64) -> Option<std::time::Duration> {
+    if secs == 0 {
+        None
+    } else {
+        Some(std::time::Duration::from_secs(secs))
     }
+}
+
+pub fn set_temp_ttl_secs(secs: u64) {
+    TEMP_TTL_SECS.store(secs, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[must_use]
+pub fn temp_ttl() -> Option<std::time::Duration> {
+    ttl_from_secs(TEMP_TTL_SECS.load(std::sync::atomic::Ordering::Relaxed))
+}
+
+pub fn reap_owned_temps(dir: &std::path::Path) {
+    reap_owned_temps_older_than(dir, temp_ttl());
+}
+
+pub fn reap_owned_temps_older_than(dir: &std::path::Path, ttl: Option<std::time::Duration>) {
+    let Some(ttl) = ttl else { return };
+    for temp in OWNED_TEMPS {
+        temp.reap(dir, ttl);
+    }
+}
+
+#[must_use]
+pub fn sweep_interval(ttl: Option<std::time::Duration>) -> std::time::Duration {
+    const FLOOR: std::time::Duration = std::time::Duration::from_secs(60);
+    const CEILING: std::time::Duration = std::time::Duration::from_secs(60 * 60);
+    ttl.map_or(CEILING, |ttl| (ttl / 8).clamp(FLOOR, CEILING))
+}
+
+pub fn spawn_temp_sweeper() {
+    let spawned = std::thread::Builder::new()
+        .name("mado-temp-sweep".into())
+        .spawn(|| {
+            let dir = std::env::temp_dir();
+            loop {
+                let ttl = temp_ttl();
+                reap_owned_temps_older_than(&dir, ttl);
+                std::thread::sleep(sweep_interval(ttl));
+            }
+        });
+    if let Err(error) = spawned {
+        tracing::warn!(%error, "temp sweeper not started; owned temps reap on the next drop or paste");
+    }
+}
+
+#[allow(unsafe_code)]
+fn current_uid() -> u32 {
+    unsafe { libc::getuid() }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -424,11 +479,25 @@ impl OwnedTemp {
         name.starts_with(self.prefix) && self.suffix.is_none_or(|suffix| name.ends_with(suffix))
     }
 
+    #[must_use]
+    pub fn reapable(
+        &self,
+        name: &str,
+        owner: u32,
+        me: u32,
+        age: Option<std::time::Duration>,
+        max_age: std::time::Duration,
+    ) -> bool {
+        self.owns(name) && owner == me && age.is_some_and(|age| age > max_age)
+    }
+
     pub fn reap(&self, dir: &std::path::Path, max_age: std::time::Duration) {
+        use std::os::unix::fs::MetadataExt as _;
         let Ok(entries) = std::fs::read_dir(dir) else {
             return;
         };
         let now = std::time::SystemTime::now();
+        let me = current_uid();
         for entry in entries.flatten() {
             let name = entry.file_name();
             let Some(name) = name.to_str() else { continue };
@@ -436,12 +505,11 @@ impl OwnedTemp {
                 continue;
             }
             let Ok(meta) = entry.metadata() else { continue };
-            let stale = meta
+            let age = meta
                 .modified()
                 .ok()
-                .and_then(|mtime| now.duration_since(mtime).ok())
-                .is_some_and(|age| age > max_age);
-            if !stale {
+                .and_then(|mtime| now.duration_since(mtime).ok());
+            if !self.reapable(name, meta.uid(), me, age, max_age) {
                 continue;
             }
             let path = entry.path();
@@ -675,6 +743,96 @@ mod tests {
             encode_clipboard_png(0, 0, &[]).unwrap_err(),
             ClipboardImageError::Empty
         ));
+    }
+
+    fn backdated(path: &std::path::Path, age: std::time::Duration) {
+        let file = std::fs::File::open(path).unwrap();
+        file.set_modified(std::time::SystemTime::now() - age)
+            .unwrap();
+    }
+
+    fn reap_scratch() -> std::path::PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let dir =
+            std::env::temp_dir().join(format!("mado-sweep-test-{}-{nanos}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn the_sweep_reaps_every_owned_temp_past_its_ttl_and_nothing_else() {
+        let dir = reap_scratch();
+        let hour = std::time::Duration::from_secs(60 * 60);
+        let old_drop = dir.join("mado-drop-1-2.png");
+        let old_clip = dir.join("mado-clip-1-2.png");
+        let fresh_drop = dir.join("mado-drop-3-4.png");
+        let foreign = dir.join("clipboard-5.png");
+        for f in [&old_drop, &old_clip, &fresh_drop, &foreign] {
+            std::fs::write(f, b"x").unwrap();
+        }
+        let old_promise = dir.join("mado-drop-5-6");
+        std::fs::create_dir_all(&old_promise).unwrap();
+        std::fs::write(old_promise.join("Screenshot.png"), b"x").unwrap();
+        for f in [&old_drop, &old_clip, &foreign, &old_promise] {
+            backdated(f, 3 * hour);
+        }
+        reap_owned_temps_older_than(&dir, Some(2 * hour));
+        assert!(!old_drop.exists(), "a stale drop png is reaped");
+        assert!(!old_clip.exists(), "a stale legacy clip png is reaped");
+        assert!(
+            !old_promise.exists(),
+            "a stale promise directory is reaped whole"
+        );
+        assert!(fresh_drop.exists(), "a drop inside its ttl stays");
+        assert!(foreign.exists(), "another program's temp is never touched");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_zero_ttl_turns_the_sweep_off() {
+        assert_eq!(ttl_from_secs(0), None);
+        let dir = reap_scratch();
+        let old = dir.join("mado-drop-7-8.png");
+        std::fs::write(&old, b"x").unwrap();
+        backdated(&old, std::time::Duration::from_secs(10 * 24 * 60 * 60));
+        reap_owned_temps_older_than(&dir, ttl_from_secs(0));
+        assert!(old.exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn only_files_owned_by_this_user_are_reapable() {
+        use std::os::unix::fs::MetadataExt as _;
+        let ttl = std::time::Duration::from_secs(60);
+        let old = Some(std::time::Duration::from_secs(120));
+        assert!(DROP_TEMP.reapable("mado-drop-1.png", 501, 501, old, ttl));
+        assert!(!DROP_TEMP.reapable("mado-drop-1.png", 0, 501, old, ttl));
+        assert!(!DROP_TEMP.reapable("mado-drop-1.png", 501, 501, None, ttl));
+        assert!(!DROP_TEMP.reapable("other-1.png", 501, 501, old, ttl));
+        let probe = reap_scratch();
+        let uid = std::fs::metadata(&probe).unwrap().uid();
+        let _ = std::fs::remove_dir_all(&probe);
+        assert_eq!(current_uid(), uid);
+    }
+
+    #[test]
+    fn the_sweep_runs_often_enough_for_its_ttl_and_never_spins() {
+        let s = std::time::Duration::from_secs;
+        assert_eq!(sweep_interval(Some(s(24 * 60 * 60))), s(60 * 60));
+        assert_eq!(sweep_interval(Some(s(16 * 60))), s(2 * 60));
+        assert_eq!(sweep_interval(Some(s(1))), s(60));
+        assert_eq!(sweep_interval(None), s(60 * 60));
+    }
+
+    #[test]
+    fn the_configured_ttl_reaches_the_sweeper() {
+        assert_eq!(
+            temp_ttl(),
+            ttl_from_secs(crate::config::AttachmentsConfig::default().temp_ttl_secs)
+        );
     }
 
     #[test]
