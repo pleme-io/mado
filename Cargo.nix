@@ -10331,7 +10331,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.194";
+        version = "0.1.195";
         edition = "2024";
         crateBin = [
           {
@@ -25703,9 +25703,9 @@ rec {
       };
       "tokio" = rec {
         crateName = "tokio";
-        version = "1.53.3";
+        version = "1.54.0";
         edition = "2021";
-        sha256 = "0kny1nnbpy11dllv6ncxy3n804wh0ddn3msq78rxl744f7x3acyf";
+        sha256 = "1g70adfv7bw6q84lr9s9nr232lpwvx5mv9h8x77zwnxrfjj6ihd0";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -25761,7 +25761,7 @@ rec {
             name = "socket2";
             packageId = "socket2";
             optional = true;
-            target = { target, features }: ((!(builtins.elem "wasm" target."family")) || (("wasi" == target."os" or null) && (!("p1" == target."env" or null))));
+            target = { target, features }: ((!(builtins.elem "wasm" target."family")) || ("emscripten" == target."os" or null) || (("wasi" == target."os" or null) && (!("p1" == target."env" or null))));
             features = [ "all" ];
           }
           {
