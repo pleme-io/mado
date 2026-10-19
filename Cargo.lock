@@ -209,9 +209,9 @@ dependencies = [
 
 [[package]]
 name = "arc-swap"
-version = "1.9.2"
+version = "1.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c049c0be4daef0b145cb3555416b3b8ef5b7888a38aea1a3a155801fe7b0810b"
+checksum = "380962b3d93b99642e50b9febf72c071e97e8b32d86eae9cf4ef582bb960ae6e"
 dependencies = [
  "rustversion",
 ]
@@ -263,9 +263,9 @@ dependencies = [
 
 [[package]]
 name = "async-compression"
-version = "0.4.50"
+version = "0.4.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee19bd99b43e3691acbad4e840420a4881cea6c0b66a208125a824f8fd53f5a1"
+checksum = "9d5755640120b24961f8231e05892e4a4f7e0d04e8aeca161508c9c397946970"
 dependencies = [
  "compression-codecs",
  "compression-core",
@@ -647,9 +647,9 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "cc"
-version = "1.8.0"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6651c9ed80effdc7db0ff72512157f901af5e3549e341e24b1dd4887d836d838"
+checksum = "877bf67ac8e52449eb2f9e98a344ea163beb70dd1f9eebe3cc5357dcfeaee4df"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -795,9 +795,9 @@ checksum = "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570"
 
 [[package]]
 name = "combine"
-version = "4.6.8"
+version = "4.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfc320937d09e6de266b31b9afb480f197d7a861be86be7cb2ea7e5d1bfffc5e"
+checksum = "4356eba6976435498d05a311ee9fc486da3bc81c200d3f0d7dd9703b41913f92"
 dependencies = [
  "bytes",
  "memchr",
@@ -805,9 +805,9 @@ dependencies = [
 
 [[package]]
 name = "compression-codecs"
-version = "0.4.45"
+version = "0.4.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98fc98460ba0ad5317075d3632b8dfc45d0be8c4a49347c2a38272019717614a"
+checksum = "cae36683101b2899f48bd31f8db9839437356188e3b1ff23096e73dab09ba8fe"
 dependencies = [
  "brotli",
  "compression-core",
@@ -817,9 +817,9 @@ dependencies = [
 
 [[package]]
 name = "compression-core"
-version = "0.4.33"
+version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e8ccc4ea9f6acc32d102c0f6d471d11d913ad15f20c04de743374861fa1d414"
+checksum = "2ebdda89edc534bf8d5dd2857562633b6495557e5846552ade994b99ed13c36a"
 
 [[package]]
 name = "concurrent-queue"
@@ -1659,9 +1659,9 @@ dependencies = [
 
 [[package]]
 name = "find-msvc-tools"
-version = "0.1.14"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484"
+checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
 
 [[package]]
 name = "flate2"
@@ -1699,9 +1699,9 @@ checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
 name = "font-types"
-version = "0.12.6"
+version = "0.12.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c92d9081c7ab3bd83ef1eecdfad090f3d966e3ce74106779664114cfe1a6274"
+checksum = "835ae9d781464a79026cde387f9cbc650c9a4909d7cf7e658b127e3c35d2f35d"
 dependencies = [
  "bytemuck",
 ]
@@ -2823,9 +2823,9 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "izumi"
-version = "0.1.22"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a3ee01387a706f6e1489505462cbee241fede4143da67e4cd7078b8c60b44b6"
+checksum = "e6e24c9a48c79d622256904b1641b1947e9a8a25ecba307252a489231b1a7471"
 dependencies = [
  "blake3",
  "dirs 5.0.1",
@@ -2842,9 +2842,9 @@ dependencies = [
 
 [[package]]
 name = "izumi-config"
-version = "0.1.22"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fd041ba3a73cfe6639dd37afcfb2bf97cc62a7f38f886c2236164f7b0d1a1ea"
+checksum = "cab2698b066e2218a225f339cdfb7bf81385519d9449d86810ba6771ae4c94b3"
 dependencies = [
  "izumi",
  "serde",
@@ -2853,9 +2853,9 @@ dependencies = [
 
 [[package]]
 name = "izumi-sources"
-version = "0.1.22"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b37104ac00ab3b0c8dd5d266eae4296d7246c5677bb6d68347ac7cb2c0e320f0"
+checksum = "4c8c1acbdccc04786df22a1a8aa5f3bc18d8ee92e91f18484ae649d4d2051e75"
 dependencies = [
  "izumi",
  "serde",
@@ -3213,9 +3213,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.190"
+version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78"
+checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
 
 [[package]]
 name = "libloading"
@@ -3251,7 +3251,7 @@ dependencies = [
  "bitflags 2.13.2",
  "libc",
  "plain",
- "redox_syscall 0.9.4",
+ "redox_syscall 0.9.5",
 ]
 
 [[package]]
@@ -3382,7 +3382,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.192"
+version = "0.1.193"
 dependencies = [
  "anyhow",
  "awase",
@@ -5385,9 +5385,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.9.4"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "737970939a87c6fa31e7acad13307bccbb017a073b695b6089a2c484f929e20e"
+checksum = "580c875845b41ecb1564ad1ae4703044cef774145e3d7a94dc2b3fa7c97868fd"
 dependencies = [
  "bitflags 2.13.2",
 ]
@@ -5797,9 +5797,9 @@ dependencies = [
 
 [[package]]
 name = "schannel"
-version = "0.1.29"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91c1b7e4904c873ef0710c1f407dde2e6287de2bebc1bbbf7d430bb7cbffd939"
+checksum = "9cb23c424d8ee841bb4d813677ca237e2a610067d594fec130f87d6093495ab5"
 dependencies = [
  "windows-sys 0.61.2",
 ]
@@ -7428,9 +7428,9 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 
 [[package]]
 name = "todoku"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d36fa128f553feff96fc0deeb20bf677d5ef79c2232176258360fce570ba1014"
+checksum = "6ee883cd2d2ade666c00a77530adee6a1fe1ad7f506ab709068fad962e42b82b"
 dependencies = [
  "async-trait",
  "handan",
@@ -7836,9 +7836,9 @@ checksum = "3b09c83c3c29d37506a3e260c08c03743a6bb66a9cd432c6934ab501a190571f"
 
 [[package]]
 name = "unicode-normalization"
-version = "0.1.25"
+version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fd4f6878c9cb28d874b009da9e8d183b5abc80117c40bbd187a1fde336be6e8"
+checksum = "75cd3fb03d5288b3ba9a1ee103ac7e9cbb59f0b03d64f8ddfcc04dd42758a85d"
 dependencies = [
  "tinyvec",
 ]
@@ -7988,9 +7988,9 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vigy"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a37a791aae51f4c9e4f3b00c89af380ef1648a98bdfbd1e2f6e07c582881c44"
+checksum = "cb6bb9af9ebed6ee09b2224ebc1b2dac7732ff350619450e556dd1aa5b35b5e0"
 dependencies = [
  "vigy-eval",
  "vigy-mcp",
@@ -8001,9 +8001,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-eval"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7903d1aa2c842f4803ae81020756b242d55519165d9d6ccd0ed566e22c504e76"
+checksum = "c6d876a6f375ec1dd8cbb7f3817994f6621b31d0af26b9cf420b5166744abbb3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8020,9 +8020,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-mcp"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5c341f7386cfb5b033768fd2b8ace84165ecb20932c20d81d893cfa521caef8"
+checksum = "2627c81502bbf43d248c7f9d55cc2a440744dc36c6c6e96eab4c7424bb86c483"
 dependencies = [
  "anyhow",
  "serde",
@@ -8035,9 +8035,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-runtime"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94d70a5059ec1e89821a77f9a783bf2af1c3a799e8c985e1b2a1ec60c76548be"
+checksum = "97e886acc80e77765754354dab61e2ab4ab0c71cf6aa805f4d42affc7381a3d8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8054,9 +8054,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-store"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8ae872e2af5a9ab0c6080d86ad22e3f88004b926ba69c5b5f13065315e32f9f"
+checksum = "fe26021f6ec3cc2813946b558d0c6eb2526bacad7abb96e0c9c893cf32d4bc78"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8075,9 +8075,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-types"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d733b616938e0d77be64cdbe4990c98f3115e90b83236307052585d612ab369a"
+checksum = "3b070bd65546da96bfbe9c6b074905dffa08ce01058f62f5ee04e65229063704"
 dependencies = [
  "blake3",
  "serde",
