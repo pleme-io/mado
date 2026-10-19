@@ -160,6 +160,7 @@ pub struct InputEngine {
     /// directly — only through this seam.
     session_picker_bridge: Option<Box<dyn SessionPickerBridge>>,
     clipboard: Arc<dyn ClipboardProvider>,
+    pasteboard: crate::file_drop::PasteboardReader,
     keybinds: KeybindManager,
     pub(crate) behavior: UxBehavior,
     /// Clickable-link interaction gates (hover pointer cursor +
@@ -343,6 +344,7 @@ impl InputEngine {
             session_picker: params.shared.session_picker,
             session_picker_bridge: params.session_picker_bridge,
             clipboard: params.clipboard,
+            pasteboard: crate::file_drop::system_pasteboard(),
             keybinds: params.keybinds,
             behavior: params.behavior,
             links: params.links,
@@ -1511,32 +1513,51 @@ impl InputEngine {
     /// without this, a clipboard containing ESC[201~ executes the
     /// rest of the paste as keystrokes (classic paste injection).
     fn paste(&mut self) {
-        // ghostty parity: a clipboard IMAGE becomes a temp PNG whose
-        // path we paste, so a file-loading TUI (Claude Code, $EDITOR)
-        // receives the image — OSC 52 can't carry image bytes, the path
-        // bridges it. Probe the image first: a copied screenshot carries
-        // no text, and when a source puts both on the clipboard the
-        // image is what the operator means to paste.
-        if let Ok(img) = self.clipboard.paste_image() {
-            match crate::clipboard_store::write_clipboard_png(
-                img.width as u32,
-                img.height as u32,
-                &img.rgba,
-            ) {
-                Ok(path) => {
-                    self.write_paste(&path.to_string_lossy());
-                    return;
-                }
-                // Encode/IO failure — fall back to text so a paste is
-                // never silently dropped.
-                Err(e) => {
-                    tracing::warn!(error = %e, "clipboard image paste failed; falling back to text");
-                }
+        let offer = (self.pasteboard)();
+        if let Some(crate::file_drop::Payload::Files(paths)) = &offer {
+            self.drop_files(paths);
+            return;
+        }
+        if let Ok(text) = self.clipboard.paste_text() {
+            if !text.is_empty() {
+                self.write_paste(&text);
+                return;
             }
         }
-        if let Ok(pasted) = self.clipboard.paste_text() {
-            self.write_paste(&pasted);
+        let Some(image) = offer.or_else(|| self.provider_image()) else {
+            return;
+        };
+        match crate::file_drop::land(image, &std::env::temp_dir()) {
+            Ok(paths) => {
+                self.drop_files(&paths);
+            }
+            Err(error) => {
+                tracing::warn!(%error, "clipboard image could not be written");
+            }
         }
+    }
+
+    fn provider_image(&self) -> Option<crate::file_drop::Payload> {
+        let img = self.clipboard.paste_image().ok()?;
+        match crate::clipboard_store::encode_clipboard_png(
+            img.width as u32,
+            img.height as u32,
+            &img.rgba,
+        ) {
+            Ok(png) => Some(crate::file_drop::Payload::Image(
+                crate::file_drop::ImageKind::Png,
+                png,
+            )),
+            Err(error) => {
+                tracing::warn!(%error, "clipboard image could not be encoded");
+                None
+            }
+        }
+    }
+
+    #[cfg(test)]
+    pub fn set_pasteboard(&mut self, reader: crate::file_drop::PasteboardReader) {
+        self.pasteboard = reader;
     }
 
     /// Deliver OPERATOR INPUT bytes to the PTY: snap the viewport to
@@ -3275,7 +3296,7 @@ mod tests {
                 let term = Arc::clone(&terminal);
                 Box::new(move || term.read().cursor_keys_mode())
             };
-            let engine = InputEngine::attach_to_renderer(
+            let mut engine = InputEngine::attach_to_renderer(
                 &mut renderer,
                 InputEngineParams {
                     terminal: Arc::clone(&terminal),
@@ -3327,6 +3348,7 @@ mod tests {
                     suggest_attention: false,
                 },
             );
+            engine.set_pasteboard(crate::file_drop::no_pasteboard());
             Self {
                 renderer,
                 engine,
@@ -4492,9 +4514,11 @@ mod tests {
                 .and_then(|p| p.strip_suffix("\x1b[201~"))
                 .expect("bracketed framing")
                 .to_string();
+            assert!(path.ends_with(".png "), "a drop-shaped path: {path:?}");
+            let path = path.trim_end().replace('\\', "");
             assert!(
-                path.contains("mado-clip-") && path.ends_with(".png"),
-                "pasted a mado clipboard-png path, got {path:?}"
+                path.contains("mado-drop-"),
+                "pasted a mado drop path, got {path:?}"
             );
             // The path points at a REAL decodable PNG of the right size —
             // exactly what a file-loading TUI reads back.
@@ -4540,7 +4564,7 @@ mod tests {
                 assert!(w.starts_with(b"\x1b[200~") && w.ends_with(b"\x1b[201~"));
             }
             let image = String::from_utf8(sent[0].clone()).unwrap();
-            assert!(image.contains("mado-clip-") && image.contains(".png"));
+            assert!(image.contains("mado-drop-") && image.contains(".png"));
             assert_eq!(
                 sent[1],
                 b"\x1b[200~/tmp/shot\\ it\\'s.png \x1b[201~".to_vec()
@@ -4548,9 +4572,109 @@ mod tests {
             let _ = std::fs::remove_file(
                 image
                     .trim_start_matches("\x1b[200~")
-                    .trim_end_matches("\x1b[201~"),
+                    .trim_end_matches("\x1b[201~")
+                    .trim_end()
+                    .replace('\\', ""),
             );
         }
+    }
+
+    fn png_payload() -> crate::file_drop::Payload {
+        let png = crate::clipboard_store::encode_clipboard_png(2, 1, &[9; 8]).unwrap();
+        crate::file_drop::Payload::Image(crate::file_drop::ImageKind::Png, png)
+    }
+
+    fn framed_body(sent: &[u8]) -> String {
+        String::from_utf8(sent.to_vec())
+            .unwrap()
+            .strip_prefix("\x1b[200~")
+            .and_then(|b| b.strip_suffix("\x1b[201~"))
+            .expect("bracketed framing")
+            .to_owned()
+    }
+
+    #[test]
+    fn cmd_v_with_text_and_an_image_on_the_clipboard_pastes_the_text() {
+        for kind in [SinkKind::Closure, SinkKind::Control] {
+            let mut h = Harness::new(kind);
+            h.feed(b"\x1b[?2004h");
+            h.clipboard.copy_text("the words").unwrap();
+            h.clipboard.set_image(hasami::ClipboardImage {
+                width: 1,
+                height: 1,
+                rgba: vec![1, 2, 3, 255],
+            });
+            let payload = png_payload();
+            h.engine
+                .set_pasteboard(Arc::new(move || Some(payload.clone())));
+            h.key(KeyCode::Char('v'), Some("v"), cmd());
+            assert_eq!(
+                h.sent_bytes(),
+                vec![b"\x1b[200~the words\x1b[201~".to_vec()],
+                "{kind:?}: text wins over any image"
+            );
+        }
+    }
+
+    #[test]
+    fn cmd_v_with_only_a_pasteboard_image_pastes_one_escaped_drop_path() {
+        for kind in [SinkKind::Closure, SinkKind::Control] {
+            let mut h = Harness::new(kind);
+            h.feed(b"\x1b[?2004h");
+            let payload = png_payload();
+            h.engine
+                .set_pasteboard(Arc::new(move || Some(payload.clone())));
+            h.key(KeyCode::Char('v'), Some("v"), cmd());
+            let sent = h.sent_bytes();
+            assert_eq!(sent.len(), 1, "{kind:?}: one framed write");
+            let body = framed_body(&sent[0]);
+            let words = split_unescaped(&body);
+            assert_eq!(words.len(), 1, "{body:?}");
+            let path = std::path::PathBuf::from(&words[0]);
+            assert_eq!(
+                body,
+                crate::file_drop::paste_text(std::slice::from_ref(&path))
+            );
+            assert!(
+                path.file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .starts_with("mado-drop-"),
+                "{path:?}"
+            );
+            let img = image::open(&path).expect("a loadable png");
+            assert_eq!((img.width(), img.height()), (2, 1));
+            let _ = std::fs::remove_file(&path);
+        }
+    }
+
+    #[test]
+    fn cmd_v_after_a_finder_copy_pastes_every_path_not_the_filename_text() {
+        let paths = vec![
+            std::path::PathBuf::from("/Users/op/Screen Shot 1.png"),
+            std::path::PathBuf::from("/Users/op/notes.txt"),
+        ];
+        for kind in [SinkKind::Closure, SinkKind::Control] {
+            let mut h = Harness::new(kind);
+            h.feed(b"\x1b[?2004h");
+            h.clipboard.copy_text("Screen Shot 1.png").unwrap();
+            let files = crate::file_drop::Payload::Files(paths.clone());
+            h.engine
+                .set_pasteboard(Arc::new(move || Some(files.clone())));
+            h.key(KeyCode::Char('v'), Some("v"), cmd());
+            let sent = h.sent_bytes();
+            assert_eq!(sent.len(), 1, "{kind:?}");
+            assert_eq!(framed_body(&sent[0]), crate::file_drop::paste_text(&paths));
+        }
+    }
+
+    #[test]
+    fn cmd_v_with_nothing_pasteable_writes_nothing() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"\x1b[?2004h");
+        h.key(KeyCode::Char('v'), Some("v"), cmd());
+        assert!(h.sent_bytes().is_empty());
     }
 
     // ── Capability parity: search overlay ────────────────────────
@@ -6105,6 +6229,11 @@ mod tests {
         );
         for sent in h.sent_bytes() {
             if let Ok(p) = String::from_utf8(sent) {
+                let p = p
+                    .trim_start_matches("\x1b[200~")
+                    .trim_end_matches("\x1b[201~")
+                    .trim_end()
+                    .replace('\\', "");
                 if p.ends_with(".png") {
                     let _ = std::fs::remove_file(p);
                 }

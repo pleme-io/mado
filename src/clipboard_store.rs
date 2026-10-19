@@ -352,26 +352,11 @@ pub enum ClipboardImageError {
     Write(#[from] std::io::Error),
 }
 
-/// Encode a raw RGBA8 clipboard image to PNG, write it to a temp file in
-/// `$TMPDIR`, and return the path — the bytes a terminal pastes so a
-/// file-loading TUI receives the image. The ghostty image-paste contract.
-///
-/// Best-effort reaps mado's own stale clipboard PNGs (older than
-/// [`CLIPBOARD_PNG_MAX_AGE`]) first so `$TMPDIR` can't grow without
-/// bound; a reap failure never blocks the paste.
-///
-/// # Errors
-///
-/// [`ClipboardImageError::Empty`] for a zero-sized image,
-/// [`ClipboardImageError::SizeMismatch`] when `rgba` isn't exactly
-/// `width * height * 4` bytes, [`ClipboardImageError::Encode`] on a PNG
-/// failure, and [`ClipboardImageError::Write`] if the temp file can't be
-/// written.
-pub fn write_clipboard_png(
+pub fn encode_clipboard_png(
     width: u32,
     height: u32,
     rgba: &[u8],
-) -> Result<std::path::PathBuf, ClipboardImageError> {
+) -> Result<Vec<u8>, ClipboardImageError> {
     if width == 0 || height == 0 || rgba.is_empty() {
         return Err(ClipboardImageError::Empty);
     }
@@ -392,18 +377,21 @@ pub fn write_clipboard_png(
             got: rgba.len(),
         });
     }
-
     let mut png: Vec<u8> = Vec::new();
     image::codecs::png::PngEncoder::new(&mut png)
         .write_image(rgba, width, height, image::ExtendedColorType::Rgba8)
         .map_err(|e| ClipboardImageError::Encode(e.to_string()))?;
+    Ok(png)
+}
 
-    let dir = std::env::temp_dir();
-    CLIPBOARD_PNG.reap(&dir, CLIPBOARD_PNG_MAX_AGE);
-    let path = dir.join(CLIPBOARD_PNG.name(".png"));
-    std::fs::write(&path, &png)?;
-    tracing::debug!(path = %path.display(), bytes = png.len(), "wrote clipboard image to temp png");
-    Ok(path)
+pub const DROP_TEMP: OwnedTemp = OwnedTemp::new("mado-drop-", None);
+
+pub const OWNED_TEMPS: [OwnedTemp; 2] = [CLIPBOARD_PNG, DROP_TEMP];
+
+pub fn reap_owned_temps(dir: &std::path::Path) {
+    for temp in OWNED_TEMPS {
+        temp.reap(dir, CLIPBOARD_PNG_MAX_AGE);
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -655,36 +643,22 @@ mod tests {
     // ---- clipboard image paste ----
 
     #[test]
-    fn write_clipboard_png_roundtrips_a_2x2_image() {
-        // 2×2 RGBA: red, green / blue, white.
+    fn encode_clipboard_png_roundtrips_a_2x2_image() {
         let rgba = vec![
             255, 0, 0, 255, 0, 255, 0, 255, //
             0, 0, 255, 255, 255, 255, 255, 255,
         ];
-        let path = write_clipboard_png(2, 2, &rgba).expect("write temp png");
-        assert!(path.exists(), "temp png materialized");
-        assert!(
-            path.file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .starts_with("mado-clip-"),
-            "owned prefix so the reaper only touches mado's files"
-        );
-        // It is a real, decodable PNG of the right size — the file a
-        // pasted path points at is loadable by the receiving TUI.
-        let bytes = std::fs::read(&path).unwrap();
+        let png = encode_clipboard_png(2, 2, &rgba).expect("encode png");
         let img =
-            image::load_from_memory_with_format(&bytes, image::ImageFormat::Png).expect("decode");
+            image::load_from_memory_with_format(&png, image::ImageFormat::Png).expect("decode");
         assert_eq!((img.width(), img.height()), (2, 2));
-        let _ = std::fs::remove_file(&path);
     }
 
     #[test]
-    fn write_clipboard_png_rejects_size_mismatch() {
+    fn encode_clipboard_png_rejects_size_mismatch() {
         // 2×2 needs 16 RGBA bytes; 8 is short → typed SizeMismatch, not
         // a panic or a corrupt file.
-        let err = write_clipboard_png(2, 2, &[0u8; 8]).unwrap_err();
+        let err = encode_clipboard_png(2, 2, &[0u8; 8]).unwrap_err();
         assert!(matches!(
             err,
             ClipboardImageError::SizeMismatch {
@@ -696,9 +670,9 @@ mod tests {
     }
 
     #[test]
-    fn write_clipboard_png_rejects_empty() {
+    fn encode_clipboard_png_rejects_empty() {
         assert!(matches!(
-            write_clipboard_png(0, 0, &[]).unwrap_err(),
+            encode_clipboard_png(0, 0, &[]).unwrap_err(),
             ClipboardImageError::Empty
         ));
     }

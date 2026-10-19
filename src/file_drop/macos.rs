@@ -8,12 +8,11 @@ use objc2::runtime::ProtocolObject;
 use objc2_app_kit::{NSDraggingInfo, NSFilePromiseReceiver, NSPasteboard, NSWindow};
 use objc2_foundation::{NSArray, NSString, NSURL};
 
-use super::{ImageKind, Offer};
+use super::{Offer, Payload};
 
 pub enum Received {
-    Files(Vec<PathBuf>),
+    Payload(Payload),
     Promise(Vec<Retained<NSFilePromiseReceiver>>),
-    Image(ImageKind, Vec<u8>),
 }
 
 fn strings(array: &NSArray<NSString>) -> Vec<String> {
@@ -58,7 +57,7 @@ pub fn receive(pb: &NSPasteboard) -> Option<Received> {
     match offer(pb)? {
         Offer::Files => {
             let files = file_urls(pb);
-            (!files.is_empty()).then_some(Received::Files(files))
+            (!files.is_empty()).then_some(Received::Payload(Payload::Files(files)))
         }
         Offer::Promise => {
             let receivers = seam::promise_receivers(pb);
@@ -66,20 +65,32 @@ pub fn receive(pb: &NSPasteboard) -> Option<Received> {
         }
         Offer::Image(kind) => pb
             .dataForType(&NSString::from_str(kind.uti()))
-            .map(|data| Received::Image(kind, data.to_vec())),
+            .map(|data| Received::Payload(Payload::Image(kind, data.to_vec()))),
+    }
+}
+
+#[must_use]
+pub fn general_payload() -> Option<Payload> {
+    pasteboard_payload(&NSPasteboard::generalPasteboard())
+}
+
+#[must_use]
+pub fn pasteboard_payload(pb: &NSPasteboard) -> Option<Payload> {
+    match offer(pb)? {
+        Offer::Promise => None,
+        Offer::Files | Offer::Image(_) => match receive(pb)? {
+            Received::Payload(payload) => Some(payload),
+            Received::Promise(_) => None,
+        },
     }
 }
 
 fn perform(pb: &NSPasteboard) -> bool {
     let dir = std::env::temp_dir();
     match receive(pb) {
-        Some(Received::Files(files)) => {
-            super::INBOX.post(files);
-            true
-        }
-        Some(Received::Image(kind, bytes)) => match super::materialize_image(kind, &bytes, &dir) {
-            Ok(path) => {
-                super::INBOX.post(vec![path]);
+        Some(Received::Payload(payload)) => match super::land(payload, &dir) {
+            Ok(paths) => {
+                super::INBOX.post(paths);
                 true
             }
             Err(error) => {
@@ -387,6 +398,7 @@ mod seam {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::file_drop::ImageKind;
     use objc2_foundation::NSData;
 
     fn private_pasteboard() -> Retained<NSPasteboard> {
@@ -401,7 +413,9 @@ mod tests {
         let png = NSString::from_str(ImageKind::Png.uti());
         assert!(pb.setData_forType(Some(&NSData::with_bytes(b"\x89PNG")), &png));
         match receive(&pb) {
-            Some(Received::Image(ImageKind::Png, bytes)) => assert_eq!(bytes, b"\x89PNG"),
+            Some(Received::Payload(Payload::Image(ImageKind::Png, bytes))) => {
+                assert_eq!(bytes, b"\x89PNG");
+            }
             _ => panic!("png-only drag refused"),
         }
         pb.clearContents();
@@ -425,7 +439,7 @@ mod tests {
             .collect();
         assert!(pb.writeObjects(&NSArray::from_slice(&objects)));
         match receive(&pb) {
-            Some(Received::Files(files)) => assert_eq!(
+            Some(Received::Payload(Payload::Files(files))) => assert_eq!(
                 files
                     .iter()
                     .map(|f| std::fs::canonicalize(f).unwrap())
@@ -450,12 +464,53 @@ mod tests {
             &["/tmp/x y.png", "/tmp/z.png"]
         ));
         match receive(&pb) {
-            Some(Received::Files(files)) => assert_eq!(
+            Some(Received::Payload(Payload::Files(files))) => assert_eq!(
                 files,
                 vec![PathBuf::from("/tmp/x y.png"), PathBuf::from("/tmp/z.png")]
             ),
             _ => panic!("legacy filenames refused"),
         }
+        pb.clearContents();
+    }
+
+    #[test]
+    fn a_finder_copy_reads_as_files_even_beside_its_filename_text() {
+        let pb = private_pasteboard();
+        let url = NSURL::fileURLWithPath(&NSString::from_str("/tmp/copied shot.png"));
+        let objects: Vec<&ProtocolObject<dyn objc2_app_kit::NSPasteboardWriting>> =
+            vec![ProtocolObject::from_ref(&*url)];
+        assert!(pb.writeObjects(&NSArray::from_slice(&objects)));
+        pb.setString_forType(
+            &NSString::from_str("copied shot.png"),
+            &NSString::from_str("public.utf8-plain-text"),
+        );
+        assert_eq!(
+            pasteboard_payload(&pb),
+            Some(Payload::Files(vec![PathBuf::from("/tmp/copied shot.png")]))
+        );
+        pb.clearContents();
+    }
+
+    #[test]
+    fn a_screenshot_on_the_clipboard_reads_as_its_image_bytes() {
+        let pb = private_pasteboard();
+        let tiff = NSString::from_str(ImageKind::Tiff.uti());
+        assert!(pb.setData_forType(Some(&NSData::with_bytes(b"II*\0")), &tiff));
+        assert_eq!(
+            pasteboard_payload(&pb),
+            Some(Payload::Image(ImageKind::Tiff, b"II*\0".to_vec()))
+        );
+        pb.clearContents();
+    }
+
+    #[test]
+    fn a_text_only_clipboard_has_no_attachment_payload() {
+        let pb = private_pasteboard();
+        assert!(pb.setString_forType(
+            &NSString::from_str("words"),
+            &NSString::from_str("public.utf8-plain-text")
+        ));
+        assert_eq!(pasteboard_payload(&pb), None);
         pb.clearContents();
     }
 

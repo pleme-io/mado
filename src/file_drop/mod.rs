@@ -2,13 +2,9 @@
 pub mod macos;
 
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
 
-use crate::clipboard_store::OwnedTemp;
-
-pub const DROP_TEMP: OwnedTemp = OwnedTemp::new("mado-drop-", None);
-const DROP_TEMP_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+pub use crate::clipboard_store::DROP_TEMP;
 
 pub const FILE_URL: &str = "public.file-url";
 pub const LEGACY_FILENAMES: &str = "NSFilenamesPboardType";
@@ -55,6 +51,39 @@ pub fn classify(types: &[String], promise_types: &[String]) -> Option<Offer> {
         .map(Offer::Image)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Payload {
+    Files(Vec<PathBuf>),
+    Image(ImageKind, Vec<u8>),
+}
+
+pub fn land(payload: Payload, dir: &Path) -> std::io::Result<Vec<PathBuf>> {
+    match payload {
+        Payload::Files(paths) => Ok(paths),
+        Payload::Image(kind, bytes) => materialize_image(kind, &bytes, dir).map(|p| vec![p]),
+    }
+}
+
+pub type PasteboardReader = Arc<dyn Fn() -> Option<Payload> + Send + Sync>;
+
+#[must_use]
+pub fn system_pasteboard() -> PasteboardReader {
+    #[cfg(target_os = "macos")]
+    {
+        Arc::new(macos::general_payload)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Arc::new(|| None)
+    }
+}
+
+#[cfg(test)]
+#[must_use]
+pub fn no_pasteboard() -> PasteboardReader {
+    Arc::new(|| None)
+}
+
 #[must_use]
 pub fn accepted_types(promise_types: &[String]) -> Vec<String> {
     let mut types = vec![FILE_URL.to_owned(), LEGACY_FILENAMES.to_owned()];
@@ -72,7 +101,7 @@ pub fn paste_text(paths: &[PathBuf]) -> String {
 }
 
 pub fn materialize_image(kind: ImageKind, bytes: &[u8], dir: &Path) -> std::io::Result<PathBuf> {
-    DROP_TEMP.reap(dir, DROP_TEMP_MAX_AGE);
+    crate::clipboard_store::reap_owned_temps(dir);
     let png = match kind {
         ImageKind::Png => Some(bytes.to_vec()),
         ImageKind::Tiff => tiff_to_png(bytes),
@@ -96,7 +125,7 @@ fn tiff_to_png(bytes: &[u8]) -> Option<Vec<u8>> {
 }
 
 pub fn promise_dir(dir: &Path) -> std::io::Result<PathBuf> {
-    DROP_TEMP.reap(dir, DROP_TEMP_MAX_AGE);
+    crate::clipboard_store::reap_owned_temps(dir);
     let path = dir.join(DROP_TEMP.name(""));
     std::fs::create_dir_all(&path)?;
     Ok(path)
@@ -291,6 +320,25 @@ mod tests {
         assert!(promised.is_dir());
         assert!(
             promised
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .starts_with("mado-drop-")
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn landing_files_passes_the_paths_through_and_landing_an_image_writes_one_owned_file() {
+        let dir = scratch();
+        let files = vec![PathBuf::from("/a b.png"), PathBuf::from("/c.png")];
+        assert_eq!(land(Payload::Files(files.clone()), &dir).unwrap(), files);
+        let landed = land(Payload::Image(ImageKind::Png, png_bytes()), &dir).unwrap();
+        assert_eq!(landed.len(), 1);
+        assert!(landed[0].starts_with(&dir));
+        assert!(
+            landed[0]
                 .file_name()
                 .unwrap()
                 .to_str()
