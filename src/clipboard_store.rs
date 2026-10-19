@@ -399,45 +399,69 @@ pub fn write_clipboard_png(
         .map_err(|e| ClipboardImageError::Encode(e.to_string()))?;
 
     let dir = std::env::temp_dir();
-    reap_stale_clipboard_pngs(&dir, CLIPBOARD_PNG_MAX_AGE);
-    let path = dir.join(clipboard_png_filename());
+    CLIPBOARD_PNG.reap(&dir, CLIPBOARD_PNG_MAX_AGE);
+    let path = dir.join(CLIPBOARD_PNG.name(".png"));
     std::fs::write(&path, &png)?;
     tracing::debug!(path = %path.display(), bytes = png.len(), "wrote clipboard image to temp png");
     Ok(path)
 }
 
-/// `mado-clip-<unix_nanos>-<pid>.png` — unique per write without an RNG
-/// dependency (nanosecond clock + pid don't collide within a process).
-fn clipboard_png_filename() -> String {
-    let nanos = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
-    format!("{CLIPBOARD_PNG_PREFIX}{nanos}-{}.png", std::process::id())
+#[derive(Debug, Clone, Copy)]
+pub struct OwnedTemp {
+    prefix: &'static str,
+    suffix: Option<&'static str>,
 }
 
-/// Best-effort delete of mado's own clipboard PNGs older than `max_age`.
-/// Never errors — a paste must not fail because a stale temp file
-/// couldn't be reaped (permissions, a racing reaper, a vanished dir).
-fn reap_stale_clipboard_pngs(dir: &std::path::Path, max_age: std::time::Duration) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
-    };
-    let now = std::time::SystemTime::now();
-    for entry in entries.flatten() {
-        let name = entry.file_name();
-        let Some(name) = name.to_str() else { continue };
-        if !(name.starts_with(CLIPBOARD_PNG_PREFIX) && name.ends_with(".png")) {
-            continue;
-        }
-        let stale = entry
-            .metadata()
-            .and_then(|m| m.modified())
-            .ok()
-            .and_then(|mtime| now.duration_since(mtime).ok())
-            .is_some_and(|age| age > max_age);
-        if stale {
-            let _ = std::fs::remove_file(entry.path());
+pub const CLIPBOARD_PNG: OwnedTemp = OwnedTemp {
+    prefix: CLIPBOARD_PNG_PREFIX,
+    suffix: Some(".png"),
+};
+
+impl OwnedTemp {
+    #[must_use]
+    pub const fn new(prefix: &'static str, suffix: Option<&'static str>) -> Self {
+        Self { prefix, suffix }
+    }
+
+    #[must_use]
+    pub fn name(&self, ext: &str) -> String {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        format!("{}{nanos}-{}{ext}", self.prefix, std::process::id())
+    }
+
+    fn owns(&self, name: &str) -> bool {
+        name.starts_with(self.prefix) && self.suffix.is_none_or(|suffix| name.ends_with(suffix))
+    }
+
+    pub fn reap(&self, dir: &std::path::Path, max_age: std::time::Duration) {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        let now = std::time::SystemTime::now();
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let Some(name) = name.to_str() else { continue };
+            if !self.owns(name) {
+                continue;
+            }
+            let Ok(meta) = entry.metadata() else { continue };
+            let stale = meta
+                .modified()
+                .ok()
+                .and_then(|mtime| now.duration_since(mtime).ok())
+                .is_some_and(|age| age > max_age);
+            if !stale {
+                continue;
+            }
+            let path = entry.path();
+            let _ = if meta.is_dir() {
+                std::fs::remove_dir_all(&path)
+            } else {
+                std::fs::remove_file(&path)
+            };
         }
     }
 }
@@ -696,7 +720,7 @@ mod tests {
         }
         // max_age ZERO ⇒ every existing file is "stale"; only mado's own
         // *.png is eligible. Proves the prefix+extension filter.
-        reap_stale_clipboard_pngs(&dir, std::time::Duration::ZERO);
+        CLIPBOARD_PNG.reap(&dir, std::time::Duration::ZERO);
         assert!(!mine.exists(), "mado's own stale png reaped");
         assert!(
             foreign.exists(),

@@ -1134,6 +1134,7 @@ mod macos {
 
         for window in windows.iter() {
             style_window(&window, style);
+            crate::file_drop::macos::install(&window);
         }
 
         tracing::debug!(

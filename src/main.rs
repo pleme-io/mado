@@ -33,6 +33,7 @@ mod dir_picker;
 mod e2e;
 mod engate_consumer;
 mod fibers;
+mod file_drop;
 mod font_size;
 mod glyph_class;
 mod grid_col;
@@ -1324,6 +1325,7 @@ fn main() -> anyhow::Result<()> {
                     // latch over the rendered-surface signature (same
                     // contract as the tear path).
                     engine.on_redraw_tick(renderer);
+                    engine.deliver_drops(&crate::file_drop::INBOX);
                     let now = std::time::Instant::now();
                     let mut demand = engine.frame_demand();
                     if native_styling.pending() || quick_terminal

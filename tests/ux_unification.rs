@@ -117,6 +117,8 @@ const REQUIRED_BOTH: &[&str] = &[
     // (ux::ConfigHotReload) — a loop that stops polling silently
     // regresses to boot-time-only config.
     ".poll_config_reload(",
+    ".drop_file(",
+    ".deliver_drops(",
 ];
 
 #[test]

@@ -3387,6 +3387,7 @@ dependencies = [
  "anyhow",
  "awase",
  "blake3",
+ "block2 0.6.2",
  "bytemuck",
  "clap",
  "criterion",

@@ -421,7 +421,7 @@ linkify = "0.10"
 open = "5"
 
 # Image decoding for Kitty graphics protocol
-image = { version = "0.25", default-features = false, features = ["png"] }
+image = { version = "0.25", default-features = false, features = ["png", "tiff"] }
 
 # PTY and process management
 tokio = { version = "1", features = ["rt-multi-thread", "process", "io-util", "sync", "macros", "net", "time"] }
@@ -497,8 +497,9 @@ icy_sixel = "0.5.0"
 # macOS platform integration (safe Rust wrappers for Cocoa APIs)
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
-objc2-foundation = { version = "0.3", features = ["NSString", "NSUserDefaults", "NSBundle", "NSError", "NSUUID", "NSProcessInfo"] }
-objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSDockTile", "NSResponder", "NSScreen", "NSSound", "NSGraphics", "NSProgressIndicator", "NSView", "NSMenu", "NSMenuItem"] }
+objc2-foundation = { version = "0.3", features = ["NSString", "NSUserDefaults", "NSBundle", "NSError", "NSUUID", "NSProcessInfo", "NSArray", "NSData", "NSDictionary", "NSURL", "NSOperation", "block2"] }
+objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSDockTile", "NSResponder", "NSScreen", "NSSound", "NSGraphics", "NSProgressIndicator", "NSView", "NSMenu", "NSMenuItem", "NSPasteboard", "NSPasteboardItem", "NSDragging", "NSFilePromiseReceiver", "block2"] }
+block2 = "0.6"
 # Native notifications via UNUserNotificationCenter — the mado-attributed,
 # rich path that replaces the osascript/Script-Editor shell-out. See
 # src/notify_mac.rs + docs/NOTIFICATIONS.md. Actions/attachments (the

@@ -2425,9 +2425,22 @@ impl InputEngine {
     /// PasteGuard sanitization + bracketed framing as any other paste,
     /// with a trailing space so successive drops stay separated.
     pub fn drop_file(&mut self, path: &std::path::Path) -> EventOutcome {
-        self.write_paste(&crate::clipboard_store::dropped_path_text(
-            &path.to_string_lossy(),
-        ));
+        self.drop_files(&[path.to_path_buf()])
+    }
+
+    pub fn drop_files(&mut self, paths: &[std::path::PathBuf]) -> EventOutcome {
+        self.write_paste(&crate::file_drop::paste_text(paths));
+        EventOutcome::consumed()
+    }
+
+    pub fn deliver_drops(&mut self, inbox: &crate::file_drop::Inbox) -> EventOutcome {
+        let batches = inbox.take();
+        if batches.is_empty() {
+            return EventOutcome::ignored();
+        }
+        for batch in &batches {
+            self.drop_files(batch);
+        }
         EventOutcome::consumed()
     }
 
@@ -3147,6 +3160,7 @@ mod tests {
     /// Which sink shape backs the engine — the two production
     /// configurations: a plain closure (local-PTY shape) and a
     /// mock-MultiplexerControl wrapper (tear shape).
+    #[derive(Debug, Clone, Copy)]
     enum SinkKind {
         Closure,
         Control,
@@ -5891,6 +5905,99 @@ mod tests {
             assert_eq!(body, crate::clipboard_store::dropped_path_text(path));
             assert_eq!(claude_code_unescape(&body), *path);
         }
+    }
+
+    #[test]
+    fn one_drop_of_several_files_is_one_paste_on_both_sinks() {
+        let paths = [
+            std::path::PathBuf::from("/Users/op/Screen Shot 1.png"),
+            std::path::PathBuf::from("/Users/op/ünï 画像.png"),
+            std::path::PathBuf::from("/Users/op/it's \"q\".png"),
+        ];
+        for kind in [SinkKind::Closure, SinkKind::Control] {
+            let mut h = Harness::new(kind);
+            h.feed(b"\x1b[?2004h");
+            h.engine.drop_files(&paths);
+            let sent = h.sent_bytes();
+            assert_eq!(
+                sent.len(),
+                1,
+                "{kind:?}: one framed paste for the whole drop"
+            );
+            let framed = String::from_utf8(sent[0].clone()).unwrap();
+            let body = framed
+                .strip_prefix("\x1b[200~")
+                .and_then(|b| b.strip_suffix("\x1b[201~"))
+                .expect("bracketed framing");
+            assert_eq!(body, crate::file_drop::paste_text(&paths));
+            let words: Vec<String> = split_unescaped(body);
+            let expect: Vec<String> = paths
+                .iter()
+                .map(|p| p.to_string_lossy().into_owned())
+                .collect();
+            assert_eq!(words, expect);
+        }
+    }
+
+    #[test]
+    fn one_drop_of_several_files_without_bracketed_paste_is_the_same_text_unframed() {
+        let paths = [
+            std::path::PathBuf::from("/tmp/a b.png"),
+            std::path::PathBuf::from("/tmp/c.png"),
+        ];
+        let mut h = Harness::new(SinkKind::Control);
+        h.engine.drop_files(&paths);
+        assert_eq!(h.sent_bytes(), vec![b"/tmp/a\\ b.png /tmp/c.png ".to_vec()]);
+    }
+
+    #[test]
+    fn delivered_drops_reach_the_pane_one_paste_per_gesture_and_drain_the_inbox() {
+        let inbox = crate::file_drop::Inbox::new();
+        for kind in [SinkKind::Closure, SinkKind::Control] {
+            let mut h = Harness::new(kind);
+            h.feed(b"\x1b[?2004h");
+            assert!(!h.engine.deliver_drops(&inbox).consumed);
+            inbox.push(vec![
+                std::path::PathBuf::from("/tmp/one.png"),
+                std::path::PathBuf::from("/tmp/two.png"),
+            ]);
+            inbox.push(vec![std::path::PathBuf::from("/tmp/three.png")]);
+            assert!(h.engine.deliver_drops(&inbox).consumed);
+            assert_eq!(
+                h.sent_bytes(),
+                vec![
+                    b"\x1b[200~/tmp/one.png /tmp/two.png \x1b[201~".to_vec(),
+                    b"\x1b[200~/tmp/three.png \x1b[201~".to_vec(),
+                ],
+                "{kind:?}"
+            );
+            assert!(inbox.take().is_empty());
+        }
+    }
+
+    fn split_unescaped(body: &str) -> Vec<String> {
+        let mut out = Vec::new();
+        let mut cur = String::new();
+        let mut chars = body.chars();
+        while let Some(c) = chars.next() {
+            match c {
+                '\\' => {
+                    if let Some(n) = chars.next() {
+                        cur.push(n);
+                    }
+                }
+                ' ' => {
+                    if !cur.is_empty() {
+                        out.push(std::mem::take(&mut cur));
+                    }
+                }
+                _ => cur.push(c),
+            }
+        }
+        if !cur.is_empty() {
+            out.push(cur);
+        }
+        out
     }
 
     #[test]

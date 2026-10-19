@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "dce9ca6be00aaa4a6fd54c9ea257fa4b5597bc236fada4dad524a476105a2891",
+  "cargo_lock_sha256": "22bddad96306f979c13a05a357df6775f49d56522df66530b3b03c0595664406",
   "manifest_sha256": {
-    "Cargo.toml": "99251e0c912ed1a8107d935b8ab4e86f4a47da8cc200022cd3524bf19432a65b"
+    "Cargo.toml": "bc2c04c04bf6ec0d35ed189a101ba4d65ffbab91f3306535e1a7ddb6817eb63f"
   },
   "target_resolves": {
     "base": {
@@ -26952,6 +26952,16 @@
                 "tree": "target"
               },
               {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
                 "name": "bytemuck",
                 "package_key": "bytemuck-1.25.2",
                 "kind": "normal",
@@ -27103,7 +27113,8 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "png",
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": false,
@@ -27269,15 +27280,20 @@
                 "features": [
                   "NSApplication",
                   "NSDockTile",
+                  "NSDragging",
+                  "NSFilePromiseReceiver",
                   "NSGraphics",
                   "NSMenu",
                   "NSMenuItem",
+                  "NSPasteboard",
+                  "NSPasteboardItem",
                   "NSProgressIndicator",
                   "NSResponder",
                   "NSScreen",
                   "NSSound",
                   "NSView",
-                  "NSWindow"
+                  "NSWindow",
+                  "block2"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -27289,12 +27305,18 @@
                 "package_key": "objc2-foundation-0.3.2",
                 "kind": "normal",
                 "features": [
+                  "NSArray",
                   "NSBundle",
+                  "NSData",
+                  "NSDictionary",
                   "NSError",
+                  "NSOperation",
                   "NSProcessInfo",
                   "NSString",
+                  "NSURL",
                   "NSUUID",
-                  "NSUserDefaults"
+                  "NSUserDefaults",
+                  "block2"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -32170,7 +32192,8 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "png",
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": false,
@@ -36315,7 +36338,8 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "png",
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": false,
@@ -40432,6 +40456,16 @@
                 "tree": "target"
               },
               {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
                 "name": "bytemuck",
                 "package_key": "bytemuck-1.25.2",
                 "kind": "normal",
@@ -40583,7 +40617,8 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "png",
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": false,
@@ -40749,15 +40784,20 @@
                 "features": [
                   "NSApplication",
                   "NSDockTile",
+                  "NSDragging",
+                  "NSFilePromiseReceiver",
                   "NSGraphics",
                   "NSMenu",
                   "NSMenuItem",
+                  "NSPasteboard",
+                  "NSPasteboardItem",
                   "NSProgressIndicator",
                   "NSResponder",
                   "NSScreen",
                   "NSSound",
                   "NSView",
-                  "NSWindow"
+                  "NSWindow",
+                  "block2"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -40769,12 +40809,18 @@
                 "package_key": "objc2-foundation-0.3.2",
                 "kind": "normal",
                 "features": [
+                  "NSArray",
                   "NSBundle",
+                  "NSData",
+                  "NSDictionary",
                   "NSError",
+                  "NSOperation",
                   "NSProcessInfo",
                   "NSString",
+                  "NSURL",
                   "NSUUID",
-                  "NSUserDefaults"
+                  "NSUserDefaults",
+                  "block2"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -45667,7 +45713,8 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "png",
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": false,
@@ -49829,7 +49876,8 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "png",
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": false,

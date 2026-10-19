@@ -1269,6 +1269,7 @@ where
             // mirror half was missing entirely in tear mode.
             if woke {
                 engine.on_redraw_tick(renderer);
+                engine.deliver_drops(&crate::file_drop::INBOX);
             }
             // ── Watched-config delta (M4 stage 2) ────────────────
             // Same per-frame poll the local-PTY adapter runs: dirty
