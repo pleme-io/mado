@@ -1659,6 +1659,15 @@ impl Grid {
             .range(start..start + self.visible_rows)
             .map(|l| l.cells.as_slice())
     }
+
+    fn viewport_wrapped(&self, scroll_offset: usize) -> Vec<bool> {
+        let sb_len = self.scrollback_len();
+        let start = sb_len - scroll_offset.min(sb_len);
+        self.rows
+            .range(start..(start + self.visible_rows).min(self.rows.len()))
+            .map(|l| l.wrapped)
+            .collect()
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -2958,6 +2967,11 @@ impl Terminal {
         } else {
             Box::new(grid.viewport_rows(self.scroll_offset))
         }
+    }
+
+    #[must_use]
+    pub fn visible_rows_wrapped(&self) -> Vec<bool> {
+        self.grid().viewport_wrapped(self.scroll_offset)
     }
 
     /// The screen buffer anchors capture against right now.

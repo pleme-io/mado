@@ -1152,6 +1152,51 @@ pub struct MadoLinksConfig {
     pub open_on_click: bool,
     /// Hovering a link shows a pointer/hand cursor.
     pub pointer_cursor: bool,
+    pub modifier: LinkModifier,
+    pub detect_paths: bool,
+    pub hover_underline: bool,
+    pub editor: LinkEditor,
+}
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum LinkModifier {
+    #[default]
+    Super,
+    Ctrl,
+    Alt,
+}
+
+impl LinkModifier {
+    #[must_use]
+    pub fn held(self, mods: madori::event::Modifiers) -> bool {
+        match self {
+            Self::Super => mods.meta,
+            Self::Ctrl => mods.ctrl,
+            Self::Alt => mods.alt,
+        }
+    }
+}
+
+pub const CURSOR_URL_TEMPLATE: &str = "cursor://file{path}:{line}:{col}";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum LinkEditor {
+    UrlTemplate { template: String },
+    Command { argv: Vec<String> },
+    System {},
+    Env {},
+}
+
+impl Default for LinkEditor {
+    fn default() -> Self {
+        Self::UrlTemplate {
+            template: CURSOR_URL_TEMPLATE.to_string(),
+        }
+    }
 }
 
 impl Default for MadoLinksConfig {
@@ -1169,7 +1214,21 @@ impl MadoLinksConfig {
             highlight: false,
             open_on_click: false,
             pointer_cursor: false,
+            modifier: LinkModifier::Super,
+            detect_paths: false,
+            hover_underline: false,
+            editor: LinkEditor::default(),
         }
+    }
+
+    #[must_use]
+    pub fn modifier_held(&self, mods: madori::event::Modifiers) -> bool {
+        self.enabled && self.modifier.held(mods)
+    }
+
+    #[must_use]
+    pub fn armed(&self, mods: madori::event::Modifiers) -> bool {
+        self.enabled && (self.open_on_click || self.modifier.held(mods))
     }
 
     /// Prescribed tier — highlight + hover cursor + click-to-open all on.
@@ -1178,8 +1237,12 @@ impl MadoLinksConfig {
         Self {
             enabled: true,
             highlight: true,
-            open_on_click: true,
+            open_on_click: false,
             pointer_cursor: true,
+            modifier: LinkModifier::Super,
+            detect_paths: true,
+            hover_underline: true,
+            editor: LinkEditor::default(),
         }
     }
 }
@@ -5453,11 +5516,23 @@ mod tests {
         assert!(!bare.open_on_click);
         assert!(!bare.pointer_cursor);
 
+        assert!(!bare.detect_paths);
+        assert!(!bare.hover_underline);
+
         let pres = MadoLinksConfig::prescribed();
         assert!(pres.enabled);
         assert!(pres.highlight);
-        assert!(pres.open_on_click);
+        assert!(!pres.open_on_click);
         assert!(pres.pointer_cursor);
+        assert!(pres.detect_paths);
+        assert!(pres.hover_underline);
+        assert_eq!(pres.modifier, LinkModifier::Super);
+        assert_eq!(
+            pres.editor,
+            LinkEditor::UrlTemplate {
+                template: CURSOR_URL_TEMPLATE.to_string()
+            }
+        );
 
         // Default == prescribed.
         assert_eq!(MadoLinksConfig::default(), MadoLinksConfig::prescribed());
@@ -5523,7 +5598,7 @@ mod tests {
         assert!(!MadoConfig::bare().links.enabled);
         assert!(MadoConfig::default().links.enabled);
         assert!(MadoConfig::default().links.highlight);
-        assert!(MadoConfig::default().links.open_on_click);
+        assert!(!MadoConfig::default().links.open_on_click);
         assert!(MadoConfig::default().links.pointer_cursor);
     }
 
@@ -5536,11 +5611,81 @@ mod tests {
             highlight: false,
             open_on_click: true,
             pointer_cursor: false,
+            modifier: LinkModifier::Ctrl,
+            detect_paths: false,
+            hover_underline: true,
+            editor: LinkEditor::Command {
+                argv: vec![
+                    "cursor".into(),
+                    "--goto".into(),
+                    "{path}:{line}:{col}".into(),
+                ],
+            },
         };
         let yaml = serde_yaml_ng::to_string(&cfg).expect("serialize links config");
         let back: MadoLinksConfig =
             serde_yaml_ng::from_str(&yaml).expect("round-trip links config");
         assert_eq!(cfg, back);
+    }
+
+    #[test]
+    fn links_arm_only_with_the_modifier_unless_plain_click_opens() {
+        let cmd = madori::event::Modifiers {
+            meta: true,
+            ..Default::default()
+        };
+        let ctrl = madori::event::Modifiers {
+            ctrl: true,
+            ..Default::default()
+        };
+        let none = madori::event::Modifiers::default();
+        let pres = MadoLinksConfig::prescribed();
+        assert!(pres.armed(cmd));
+        assert!(!pres.armed(none));
+        assert!(!pres.armed(ctrl));
+        assert!(pres.modifier_held(cmd));
+        assert!(!pres.modifier_held(ctrl));
+        let plain = MadoLinksConfig {
+            open_on_click: true,
+            ..MadoLinksConfig::prescribed()
+        };
+        assert!(plain.armed(none));
+        let ctrl_cfg = MadoLinksConfig {
+            modifier: LinkModifier::Ctrl,
+            ..MadoLinksConfig::prescribed()
+        };
+        assert!(ctrl_cfg.armed(ctrl));
+        assert!(!ctrl_cfg.armed(cmd));
+        let off = MadoLinksConfig::bare();
+        assert!(!off.armed(cmd));
+        assert!(!off.modifier_held(cmd));
+        let off_plain = MadoLinksConfig {
+            open_on_click: true,
+            ..MadoLinksConfig::bare()
+        };
+        assert!(!off_plain.armed(none));
+    }
+
+    #[test]
+    fn links_editor_yaml_shapes_parse_and_typos_refuse() {
+        let system: MadoLinksConfig = serde_yaml_ng::from_str("editor:\n  kind: system\n").unwrap();
+        assert_eq!(system.editor, LinkEditor::System {});
+        let tpl: MadoLinksConfig = serde_yaml_ng::from_str(
+            "editor:\n  kind: url_template\n  template: \"vscode://file{path}:{line}:{col}\"\n",
+        )
+        .unwrap();
+        assert_eq!(
+            tpl.editor,
+            LinkEditor::UrlTemplate {
+                template: "vscode://file{path}:{line}:{col}".into()
+            }
+        );
+        assert!(serde_yaml_ng::from_str::<MadoLinksConfig>("editor:\n  kind: emacs\n").is_err());
+        assert!(
+            serde_yaml_ng::from_str::<MadoLinksConfig>("editor:\n  kind: system\n  argv: []\n")
+                .is_err()
+        );
+        assert!(serde_yaml_ng::from_str::<MadoLinksConfig>("modifier: hyper\n").is_err());
     }
 
     #[test]
@@ -7454,8 +7599,13 @@ mod coverage {
         "janitors.suggest_health.min_consecutive_polls",
         "keybinds.custom",
         "line_height",
+        "links.detect_paths",
+        "links.editor.kind",
+        "links.editor.template",
         "links.enabled",
         "links.highlight",
+        "links.hover_underline",
+        "links.modifier",
         "links.open_on_click",
         "links.pointer_cursor",
         "motion.bell_flash.duration_ms",

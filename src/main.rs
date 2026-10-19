@@ -102,6 +102,7 @@ mod single_writer;
 mod suggest;
 mod vt;
 // mod tab removed at Phase 4 — single-pane mado.
+mod links;
 mod term_spec;
 mod terminal;
 mod theme;
@@ -1239,6 +1240,7 @@ fn main() -> anyhow::Result<()> {
                 AppEvent::Mouse(MouseEvent::Scroll { delta, .. }) => {
                     engine.on_mouse_scroll((*delta).into(), renderer).into()
                 }
+                AppEvent::ModifiersChanged(mods) => engine.on_modifiers(*mods, renderer).into(),
                 // Focus events → engine emits ESC[I/ESC[O when focus
                 // reporting (mode 1004) is enabled.
                 AppEvent::Focused(focused) => {

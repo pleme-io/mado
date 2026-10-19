@@ -180,7 +180,7 @@ garasu = "0.1"
 # Downgrading below 0.1.21 re-arms the bug, and nothing in this repo would fail.
 # 0.1.22 adds the loop's doorbell (`AppBuilder::waker`), which tear output rings
 # (tear PERFORMANCE R10); below it the tear attach does not compile.
-madori = "0.1.23"
+madori = "0.1.24"
 shikumi = { version = "0.1", features = ["cli"] }
 # izumi (泉) — the fresh-source board substrate: the generalized extraction of
 # mado's Ctrl-S suggestion plane (Item/Store/Engine/Environment algebra, the

@@ -491,6 +491,19 @@
     }
   },
   "links": {
+    "detect_paths": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "editor": {
+      "default": {
+        "kind": "url_template",
+        "template": "cursor://file{path}:{line}:{col}"
+      },
+      "description": "",
+      "type": "unknown"
+    },
     "enabled": {
       "default": true,
       "description": "Master switch. `false` (bare) strips every link affordance.",
@@ -501,8 +514,23 @@
       "description": "Highlight links: frost-blue text + the underline decoration.",
       "type": "bool"
     },
-    "open_on_click": {
+    "hover_underline": {
       "default": true,
+      "description": "",
+      "type": "bool"
+    },
+    "modifier": {
+      "default": "super",
+      "description": "",
+      "type": "enum",
+      "values": [
+        "super",
+        "ctrl",
+        "alt"
+      ]
+    },
+    "open_on_click": {
+      "default": false,
       "description": "A plain (no-drag) left click on a link opens it.",
       "type": "bool"
     },

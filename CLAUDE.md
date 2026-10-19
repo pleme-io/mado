@@ -162,7 +162,8 @@ Config <-- shikumi (hot-reload, ArcSwap) <-- ~/.config/mado/mado.yaml
 | `pty.rs` | ~330 | PTY allocation + async I/O | `Pty`, `PtyReader`, `PtyWriter` |
 | `theme.rs` | ~280 | Color theme system | `Theme`, 8 built-in themes (Nord, Dracula, etc.) |
 | `search.rs` | ~270 | Scrollback search | `SearchState`, `SearchMatch` |
-| `url.rs` | ~180 | URL detection (no regex) | `DetectedUrl`, `detect_urls_in_row` |
+| `url.rs` | ~530 | Per-row URL detection for the always-on link tint | `DetectedUrl`, `detect_urls_in_row` |
+| `links.rs` | ~1200 | Clickable links: URLs, `file://`, absolute / `~/` / cwd-relative paths that exist, `path:line[:col]` and `path(line,col)`, quoted paths with spaces, OSC 8 spans, all across soft-wrapped rows; and the typed open plan (OS opener or editor) | `LogicalLine`, `Link`, `LinkTarget`, `HoverLink`, `open_plan` |
 | `platform.rs` | ~95 | Platform-native integration | Pure safe Rust via objc2 (macOS styling, dark mode, dock badge) |
 | `module/default.nix` | | Home-manager module | `blackmatter.components.mado.*` |
 
@@ -355,6 +356,11 @@ Key font features to implement:
 
 **Mouse**:
 - Single click: start drag selection
+- Cmd held (`links.modifier`): the link under the pointer is underlined and
+  the pointer becomes the hand; Cmd-click opens it. A Cmd press on a link is
+  never reported to an application that enabled mouse tracking (ghostty and
+  iTerm2 behave the same); a Cmd press elsewhere, and every plain click, keep
+  their old meaning. The press and the release must land on the same link.
 - Double click (400ms window): word selection (alphanumeric + underscore)
 - Triple click: line selection
 - Drag: update selection endpoint
@@ -440,6 +446,28 @@ answer different questions, and only the second one explains a build failure.
 Config sections: `font_family`, `font_size`, `window` (width/height/padding),
 `shell` (command), `cursor` (style/blink/blink_rate_ms), `behavior`
 (scrollback_lines/copy_on_select), `appearance` (background/foreground/opacity).
+
+Link knobs (under `links`): `enabled`, `highlight` (always-on tint and
+underline for URLs and OSC 8 cells), `open_on_click` (a plain click opens;
+default off, so links open on Cmd-click only), `pointer_cursor`,
+`hover_underline`, `modifier` (`super` | `ctrl` | `alt`, default `super`),
+`detect_paths` (paths and `path:line` forms; relative paths resolve against
+the pane's OSC 7 cwd and are linked only when they exist), and `editor`, the
+typed choice of what opens a file:
+
+```yaml
+links:
+  editor: { kind: url_template, template: "cursor://file{path}:{line}:{col}" }  # default
+  # editor: { kind: command, argv: ["zed", "{path}:{line}:{col}"] }
+  # editor: { kind: system }   # /usr/bin/open <path>
+  # editor: { kind: env }      # $VISUAL / $EDITOR +LINE <path>, detached
+```
+
+The default is Cursor's URL scheme because the workstation's `$EDITOR` is a
+terminal editor (blnvim), which a detached spawn cannot show; `cursor:` is
+registered with LaunchServices here. URLs and directories always go to the
+OS opener. The pointer icon reaches the window through madori's
+`EventResponse::set_cursor_icon` (madori 0.1.24), so OSC 22 shapes now apply too.
 
 Scroll knobs (under `behavior`, projected into the typed `ux::scroll::ScrollConfig`
 via `UxBehavior::scroll_config`): `scroll_momentum` (wheel: Lines vs Momentum),

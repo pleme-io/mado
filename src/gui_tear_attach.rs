@@ -1413,6 +1413,7 @@ where
                 AppEvent::Mouse(madori::MouseEvent::Scroll { delta, .. }) => {
                     engine.on_mouse_scroll((*delta).into(), renderer).into()
                 }
+                AppEvent::ModifiersChanged(mods) => engine.on_modifiers(*mods, renderer).into(),
                 AppEvent::Key(key_event @ KeyEvent { pressed: true, .. }) => {
                     renderer.snow_pulse_typing();
                     engine.on_key(key_event, renderer).into()

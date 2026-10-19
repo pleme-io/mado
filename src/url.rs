@@ -98,7 +98,7 @@ pub fn url_at(urls: &[DetectedUrl], row: usize, col: usize) -> Option<&DetectedU
 /// absolute `/usr/bin/open` (no PATH dependence); other platforms use
 /// `xdg-open`. NEVER a shell.
 #[must_use]
-fn os_opener() -> &'static str {
+pub(crate) fn os_opener() -> &'static str {
     #[cfg(target_os = "macos")]
     {
         "/usr/bin/open"

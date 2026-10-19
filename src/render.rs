@@ -1317,6 +1317,7 @@ struct Snapshot {
     /// Total scrollback rows — thumb sizing for the indicator.
     scrollback_total: usize,
     urls: Vec<DetectedUrl>,
+    hover_segments: Vec<crate::links::Segment>,
     search_active: bool,
     search_matches: Vec<crate::search::SearchMatch>,
     search_current: usize,
@@ -1485,6 +1486,8 @@ pub struct TerminalRenderer {
     /// Floating browser panels to composite this frame (engine-written mirror,
     /// in z draw-order). Empty ⇒ the float pass is skipped entirely.
     float_panels: Arc<Mutex<Vec<FloatPanel>>>,
+    hover_link: Arc<Mutex<Option<crate::links::HoverLink>>>,
+    last_hover_link: Option<crate::links::HoverLink>,
     /// The shared themed panel texture, created lazily on the first float draw.
     float_panel_tex: std::cell::RefCell<Option<GpuImage>>,
     /// A DEDICATED instance buffer for the float panel draw — NOT the shared
@@ -2390,6 +2393,8 @@ impl TerminalRenderer {
             overlay_focus: Arc::new(Mutex::new(crate::ux::modes::Overlay::None)),
             overlay_hits: Arc::new(Mutex::new(crate::picker::pointer::OverlayHits::default())),
             float_panels: Arc::new(Mutex::new(Vec::new())),
+            hover_link: Arc::new(Mutex::new(None)),
+            last_hover_link: None,
             float_panel_tex: std::cell::RefCell::new(None),
             float_panel_buf: std::cell::RefCell::new(None),
             image_instance_cursor: std::cell::Cell::new(0),
@@ -2945,6 +2950,10 @@ impl TerminalRenderer {
     /// composite the surfaces (the `overlay_focus` mirror pattern).
     pub fn set_float_panels(&mut self, float_panels: Arc<Mutex<Vec<FloatPanel>>>) {
         self.float_panels = float_panels;
+    }
+
+    pub fn set_hover_link(&mut self, hover_link: Arc<Mutex<Option<crate::links::HoverLink>>>) {
+        self.hover_link = hover_link;
     }
 
     pub fn set_dir_picker(&mut self, dir_picker: Arc<Mutex<crate::dir_picker::DirPickerState>>) {
@@ -3968,6 +3977,14 @@ impl TerminalRenderer {
         } else {
             url::detect_urls(&rows, cols)
         };
+        let hover_segments = self
+            .hover_link
+            .lock()
+            .unwrap()
+            .as_ref()
+            .filter(|h| h.current(seqno, scroll_offset))
+            .map(|h| h.segments.clone())
+            .unwrap_or_default();
 
         // Capture search state
         let search = self.search.lock().unwrap();
@@ -3989,6 +4006,7 @@ impl TerminalRenderer {
                 scroll_offset,
                 scrollback_total,
                 urls,
+                hover_segments,
                 search_active,
                 search_matches,
                 search_current,
@@ -4474,6 +4492,21 @@ impl TerminalRenderer {
                     overlay_rect_color(lc.r, lc.g, lc.b, 0.6),
                 ));
             }
+        }
+
+        let lc = self.link_color;
+        for seg in &snap.hover_segments {
+            instances.push(RectInstance::solid(
+                [
+                    origin_x + seg.col_start as f32 * self.cell_width,
+                    origin_y + (seg.row as f32 + 1.0) * self.cell_height - 2.0,
+                ],
+                [
+                    (seg.col_end + 1 - seg.col_start) as f32 * self.cell_width,
+                    1.5,
+                ],
+                overlay_rect_color(lc.r, lc.g, lc.b, 1.0),
+            ));
         }
 
         // Cursor (with optional blink). Unfocused windows pin the
@@ -6620,6 +6653,9 @@ impl TerminalRenderer {
         if self.selection.lock().unwrap().epoch() != self.last_selection_epoch {
             return FrameDemand::Now;
         }
+        if *self.hover_link.lock().unwrap() != self.last_hover_link {
+            return FrameDemand::Now;
+        }
 
         later
     }
@@ -7136,11 +7172,15 @@ impl RenderCallback for TerminalRenderer {
         let selection_changed = selection_epoch != self.last_selection_epoch;
         self.last_selection_epoch = selection_epoch;
         self.last_search_fingerprint = self.search.lock().unwrap().fingerprint();
+        let hover_now = self.hover_link.lock().unwrap().clone();
+        let hover_changed = hover_now != self.last_hover_link;
+        self.last_hover_link = hover_now;
         let paint_reason = classify_paint(PaintSignals {
             content: prev_seqno == 0 || seqno != prev_seqno,
             overlay: overlay_active_peek
                 || overlay_changed
                 || selection_changed
+                || hover_changed
                 || search_active_peek
                 || self.overlay_motion.closing(),
             animation: blink_flip || bell_active || text_blink_flip,

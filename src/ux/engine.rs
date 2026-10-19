@@ -166,6 +166,10 @@ pub struct InputEngine {
     /// Clickable-link interaction gates (hover pointer cursor +
     /// plain-click-to-open). The highlight half is the renderer's.
     links: crate::config::MadoLinksConfig,
+    hover_link: Arc<Mutex<Option<crate::links::HoverLink>>>,
+    link_press: Option<crate::links::LinkTarget>,
+    link_opener: Box<dyn Fn(&crate::links::OpenPlan) -> std::io::Result<()> + Send + Sync>,
+    pointer_shape: crate::pointer_shape::PointerShape,
     cursor_keys_mode: Box<dyn Fn() -> bool + Send + Sync>,
     default_font_size: f32,
     padding: f32,
@@ -317,6 +321,8 @@ impl InputEngine {
         renderer.set_overlay_hits(Arc::clone(&overlay_hits));
         let float_panels = Arc::new(Mutex::new(Vec::new()));
         renderer.set_float_panels(Arc::clone(&float_panels));
+        let hover_link = Arc::new(Mutex::new(None));
+        renderer.set_hover_link(Arc::clone(&hover_link));
         // Build the scroll system from the typed scroll policy BEFORE the
         // behavior value moves into the struct.
         let scroll = ScrollSystem::new(params.behavior.scroll_config());
@@ -348,6 +354,10 @@ impl InputEngine {
             keybinds: params.keybinds,
             behavior: params.behavior,
             links: params.links,
+            hover_link,
+            link_press: None,
+            link_opener: Box::new(crate::links::OpenPlan::spawn),
+            pointer_shape: crate::pointer_shape::PointerShape::Default,
             cursor_keys_mode: params.cursor_keys_mode,
             default_font_size: params.default_font_size,
             padding: params.padding,
@@ -450,29 +460,96 @@ impl InputEngine {
     /// an auto-detected bare URL in that row. `None` when the cell is not a
     /// link. Shared by the hover (pointer-cursor) and click (open) paths so
     /// they agree on what a link is.
-    fn link_url_at(&self, row: usize, col: usize) -> Option<String> {
-        let term = self.terminal.read();
-        // OSC 8 first — `hyperlink` resolves `NO_LINK_ID` (0) to `None`.
-        if let Some(uri) = term.cell(row, col).hyperlink(term.links()) {
-            return Some(uri.to_string());
+    fn link_at(&self, row: usize, col: usize) -> Option<crate::links::Link> {
+        if !self.links.enabled {
+            return None;
         }
+        let term = self.terminal.read();
         let cols = term.cols();
-        let row_cells: Vec<Cell> = term.visible_rows().nth(row)?.to_vec();
+        let rows: Vec<&[Cell]> = term.visible_rows().collect();
+        let wrapped = term.visible_rows_wrapped();
+        let line = crate::links::LogicalLine::around(&rows, &wrapped, cols, row)?;
+        let at = crate::links::CellPoint { row, col };
+        if let Some(link) = line.hyperlink_at(at, |id| term.links().lookup(id)) {
+            return Some(link);
+        }
+        let cwd = term
+            .cwd()
+            .map(|c| std::path::PathBuf::from(crate::links::decode_cwd(c)));
         drop(term);
-        let urls = crate::url::detect_urls_in_row(&row_cells, cols, row);
-        crate::url::url_at(&urls, row, col).map(|u| u.url.clone())
+        let home = dirs::home_dir();
+        let exists = |p: &std::path::Path| p.exists();
+        let ctx = crate::links::PathContext {
+            cwd: cwd.as_deref(),
+            home: home.as_deref(),
+            exists: &exists,
+        };
+        line.detected_at(at, &ctx, self.links.detect_paths)
     }
 
-    /// Open the link at a viewport cell, if any, with a typed
-    /// `std::process::Command` (see [`crate::url::open_link`] — a URL via
-    /// the OS opener, a `file://path:line` via `$VISUAL`/`$EDITOR`).
-    /// Failures are logged; never panics.
     fn try_open_link_at(&self, row: usize, col: usize) {
-        if let Some(url) = self.link_url_at(row, col) {
-            if let Err(e) = crate::url::open_link(&url) {
-                tracing::warn!(error = %e, url = %url, "failed to open link");
+        if let Some(link) = self.link_at(row, col) {
+            self.open_link_target(&link.target);
+        }
+    }
+
+    fn open_link_target(&self, target: &crate::links::LinkTarget) {
+        let env_editor = std::env::var("VISUAL")
+            .or_else(|_| std::env::var("EDITOR"))
+            .unwrap_or_else(|_| "nvim".to_string());
+        let plan = crate::links::open_plan(
+            target,
+            &self.links.editor,
+            &|p: &std::path::Path| p.is_dir(),
+            &env_editor,
+        );
+        if let Err(e) = (self.link_opener)(&plan) {
+            tracing::warn!(error = %e, program = %plan.program, "failed to open link");
+        }
+    }
+
+    fn refresh_hover(
+        &mut self,
+        row: usize,
+        col: usize,
+    ) -> Option<crate::pointer_shape::PointerShape> {
+        let armed = self.links.armed(self.last_mods);
+        let link = if armed { self.link_at(row, col) } else { None };
+        let hover = link
+            .as_ref()
+            .filter(|_| self.links.hover_underline)
+            .map(|l| {
+                let term = self.terminal.read();
+                crate::links::HoverLink {
+                    segments: l.segments(term.cols()),
+                    seqno: term.seqno(),
+                    scroll_offset: term.scroll_offset(),
+                }
+            });
+        {
+            let mut slot = self.hover_link.lock().unwrap();
+            if *slot != hover {
+                *slot = hover;
             }
         }
+        let shape = if link.is_some() && self.links.pointer_cursor {
+            crate::pointer_shape::PointerShape::Pointer
+        } else {
+            self.terminal.read().pointer_shape()
+        };
+        (shape != self.pointer_shape).then(|| {
+            self.pointer_shape = shape;
+            shape
+        })
+    }
+
+    pub fn on_modifiers(&mut self, mods: Modifiers, metrics: &dyn FontZoomTarget) -> EventOutcome {
+        self.last_mods = mods;
+        let (x, y) = self.last_mouse_pos;
+        let (col, row, _, _) = self.mouse_cell(x, y, metrics);
+        let mut outcome = EventOutcome::ignored();
+        outcome.set_pointer_shape = self.refresh_hover(row, col);
+        outcome
     }
 
     // ── Key handling ─────────────────────────────────────────────
@@ -1734,6 +1811,23 @@ impl InputEngine {
         let shift_local = modifiers.shift && !self.behavior.mouse_shift_capture;
 
         if button == MouseButton::Left {
+            if pressed && self.links.modifier_held(modifiers) {
+                if let Some(link) = self.link_at(row, col) {
+                    self.link_press = Some(link.target);
+                    return EventOutcome::consumed();
+                }
+            }
+            if !pressed {
+                if let Some(pressed_target) = self.link_press.take() {
+                    if self
+                        .link_at(row, col)
+                        .is_some_and(|l| l.target == pressed_target)
+                    {
+                        self.open_link_target(&pressed_target);
+                    }
+                    return EventOutcome::consumed();
+                }
+            }
             let event = if pressed {
                 PointerEvent::LeftPress(match modes::route_left_press(tracking_on, shift_local) {
                     modes::PressRouting::Forward => PressRoute::Forward,
@@ -1960,9 +2054,9 @@ impl InputEngine {
                     // is set; the legacy Cmd+click (macOS) / Ctrl+click
                     // (Linux) affordance still works whenever links are
                     // enabled. Never on a drag (would hijack text selection).
-                    let modified = modifiers.meta || modifiers.ctrl;
-                    let want_open = (plain_click && self.links.open_on_click)
-                        || (modified && self.links.enabled);
+                    let modified = self.links.modifier_held(modifiers);
+                    let want_open =
+                        (plain_click && self.links.open_on_click && self.links.enabled) || modified;
                     if want_open {
                         self.try_open_link_at(row, col);
                     }
@@ -2284,13 +2378,7 @@ impl InputEngine {
         // `None` leaves the cursor unchanged. The typed shape rides on the
         // outcome; OS application awaits a madori cursor-icon channel (see
         // `ux::outcome` + the OSC 22 pointer-shape precedent).
-        let pointer_shape = self.links.pointer_cursor.then(|| {
-            if self.link_url_at(row, col).is_some() {
-                crate::pointer_shape::PointerShape::Pointer
-            } else {
-                crate::pointer_shape::PointerShape::Default
-            }
-        });
+        let pointer_shape = self.refresh_hover(row, col);
 
         let mut outcome = EventOutcome::consumed().with_cursor_visibility(vis);
         outcome.set_pointer_shape = pointer_shape;
@@ -3469,6 +3557,212 @@ mod tests {
             shift: false,
             meta: false,
         }
+    }
+
+    use crate::pointer_shape::PointerShape;
+
+    fn recording_opener(h: &mut Harness) -> Arc<StdMutex<Vec<crate::links::OpenPlan>>> {
+        let opened = Arc::new(StdMutex::new(Vec::new()));
+        let sink = Arc::clone(&opened);
+        h.engine.link_opener = Box::new(move |plan: &crate::links::OpenPlan| {
+            sink.lock().unwrap().push(plan.clone());
+            Ok(())
+        });
+        opened
+    }
+
+    fn url_plan(u: &str) -> crate::links::OpenPlan {
+        crate::links::open_plan(
+            &crate::links::LinkTarget::Url(u.to_string()),
+            &crate::config::LinkEditor::default(),
+            &|_: &std::path::Path| false,
+            "nvim",
+        )
+    }
+
+    #[test]
+    fn cmd_click_on_a_url_opens_it_and_reports_nothing_in_mouse_mode() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let opened = recording_opener(&mut h);
+        h.feed(b"\x1b[?1000h\x1b[?1006h");
+        h.feed(b"see https://example.com/x now");
+        h.clear_sent();
+        h.button(MouseButton::Left, true, 8, 0, cmd());
+        h.button(MouseButton::Left, false, 8, 0, cmd());
+        assert!(h.sent_bytes().is_empty(), "{:?}", h.sent_bytes());
+        assert_eq!(
+            *opened.lock().unwrap(),
+            vec![url_plan("https://example.com/x")]
+        );
+    }
+
+    #[test]
+    fn plain_click_on_a_url_in_mouse_mode_still_reaches_the_app() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let opened = recording_opener(&mut h);
+        h.feed(b"\x1b[?1000h\x1b[?1006h");
+        h.feed(b"see https://example.com/x now");
+        h.clear_sent();
+        h.button(MouseButton::Left, true, 8, 0, no_mods());
+        h.button(MouseButton::Left, false, 8, 0, no_mods());
+        assert_eq!(h.sent_bytes().len(), 2);
+        assert!(opened.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn plain_click_on_a_url_selects_nothing_and_opens_nothing() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let opened = recording_opener(&mut h);
+        h.feed(b"see https://example.com/x now");
+        h.button(MouseButton::Left, true, 8, 0, no_mods());
+        h.button(MouseButton::Left, false, 8, 0, no_mods());
+        assert!(opened.lock().unwrap().is_empty());
+        assert!(h.sent_bytes().is_empty());
+    }
+
+    #[test]
+    fn plain_click_opens_when_open_on_click_is_configured() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.engine.links.open_on_click = true;
+        let opened = recording_opener(&mut h);
+        h.feed(b"see https://example.com/x now");
+        h.button(MouseButton::Left, true, 8, 0, no_mods());
+        h.button(MouseButton::Left, false, 8, 0, no_mods());
+        assert_eq!(
+            *opened.lock().unwrap(),
+            vec![url_plan("https://example.com/x")]
+        );
+    }
+
+    #[test]
+    fn cmd_press_on_a_link_released_elsewhere_opens_nothing() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let opened = recording_opener(&mut h);
+        h.feed(b"see https://example.com/x now");
+        h.button(MouseButton::Left, true, 8, 0, cmd());
+        h.button(MouseButton::Left, false, 1, 0, cmd());
+        assert!(opened.lock().unwrap().is_empty());
+        assert!(h.engine.selection.lock().unwrap().anchors().is_none());
+    }
+
+    #[test]
+    fn cmd_click_off_a_link_keeps_the_mouse_report() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let opened = recording_opener(&mut h);
+        h.feed(b"\x1b[?1000h\x1b[?1006h");
+        h.feed(b"see https://example.com/x now");
+        h.clear_sent();
+        h.button(MouseButton::Left, true, 1, 0, cmd());
+        h.button(MouseButton::Left, false, 1, 0, cmd());
+        assert_eq!(h.sent_bytes().len(), 2);
+        assert!(opened.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn cmd_hover_underlines_and_shows_the_hand_until_cmd_lifts() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"see https://example.com/x now");
+        h.moved(8, 0);
+        assert!(h.engine.hover_link.lock().unwrap().is_none());
+        assert_ne!(h.engine.pointer_shape, PointerShape::Pointer);
+
+        let out = h.engine.on_modifiers(cmd(), &h.renderer);
+        assert_eq!(out.set_pointer_shape, Some(PointerShape::Pointer));
+        let hover = h.engine.hover_link.lock().unwrap().clone().unwrap();
+        assert_eq!(
+            hover.segments,
+            vec![crate::links::Segment {
+                row: 0,
+                col_start: 4,
+                col_end: 24
+            }]
+        );
+
+        h.moved(1, 0);
+        assert!(h.engine.hover_link.lock().unwrap().is_none());
+        assert_eq!(h.engine.pointer_shape, PointerShape::Default);
+        h.moved(8, 0);
+        assert!(h.engine.hover_link.lock().unwrap().is_some());
+
+        let out = h.engine.on_modifiers(no_mods(), &h.renderer);
+        assert_eq!(out.set_pointer_shape, Some(PointerShape::Default));
+        assert!(h.engine.hover_link.lock().unwrap().is_none());
+        let again = h.engine.on_modifiers(no_mods(), &h.renderer);
+        assert_eq!(again.set_pointer_shape, None);
+    }
+
+    #[test]
+    fn off_a_link_the_pointer_follows_the_applications_osc22_shape() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"\x1b]22;crosshair\x1b\\plain text");
+        let out = h.engine.on_modifiers(cmd(), &h.renderer);
+        assert_eq!(out.set_pointer_shape, Some(PointerShape::Crosshair));
+    }
+
+    #[test]
+    fn cmd_click_on_a_cwd_relative_path_with_a_line_opens_the_editor_there() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("src")).unwrap();
+        std::fs::write(dir.path().join("src/main.rs"), "fn main() {}\n").unwrap();
+        let root = dir.path().canonicalize().unwrap();
+        let mut h = Harness::new(SinkKind::Closure);
+        let opened = recording_opener(&mut h);
+        let mut osc7 = b"\x1b]7;file://host".to_vec();
+        osc7.extend_from_slice(root.to_string_lossy().as_bytes());
+        osc7.push(0x07);
+        h.feed(&osc7);
+        h.feed(b"--> src/main.rs:12:5");
+        h.button(MouseButton::Left, true, 8, 0, cmd());
+        h.button(MouseButton::Left, false, 8, 0, cmd());
+        let mut want = String::from("cursor://file");
+        want.push_str(&root.join("src/main.rs").to_string_lossy());
+        want.push_str(":12:5");
+        let got = opened.lock().unwrap().clone();
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].args, vec![want]);
+    }
+
+    #[test]
+    fn a_relative_path_that_does_not_exist_is_not_a_link() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+        let mut h = Harness::new(SinkKind::Closure);
+        let opened = recording_opener(&mut h);
+        let mut osc7 = b"\x1b]7;file://host".to_vec();
+        osc7.extend_from_slice(root.to_string_lossy().as_bytes());
+        osc7.push(0x07);
+        h.feed(&osc7);
+        h.feed(b"--> src/main.rs:12:5");
+        h.button(MouseButton::Left, true, 8, 0, cmd());
+        h.button(MouseButton::Left, false, 8, 0, cmd());
+        assert!(opened.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn an_osc8_hyperlink_opens_its_uri_not_its_text() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let opened = recording_opener(&mut h);
+        h.feed(b"\x1b]8;;https://example.com/target\x1b\\click me\x1b]8;;\x1b\\");
+        h.button(MouseButton::Left, true, 2, 0, cmd());
+        h.button(MouseButton::Left, false, 2, 0, cmd());
+        assert_eq!(
+            *opened.lock().unwrap(),
+            vec![url_plan("https://example.com/target")]
+        );
+    }
+
+    #[test]
+    fn links_disabled_turns_cmd_click_back_into_a_plain_press() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.engine.links = crate::config::MadoLinksConfig::bare();
+        let opened = recording_opener(&mut h);
+        h.feed(b"\x1b[?1000h\x1b[?1006h");
+        h.feed(b"see https://example.com/x now");
+        h.clear_sent();
+        h.button(MouseButton::Left, true, 8, 0, cmd());
+        h.button(MouseButton::Left, false, 8, 0, cmd());
+        assert_eq!(h.sent_bytes().len(), 2);
+        assert!(opened.lock().unwrap().is_empty());
     }
 
     // ── Capability parity: keys ──────────────────────────────────

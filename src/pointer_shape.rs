@@ -23,6 +23,7 @@
 //! gives the platform layer a pattern-matchable enum that can't
 //! be misspelled.
 
+use madori::PointerIcon;
 use pleme_kindstr_derive::KindStr;
 
 /// CSS `cursor`-style pointer shape. Round-trips through
@@ -103,6 +104,33 @@ pub enum PointerShape {
     ZoomOut,
 }
 
+impl PointerShape {
+    #[must_use]
+    pub fn icon(self) -> PointerIcon {
+        match self {
+            Self::Default => PointerIcon::Default,
+            Self::Text => PointerIcon::Text,
+            Self::Pointer => PointerIcon::Pointer,
+            Self::Wait => PointerIcon::Wait,
+            Self::Progress => PointerIcon::Progress,
+            Self::Crosshair => PointerIcon::Crosshair,
+            Self::ColResize => PointerIcon::ColResize,
+            Self::RowResize => PointerIcon::RowResize,
+            Self::Move => PointerIcon::Move,
+            Self::Grab => PointerIcon::Grab,
+            Self::Grabbing => PointerIcon::Grabbing,
+            Self::NotAllowed => PointerIcon::NotAllowed,
+            Self::Help => PointerIcon::Help,
+            Self::NwseResize => PointerIcon::NwseResize,
+            Self::NeswResize => PointerIcon::NeswResize,
+            Self::EwResize => PointerIcon::EwResize,
+            Self::NsResize => PointerIcon::NsResize,
+            Self::ZoomIn => PointerIcon::ZoomIn,
+            Self::ZoomOut => PointerIcon::ZoomOut,
+        }
+    }
+}
+
 // `all()` and `ALL` are DERIVED by `#[derive(AllVariants)]` — there is
 // deliberately no hand-written impl here.
 //
@@ -120,6 +148,15 @@ pub enum PointerShape {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_shape_maps_to_a_distinct_icon() {
+        let icons: std::collections::HashSet<PointerIcon> =
+            PointerShape::all().iter().map(|s| s.icon()).collect();
+        assert_eq!(icons.len(), PointerShape::all().len());
+        assert_eq!(PointerShape::Pointer.icon(), PointerIcon::Pointer);
+        assert_eq!(PointerShape::default().icon(), PointerIcon::Default);
+    }
 
     #[test]
     fn round_trip_via_name_preserves_every_variant() {
