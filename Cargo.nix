@@ -10331,7 +10331,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.195";
+        version = "0.1.196";
         edition = "2024";
         crateBin = [
           {
@@ -10708,9 +10708,9 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.23";
+        version = "0.1.24";
         edition = "2024";
-        sha256 = "0nrxsa7v20m8wvrprzkyixcscw4s9zv2f65lxx7gzs4f4b03sl33";
+        sha256 = "197xnhc9c2fxcbhx6fmix9qiwpb7pnabbqn3j87h59lhklwwn2is";
         dependencies = [
           {
             name = "egaku";
