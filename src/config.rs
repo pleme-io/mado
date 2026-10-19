@@ -181,6 +181,32 @@ pub struct MadoConfig {
     /// spawned, snapping armed); the bare tier disables the whole subsystem.
     #[serde(default)]
     pub browser: BrowserConfig,
+    #[serde(default)]
+    pub attachments: AttachmentsConfig,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct AttachmentsConfig {
+    pub pill: bool,
+}
+
+impl Default for AttachmentsConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl AttachmentsConfig {
+    #[must_use]
+    pub const fn bare() -> Self {
+        Self { pill: false }
+    }
+
+    #[must_use]
+    pub const fn prescribed() -> Self {
+        Self { pill: true }
+    }
 }
 
 /// Mado's embedded-vigy gate. Defaults the runtime OFF — operators
@@ -3813,6 +3839,7 @@ impl MadoConfig {
             motion: MotionConfig::bare(),
             // bare = floating-browser subsystem fully off.
             browser: BrowserConfig::bare(),
+            attachments: AttachmentsConfig::bare(),
         }
     }
 
@@ -4128,6 +4155,7 @@ fn mado_fleet_base() -> MadoConfig {
         notifications: NotificationsConfig::default(),
         motion: MotionConfig::default(),
         browser: BrowserConfig::default(),
+        attachments: AttachmentsConfig::default(),
     }
 }
 
@@ -5492,6 +5520,7 @@ mod tests {
             notifications: NotificationsConfig::default(),
             motion: MotionConfig::default(),
             browser: BrowserConfig::default(),
+            attachments: AttachmentsConfig::default(),
         };
         if fd.scrollback_lines == 10_000 {
             c.behavior.scrollback_lines = default_scrollback();
@@ -7518,6 +7547,7 @@ mod coverage {
         "appearance.bold_is_bright",
         "appearance.foreground",
         "appearance.opacity",
+        "attachments.pill",
         "behavior.confirm_close",
         "behavior.copy_on_select",
         "behavior.deselect_on_copy",

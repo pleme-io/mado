@@ -161,6 +161,7 @@ pub struct InputEngine {
     session_picker_bridge: Option<Box<dyn SessionPickerBridge>>,
     clipboard: Arc<dyn ClipboardProvider>,
     pasteboard: crate::file_drop::PasteboardReader,
+    attach_pill: Arc<Mutex<crate::attach_pill::AttachPill>>,
     keybinds: KeybindManager,
     pub(crate) behavior: UxBehavior,
     /// Clickable-link interaction gates (hover pointer cursor +
@@ -323,6 +324,10 @@ impl InputEngine {
         renderer.set_float_panels(Arc::clone(&float_panels));
         let hover_link = Arc::new(Mutex::new(None));
         renderer.set_hover_link(Arc::clone(&hover_link));
+        let attach_pill = Arc::new(Mutex::new(crate::attach_pill::AttachPill::new(
+            params.behavior.attachment_pill,
+        )));
+        renderer.set_attach_pill(Arc::clone(&attach_pill));
         // Build the scroll system from the typed scroll policy BEFORE the
         // behavior value moves into the struct.
         let scroll = ScrollSystem::new(params.behavior.scroll_config());
@@ -351,6 +356,7 @@ impl InputEngine {
             session_picker_bridge: params.session_picker_bridge,
             clipboard: params.clipboard,
             pasteboard: crate::file_drop::system_pasteboard(),
+            attach_pill,
             keybinds: params.keybinds,
             behavior: params.behavior,
             links: params.links,
@@ -1602,6 +1608,7 @@ impl InputEngine {
             }
         }
         let Some(image) = offer.or_else(|| self.provider_image()) else {
+            self.show_attached(crate::attach_pill::Attached::Refused);
             return;
         };
         match crate::file_drop::land(image, &std::env::temp_dir()) {
@@ -1610,8 +1617,20 @@ impl InputEngine {
             }
             Err(error) => {
                 tracing::warn!(%error, "clipboard image could not be written");
+                self.show_attached(crate::attach_pill::Attached::Refused);
             }
         }
+    }
+
+    fn show_attached(&self, what: crate::attach_pill::Attached) {
+        if let Ok(mut pill) = self.attach_pill.lock() {
+            pill.show(what, Instant::now());
+        }
+    }
+
+    #[cfg(test)]
+    fn pill_frame(&self) -> Option<crate::attach_pill::PillFrame> {
+        self.attach_pill.lock().unwrap().frame(Instant::now())
     }
 
     fn provider_image(&self) -> Option<crate::file_drop::Payload> {
@@ -2538,7 +2557,12 @@ impl InputEngine {
     }
 
     pub fn drop_files(&mut self, paths: &[std::path::PathBuf]) -> EventOutcome {
+        if paths.is_empty() {
+            self.show_attached(crate::attach_pill::Attached::Refused);
+            return EventOutcome::consumed();
+        }
         self.write_paste(&crate::file_drop::paste_text(paths));
+        self.show_attached(crate::attach_pill::Attached::of(paths));
         EventOutcome::consumed()
     }
 
@@ -2547,8 +2571,15 @@ impl InputEngine {
         if batches.is_empty() {
             return EventOutcome::ignored();
         }
-        for batch in &batches {
-            self.drop_files(batch);
+        for delivery in &batches {
+            match delivery {
+                crate::file_drop::Delivery::Paths(paths) => {
+                    self.drop_files(paths);
+                }
+                crate::file_drop::Delivery::Refused => {
+                    self.show_attached(crate::attach_pill::Attached::Refused);
+                }
+            }
         }
         EventOutcome::consumed()
     }
@@ -3424,6 +3455,7 @@ mod tests {
                         precise_scroll_multiplier: 1.0,
                         selection_autoscroll_speed: 18.0,
                         selection_autoscroll_max_overshoot: 6.0,
+                        attachment_pill: true,
                     },
                     // Links on in the harness so the click/hover paths are exercised.
                     links: crate::config::MadoLinksConfig::prescribed(),
@@ -4964,11 +4996,65 @@ mod tests {
     }
 
     #[test]
-    fn cmd_v_with_nothing_pasteable_writes_nothing() {
+    fn cmd_v_with_nothing_pasteable_writes_nothing_and_says_so() {
         let mut h = Harness::new(SinkKind::Closure);
         h.feed(b"\x1b[?2004h");
         h.key(KeyCode::Char('v'), Some("v"), cmd());
         assert!(h.sent_bytes().is_empty());
+        let pill = h.engine.pill_frame().expect("the refusal is shown");
+        assert_eq!(pill.text, "refused: no file or image");
+        assert!(pill.refused);
+    }
+
+    #[test]
+    fn a_text_paste_shows_no_attachment_pill() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.clipboard.copy_text("words").unwrap();
+        h.key(KeyCode::Char('v'), Some("v"), cmd());
+        assert_eq!(h.engine.pill_frame(), None);
+    }
+
+    #[test]
+    fn a_pasted_image_names_its_file_and_size_in_the_pill() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let payload = png_payload();
+        h.engine
+            .set_pasteboard(Arc::new(move || Some(payload.clone())));
+        h.key(KeyCode::Char('v'), Some("v"), cmd());
+        let body = String::from_utf8(h.sent_bytes()[0].clone()).unwrap();
+        let path = std::path::PathBuf::from(split_unescaped(&body).remove(0));
+        let size = std::fs::metadata(&path).unwrap().len();
+        let pill = h.engine.pill_frame().expect("an attachment pill");
+        assert!(
+            pill.text.starts_with("attached mado-drop-"),
+            "{}",
+            pill.text
+        );
+        assert!(
+            pill.text.ends_with(&format!(".png · {size} B")),
+            "{}",
+            pill.text
+        );
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn drops_and_refusals_from_the_inbox_each_restate_the_pill() {
+        let inbox = crate::file_drop::Inbox::new();
+        let mut h = Harness::new(SinkKind::Closure);
+        inbox.push(vec![
+            std::path::PathBuf::from("/tmp/one.png"),
+            std::path::PathBuf::from("/tmp/two.png"),
+        ]);
+        h.engine.deliver_drops(&inbox);
+        assert_eq!(h.engine.pill_frame().unwrap().text, "attached 2 files");
+        inbox.refuse();
+        h.engine.deliver_drops(&inbox);
+        assert_eq!(
+            h.engine.pill_frame().unwrap().text,
+            "refused: no file or image"
+        );
+        assert_eq!(h.sent_bytes().len(), 1, "a refusal writes nothing");
     }
 
     // ── Capability parity: search overlay ────────────────────────

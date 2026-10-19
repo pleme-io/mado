@@ -95,6 +95,7 @@ fn perform(pb: &NSPasteboard) -> bool {
             }
             Err(error) => {
                 tracing::warn!(%error, "dropped image could not be written");
+                super::INBOX.refuse();
                 false
             }
         },
@@ -105,10 +106,14 @@ fn perform(pb: &NSPasteboard) -> bool {
             }
             Err(error) => {
                 tracing::warn!(%error, "no directory for the promised drop");
+                super::INBOX.refuse();
                 false
             }
         },
-        None => false,
+        None => {
+            super::INBOX.refuse();
+            false
+        }
     }
 }
 
@@ -247,6 +252,7 @@ mod seam {
             if !error.is_null() {
                 let error = unsafe { &*error };
                 tracing::warn!(error = %error.localizedDescription(), "promised drop failed");
+                super::super::INBOX.refuse();
                 return;
             }
             let url = unsafe { url.as_ref() };
@@ -365,7 +371,10 @@ mod seam {
             assert!(performed.as_bool());
             let batches = crate::file_drop::INBOX.take();
             assert_eq!(batches.len(), 1);
-            let path = &batches[0][0];
+            let crate::file_drop::Delivery::Paths(paths) = &batches[0] else {
+                panic!("the drop was refused");
+            };
+            let path = &paths[0];
             assert!(
                 path.file_name()
                     .unwrap()

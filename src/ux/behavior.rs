@@ -68,6 +68,7 @@ pub struct UxBehavior {
     pub selection_autoscroll_speed: f32,
     /// Selection auto-scroll overshoot cap (lines).
     pub selection_autoscroll_max_overshoot: f32,
+    pub attachment_pill: bool,
 }
 
 impl UxBehavior {
@@ -136,6 +137,7 @@ impl From<&MadoConfig> for UxBehavior {
             precise_scroll_multiplier: config.behavior.precise_scroll_multiplier,
             selection_autoscroll_speed: config.behavior.selection_autoscroll_speed,
             selection_autoscroll_max_overshoot: config.behavior.selection_autoscroll_max_overshoot,
+            attachment_pill: config.attachments.pill,
         }
     }
 }
@@ -161,6 +163,12 @@ mod tests {
         assert!(!b.mouse_shift_capture);
         config.behavior.mouse_shift_capture = crate::config::MouseShiftCapture::Always;
         assert!(UxBehavior::from(&config).mouse_shift_capture);
+    }
+
+    #[test]
+    fn the_attachment_pill_follows_its_config_switch() {
+        assert!(UxBehavior::from(&MadoConfig::default()).attachment_pill);
+        assert!(!UxBehavior::from(&MadoConfig::bare()).attachment_pill);
     }
 
     #[test]

@@ -58,6 +58,13 @@
       "type": "nullOrStr"
     }
   },
+  "attachments": {
+    "pill": {
+      "default": true,
+      "description": "",
+      "type": "bool"
+    }
+  },
   "behavior": {
     "confirm_close": {
       "default": false,

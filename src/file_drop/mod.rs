@@ -131,16 +131,29 @@ pub fn promise_dir(dir: &Path) -> std::io::Result<PathBuf> {
     Ok(path)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Delivery {
+    Paths(Vec<PathBuf>),
+    Refused,
+}
+
 #[derive(Debug, Default)]
 pub struct Inbox {
-    batches: Mutex<Vec<Vec<PathBuf>>>,
+    deliveries: Mutex<Vec<Delivery>>,
 }
 
 impl Inbox {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            batches: Mutex::new(Vec::new()),
+            deliveries: Mutex::new(Vec::new()),
+        }
+    }
+
+    fn enqueue(&self, delivery: Delivery) {
+        match self.deliveries.lock() {
+            Ok(mut deliveries) => deliveries.push(delivery),
+            Err(poisoned) => poisoned.into_inner().push(delivery),
         }
     }
 
@@ -148,16 +161,8 @@ impl Inbox {
         if batch.is_empty() {
             return false;
         }
-        match self.batches.lock() {
-            Ok(mut batches) => {
-                batches.push(batch);
-                true
-            }
-            Err(poisoned) => {
-                poisoned.into_inner().push(batch);
-                true
-            }
-        }
+        self.enqueue(Delivery::Paths(batch));
+        true
     }
 
     pub fn post(&self, batch: Vec<PathBuf>) {
@@ -166,10 +171,15 @@ impl Inbox {
         }
     }
 
+    pub fn refuse(&self) {
+        self.enqueue(Delivery::Refused);
+        crate::ring::WINDOW.ring();
+    }
+
     #[must_use]
-    pub fn take(&self) -> Vec<Vec<PathBuf>> {
-        match self.batches.lock() {
-            Ok(mut batches) => std::mem::take(&mut *batches),
+    pub fn take(&self) -> Vec<Delivery> {
+        match self.deliveries.lock() {
+            Ok(mut deliveries) => std::mem::take(&mut *deliveries),
             Err(poisoned) => std::mem::take(&mut *poisoned.into_inner()),
         }
     }
@@ -354,11 +364,13 @@ mod tests {
         assert!(!inbox.push(Vec::new()));
         assert!(inbox.push(vec![PathBuf::from("/a"), PathBuf::from("/b")]));
         assert!(inbox.push(vec![PathBuf::from("/c")]));
+        inbox.refuse();
         assert_eq!(
             inbox.take(),
             vec![
-                vec![PathBuf::from("/a"), PathBuf::from("/b")],
-                vec![PathBuf::from("/c")]
+                Delivery::Paths(vec![PathBuf::from("/a"), PathBuf::from("/b")]),
+                Delivery::Paths(vec![PathBuf::from("/c")]),
+                Delivery::Refused,
             ]
         );
         assert!(inbox.take().is_empty());

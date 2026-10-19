@@ -706,6 +706,8 @@ fn fs_main(frag: VertexOutput) -> @location(0) vec4<f32> {
 /// 24 leaves generous headroom and never needs to grow.
 const OVERLAY_RECT_CAPACITY: usize = 24;
 
+const PILL_RECT_CAPACITY: usize = 2;
+
 struct RectPipeline {
     pipeline: wgpu::RenderPipeline,
     uniform_buffer: wgpu::Buffer,
@@ -716,6 +718,7 @@ struct RectPipeline {
     /// with `instance_buffer` (see `RectPipeline::new`). Drawn via
     /// [`RectPipeline::draw_overlay`].
     overlay_buffer: wgpu::Buffer,
+    pill_buffer: wgpu::Buffer,
 }
 
 impl RectPipeline {
@@ -846,6 +849,13 @@ impl RectPipeline {
             mapped_at_creation: false,
         });
 
+        let pill_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("rect_pill_instances"),
+            size: (PILL_RECT_CAPACITY * std::mem::size_of::<RectInstance>()) as u64,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         Self {
             pipeline,
             uniform_buffer,
@@ -853,6 +863,7 @@ impl RectPipeline {
             instance_buffer,
             instance_capacity: initial_capacity,
             overlay_buffer,
+            pill_buffer,
         }
     }
 
@@ -916,6 +927,16 @@ impl RectPipeline {
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, &self.bind_group, &[]);
         pass.set_vertex_buffer(0, self.overlay_buffer.slice(..));
+        pass.draw(0..6, 0..count);
+    }
+
+    fn draw_pill<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>, count: u32) {
+        if count == 0 {
+            return;
+        }
+        pass.set_pipeline(&self.pipeline);
+        pass.set_bind_group(0, &self.bind_group, &[]);
+        pass.set_vertex_buffer(0, self.pill_buffer.slice(..));
         pass.draw(0..6, 0..count);
     }
 }
@@ -1488,6 +1509,8 @@ pub struct TerminalRenderer {
     float_panels: Arc<Mutex<Vec<FloatPanel>>>,
     hover_link: Arc<Mutex<Option<crate::links::HoverLink>>>,
     last_hover_link: Option<crate::links::HoverLink>,
+    attach_pill: Arc<Mutex<crate::attach_pill::AttachPill>>,
+    pill_painted: bool,
     /// The shared themed panel texture, created lazily on the first float draw.
     float_panel_tex: std::cell::RefCell<Option<GpuImage>>,
     /// A DEDICATED instance buffer for the float panel draw — NOT the shared
@@ -1777,6 +1800,7 @@ pub struct TerminalRenderer {
     term_layer: Option<garasu::TextLayerId>,
     overlay_layer: Option<garasu::TextLayerId>,
     search_layer: Option<garasu::TextLayerId>,
+    pill_layer: Option<garasu::TextLayerId>,
     /// Per-suggestion render-clock time (`ctx.elapsed` seconds) of when a row
     /// first appeared on screen, so the shade-in ramps from when the OPERATOR
     /// sees it. Render-clock, NOT wall-clock `Instant` — so two renders at the
@@ -2185,7 +2209,7 @@ use crate::grid_col::{GridCol, glyph_columns};
 /// mints exactly this many layers — so a NEW text surface added without its
 /// own isolated layer (which would reintroduce the cross-pass clobber) fails
 /// the test. Order matches the `add_layer` calls in `ensure_layers`.
-const TEXT_LAYERS: &[&str] = &["terminal", "overlay", "search"];
+const TEXT_LAYERS: &[&str] = &["terminal", "overlay", "search", "pill"];
 
 /// Quantize a cell **height** to a whole device pixel (ceil, floor 1px).
 ///
@@ -2395,6 +2419,8 @@ impl TerminalRenderer {
             float_panels: Arc::new(Mutex::new(Vec::new())),
             hover_link: Arc::new(Mutex::new(None)),
             last_hover_link: None,
+            attach_pill: Arc::new(Mutex::new(crate::attach_pill::AttachPill::default())),
+            pill_painted: false,
             float_panel_tex: std::cell::RefCell::new(None),
             float_panel_buf: std::cell::RefCell::new(None),
             image_instance_cursor: std::cell::Cell::new(0),
@@ -2555,6 +2581,7 @@ impl TerminalRenderer {
             term_layer: None,
             overlay_layer: None,
             search_layer: None,
+            pill_layer: None,
         }
     }
 
@@ -2954,6 +2981,124 @@ impl TerminalRenderer {
 
     pub fn set_hover_link(&mut self, hover_link: Arc<Mutex<Option<crate::links::HoverLink>>>) {
         self.hover_link = hover_link;
+    }
+
+    pub fn set_attach_pill(&mut self, pill: Arc<Mutex<crate::attach_pill::AttachPill>>) {
+        self.attach_pill = pill;
+    }
+
+    fn attach_pill_frame(&self, now: Instant) -> Option<crate::attach_pill::PillFrame> {
+        self.attach_pill.lock().ok()?.frame(now)
+    }
+
+    fn draw_attach_pill(
+        &self,
+        pill: &crate::attach_pill::PillFrame,
+        frame: &mut garasu::Frame<'_>,
+        gpu: &garasu::GpuContext,
+        surface_view: &wgpu::TextureView,
+        width: u32,
+        height: u32,
+        encoder: &mut wgpu::CommandEncoder,
+    ) {
+        let fs = self.font_size_px();
+        let line_h = fs * self.line_height;
+        let attrs = Attrs::new().family(Family::Name(&self.font_family));
+        let mut buf = frame.create_rich_buffer(&[(pill.text.as_str(), attrs)], fs, line_h);
+        buf.shape_until_scroll(frame.font_system_mut(), false);
+        let text_w = buf.layout_runs().fold(0.0_f32, |m, run| m.max(run.line_w));
+        let pad = self.padding_px();
+        let pad_x = self.cell_width;
+        let pad_y = line_h * 0.3;
+        let pw = text_w + pad_x * 2.0;
+        let ph = line_h + pad_y * 2.0;
+        let px = (width as f32 - pad - self.cell_width - pw).max(pad);
+        let py = pad + self.cell_height * 0.5;
+        let style = self.overlay_style;
+        let lin = |c: crate::terminal::Color, a: f32| -> [f32; 4] {
+            let l = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
+            [l.r, l.g, l.b, a * pill.alpha]
+        };
+        let radius = ph / 2.0;
+        let border_w = 1.0_f32;
+        let rects = [
+            RectInstance::rounded(
+                [px - border_w, py - border_w],
+                [pw + border_w * 2.0, ph + border_w * 2.0],
+                lin(style.border, 0.9),
+                radius + border_w,
+            ),
+            RectInstance::rounded([px, py], [pw, ph], lin(style.panel, 0.94), radius),
+        ];
+        if let Some(ref pipeline) = self.rect_pipeline {
+            pipeline.update_resolution(&gpu.queue, width, height);
+            gpu.queue
+                .write_buffer(&pipeline.pill_buffer, 0, bytemuck::cast_slice(&rects));
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("mado_attach_pill_panel"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: surface_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            pipeline.draw_pill(&mut pass, rects.len() as u32);
+        }
+        let ink = if pill.refused {
+            self.ansi_colors[1]
+        } else {
+            style.query
+        };
+        let text_areas = vec![glyphon::TextArea {
+            buffer: &buf,
+            left: px + pad_x,
+            top: py + pad_y,
+            scale: 1.0,
+            bounds: card_text_bounds(px, py, pw, ph),
+            default_color: GlyphonColor::rgba(
+                ink.r,
+                ink.g,
+                ink.b,
+                (pill.alpha * 255.0).round() as u8,
+            ),
+            custom_glyphs: &[],
+        }];
+        let token = match frame.prepare(
+            self.pill_layer
+                .expect("ensure_layers minted the pill layer before any draw"),
+            &gpu.device,
+            &gpu.queue,
+            text_areas,
+        ) {
+            Ok(t) => t,
+            Err(e) => {
+                tracing::warn!("attach pill text prepare: {e}");
+                return;
+            }
+        };
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("mado_attach_pill"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: surface_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+        if let Err(e) = frame.render(token, &mut pass) {
+            tracing::warn!("attach pill text render: {e}");
+        }
     }
 
     pub fn set_dir_picker(&mut self, dir_picker: Arc<Mutex<crate::dir_picker::DirPickerState>>) {
@@ -3789,6 +3934,9 @@ impl TerminalRenderer {
         }
         if self.search_layer.is_none() {
             self.search_layer = Some(text.add_layer(device));
+        }
+        if self.pill_layer.is_none() {
+            self.pill_layer = Some(text.add_layer(device));
         }
         // Forcing function: this renderer owns exactly the named TEXT_LAYERS on
         // its (exclusively-owned) stack. A new text surface added without a
@@ -6484,6 +6632,12 @@ impl TerminalRenderer {
         if self.bell_flash.is_active() {
             return FrameDemand::Continuous;
         }
+        if self.attach_pill_frame(now).is_some() {
+            return FrameDemand::Continuous;
+        }
+        if self.pill_painted {
+            return FrameDemand::Now;
+        }
         if self.search.lock().unwrap().fingerprint() != self.last_search_fingerprint {
             return FrameDemand::Now;
         }
@@ -7710,12 +7864,25 @@ impl RenderCallback for TerminalRenderer {
         if !matches!(focus, Overlay::None) {
             self.overlay_motion.end_frame();
         }
+        let pill = self.attach_pill_frame(Instant::now());
+        if let Some(pill) = &pill {
+            self.draw_attach_pill(
+                pill,
+                &mut frame,
+                ctx.gpu,
+                ctx.surface_view,
+                ctx.width,
+                ctx.height,
+                &mut overlay_encoder,
+            );
+        }
 
         // Drop the text frame BEFORE submit: its Drop trims the atlas exactly
         // once, after every text render this frame recorded. trim() touches only
         // CPU bookkeeping, never the already-recorded command buffers, so
         // trim-then-submit is the correct ordering.
         drop(frame);
+        self.pill_painted = pill.is_some();
         command_buffers.push(overlay_encoder.finish());
         ctx.gpu.queue.submit(command_buffers);
         // Leases return to the pool only after the submit that
@@ -12641,6 +12808,53 @@ mod render_gpu_invariants {
         assert_eq!(rig.metrics.latency().byte_to_present().count(), 1);
         let parse = rig.metrics.parse_bytes_per_tick().snapshot();
         assert_eq!((parse.count, parse.sum), (1, 1));
+    }
+
+    #[test]
+    fn the_attach_pill_paints_a_top_right_card_and_leaves_no_trace_when_gone() {
+        use crate::attach_pill::{AttachPill, Attached, FADE, HOLD};
+        use garasu::headless::{assert_no_magenta_pixels, frame_hash};
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (320u32, 120u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 4);
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.ambience = crate::ambience::AmbiencePreset::Off;
+        r.set_effects_config(effects);
+        t.write().feed(b"$ ");
+        let pill = Arc::new(Mutex::new(AttachPill::new(true)));
+        r.set_attach_pill(Arc::clone(&pill));
+
+        let plain = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        pill.lock()
+            .unwrap()
+            .show(Attached::Files(2), std::time::Instant::now());
+        let shown = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        assert!(assert_no_magenta_pixels(&shown, w, h).is_ok());
+        let changed: Vec<(u32, u32)> = (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .filter(|&(x, y)| {
+                let i = ((y * w + x) * 4) as usize;
+                plain[i..i + 4] != shown[i..i + 4]
+            })
+            .collect();
+        assert!(changed.len() > 200, "the pill painted {} px", changed.len());
+        assert!(
+            changed.iter().all(|&(x, y)| x >= w / 4 && y < h / 2),
+            "the pill stays in the top-right, away from the prompt"
+        );
+
+        let gone = std::time::Instant::now()
+            .checked_sub(HOLD + FADE)
+            .expect("a clock old enough to backdate");
+        pill.lock().unwrap().show(Attached::Files(2), gone);
+        let cleared = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        assert_eq!(
+            frame_hash(&cleared),
+            frame_hash(&plain),
+            "an expired pill leaves the frame exactly as it was"
+        );
     }
 
     /// L3 (golden): a canned input sequence + a recorded frame
