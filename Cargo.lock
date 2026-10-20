@@ -2448,7 +2448,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower-service",
- "webpki-roots 1.0.9",
+ "webpki-roots 1.0.10",
 ]
 
 [[package]]
@@ -2823,9 +2823,9 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "izumi"
-version = "0.1.24"
+version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6e24c9a48c79d622256904b1641b1947e9a8a25ecba307252a489231b1a7471"
+checksum = "c241d97e85f6f2bba99641cdf7c55d35946b801e9548d58d908dae01a8596748"
 dependencies = [
  "blake3",
  "dirs 5.0.1",
@@ -2842,9 +2842,9 @@ dependencies = [
 
 [[package]]
 name = "izumi-config"
-version = "0.1.24"
+version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cab2698b066e2218a225f339cdfb7bf81385519d9449d86810ba6771ae4c94b3"
+checksum = "955594f3ccdd6ccc92316909851487be830dc33ffbcdf005e5b5e15c0f759b73"
 dependencies = [
  "izumi",
  "serde",
@@ -2853,9 +2853,9 @@ dependencies = [
 
 [[package]]
 name = "izumi-sources"
-version = "0.1.24"
+version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c8c1acbdccc04786df22a1a8aa5f3bc18d8ee92e91f18484ae649d4d2051e75"
+checksum = "7323aa82fb1bb8be734c4bfcdcbfb17e048667ccb20e7840f8c73bd711ee2410"
 dependencies = [
  "izumi",
  "serde",
@@ -3382,7 +3382,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.196"
+version = "0.1.197"
 dependencies = [
  "anyhow",
  "awase",
@@ -3643,9 +3643,9 @@ checksum = "51f1aeac65396d27ee32f344e2d5a469f7074312f6794b414c02729c91ef0f93"
 
 [[package]]
 name = "monosashi"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a1c68f695e48eb4c0dd2044716887676892474e75404d24bf89a77ffe0621c9"
+checksum = "e6c71f4f6679895373aa804cdcc30382d7cd1e39e1e8cf7bc8225786ccd6988c"
 
 [[package]]
 name = "moxcms"
@@ -5508,7 +5508,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "webpki-roots 1.0.9",
+ "webpki-roots 1.0.10",
 ]
 
 [[package]]
@@ -5705,9 +5705,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.15"
+version = "0.103.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2"
+checksum = "4443b1b6d39d7c663139942cc4558262562d2c84123bb6282ef177009ca8b281"
 dependencies = [
  "ring",
  "rustls-pki-types",
@@ -6919,11 +6919,11 @@ dependencies = [
 
 [[package]]
 name = "tatara-closed-set"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03079d2a82cd4dea111c07379ce47a0463b0f7744726575fc5cac0ec2cf88e28"
+checksum = "e9394ee832e6ee9756da68d37e0134d5db60219b600b0267cf6d35e29c528778"
 dependencies = [
- "tatara-closed-set-derive 0.4.5",
+ "tatara-closed-set-derive 0.4.6",
 ]
 
 [[package]]
@@ -6939,9 +6939,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-closed-set-derive"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b84352a6fedb3957961292aabce9724a4a254dca9de2f4a75b8b608935b4e6d6"
+checksum = "0538086af5287ad2b107dd55c0bbc14940ddd625a907d419b096459b9123fb7b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7013,15 +7013,15 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "969cd86322e1d5aff60206acf8ca2a1415e6030dcb6e1b2f23d122faf63ecc0f"
+checksum = "b94aac358c2d354342a58df4dee4d0f3d3022ff3a259e2224917359d6284b407"
 dependencies = [
  "blake3",
  "serde",
  "serde_json",
- "tatara-closed-set 0.4.5",
- "tatara-lisp-derive 0.4.5",
+ "tatara-closed-set 0.4.6",
+ "tatara-lisp-derive 0.4.6",
  "thiserror 2.0.21",
 ]
 
@@ -7038,9 +7038,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-derive"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72f5d36d36dd5eb4fe57715eb68f745c74c73e7feb14c85d4ea127bb6b67ffc0"
+checksum = "6897cb0924cddcd7a3dd41a3b530bd49ee0d2adb99dba4808a28430a5960daa3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7061,15 +7061,15 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-eval"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fb0f8da5d8961612ac145f65904a7ea6407fa2a2322e09e70b09afebc55a1d5"
+checksum = "2eb8ca670cf9e66b104dac852421b523cb0a7773183641ce0be3aa38412bc616"
 dependencies = [
  "imbl",
- "monosashi 0.4.5",
+ "monosashi 0.4.6",
  "stacker",
- "tatara-closed-set 0.4.5",
- "tatara-lisp 0.4.5",
+ "tatara-closed-set 0.4.6",
+ "tatara-lisp 0.4.6",
  "thiserror 2.0.21",
 ]
 
@@ -8009,8 +8009,8 @@ dependencies = [
  "async-trait",
  "serde",
  "serde_json",
- "tatara-lisp 0.4.5",
- "tatara-lisp-eval 0.4.5",
+ "tatara-lisp 0.4.6",
+ "tatara-lisp-eval 0.4.6",
  "thiserror 2.0.21",
  "time",
  "tokio",
@@ -8351,14 +8351,14 @@ version = "0.26.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "521bc38abb08001b01866da9f51eb7c5d647a19260e00054a8c7fd5f9e57f7a9"
 dependencies = [
- "webpki-roots 1.0.9",
+ "webpki-roots 1.0.10",
 ]
 
 [[package]]
 name = "webpki-roots"
-version = "1.0.9"
+version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dcd9d09a39985f5344844e66b0c530a33843579125f23e21e9f0f220850f22a"
+checksum = "1c1c8e20c8a38fc7d65abfe74eb7280e4aa667e8eec8bc84996d2874810748d9"
 dependencies = [
  "rustls-pki-types",
 ]

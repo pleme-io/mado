@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "1872bbdcccac691333415c6ef83c7cd5d6a7c96b323a1ea14ba1b00fb53af3d2",
+  "cargo_lock_sha256": "0087e91375794f2264abe8df188784ebf9c4352e1ca8870cea85942b4204c1a0",
   "manifest_sha256": {
-    "Cargo.toml": "46fd696d31df211fa43c8e5d9fa68872a5cb9772eee518c14f684cdf90fbd334"
+    "Cargo.toml": "10610e907eb67dbf4ecc59ba2fa934afcf6559ac3012e15a9c2142aa77208f0b"
   },
   "target_resolves": {
     "base": {
@@ -6348,7 +6348,7 @@
           },
           {
             "name": "webpki_roots",
-            "package_key": "webpki-roots-1.0.9",
+            "package_key": "webpki-roots-1.0.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7365,7 +7365,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-0.1.24": {
+      "izumi-0.1.25": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -7490,11 +7490,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-config-0.1.24": {
+      "izumi-config-0.1.25": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.24",
+            "package_key": "izumi-0.1.25",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7528,11 +7528,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-sources-0.1.24": {
+      "izumi-sources-0.1.25": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.24",
+            "package_key": "izumi-0.1.25",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9713,7 +9713,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "monosashi-0.4.5": {
+      "monosashi-0.4.6": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -14339,7 +14339,7 @@
           },
           {
             "name": "webpki_roots",
-            "package_key": "webpki-roots-1.0.9",
+            "package_key": "webpki-roots-1.0.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14971,7 +14971,7 @@
           },
           {
             "name": "webpki",
-            "package_key": "rustls-webpki-0.103.15",
+            "package_key": "rustls-webpki-0.103.16",
             "kind": "normal",
             "features": [
               "alloc"
@@ -15033,7 +15033,7 @@
           "web-time"
         ]
       },
-      "rustls-webpki-0.103.15": {
+      "rustls-webpki-0.103.16": {
         "runtime_dependencies": [
           {
             "name": "ring",
@@ -20067,11 +20067,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.4.5": {
+      "tatara-closed-set-0.4.6": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.4.5",
+            "package_key": "tatara-closed-set-derive-0.4.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20121,7 +20121,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.4.5": {
+      "tatara-closed-set-derive-0.4.6": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20515,7 +20515,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.4.5": {
+      "tatara-lisp-0.4.6": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20551,7 +20551,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.5",
+            "package_key": "tatara-closed-set-0.4.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20561,7 +20561,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.4.5",
+            "package_key": "tatara-lisp-derive-0.4.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20623,7 +20623,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.4.5": {
+      "tatara-lisp-derive-0.4.6": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20707,7 +20707,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.4.5": {
+      "tatara-lisp-eval-0.4.6": {
         "runtime_dependencies": [
           {
             "name": "imbl",
@@ -20721,7 +20721,7 @@
           },
           {
             "name": "monosashi",
-            "package_key": "monosashi-0.4.5",
+            "package_key": "monosashi-0.4.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20741,7 +20741,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.5",
+            "package_key": "tatara-closed-set-0.4.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20751,7 +20751,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.5",
+            "package_key": "tatara-lisp-0.4.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24356,7 +24356,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.5",
+            "package_key": "tatara-lisp-0.4.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24366,7 +24366,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.5",
+            "package_key": "tatara-lisp-eval-0.4.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25047,7 +25047,7 @@
         "runtime_dependencies": [
           {
             "name": "parent",
-            "package_key": "webpki-roots-1.0.9",
+            "package_key": "webpki-roots-1.0.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25059,7 +25059,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "webpki-roots-1.0.9": {
+      "webpki-roots-1.0.10": {
         "runtime_dependencies": [
           {
             "name": "pki_types",
@@ -26919,7 +26919,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.196": {
+          "mado-0.1.197": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27145,7 +27145,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.24",
+                "package_key": "izumi-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27155,7 +27155,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.24",
+                "package_key": "izumi-config-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27165,7 +27165,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.24",
+                "package_key": "izumi-sources-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32008,7 +32008,7 @@
               "system"
             ]
           },
-          "mado-0.1.196": {
+          "mado-0.1.197": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32224,7 +32224,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.24",
+                "package_key": "izumi-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32234,7 +32234,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.24",
+                "package_key": "izumi-config-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32244,7 +32244,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.24",
+                "package_key": "izumi-sources-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36154,7 +36154,7 @@
               "system"
             ]
           },
-          "mado-0.1.196": {
+          "mado-0.1.197": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36370,7 +36370,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.24",
+                "package_key": "izumi-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36380,7 +36380,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.24",
+                "package_key": "izumi-config-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36390,7 +36390,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.24",
+                "package_key": "izumi-sources-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40423,7 +40423,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.196": {
+          "mado-0.1.197": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40649,7 +40649,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.24",
+                "package_key": "izumi-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40659,7 +40659,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.24",
+                "package_key": "izumi-config-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40669,7 +40669,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.24",
+                "package_key": "izumi-sources-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45529,7 +45529,7 @@
               "system"
             ]
           },
-          "mado-0.1.196": {
+          "mado-0.1.197": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45745,7 +45745,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.24",
+                "package_key": "izumi-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45755,7 +45755,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.24",
+                "package_key": "izumi-config-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45765,7 +45765,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.24",
+                "package_key": "izumi-sources-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49692,7 +49692,7 @@
               "system"
             ]
           },
-          "mado-0.1.196": {
+          "mado-0.1.197": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49908,7 +49908,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.24",
+                "package_key": "izumi-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49918,7 +49918,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.24",
+                "package_key": "izumi-config-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49928,7 +49928,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.24",
+                "package_key": "izumi-sources-0.1.25",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53823,13 +53823,13 @@
     "itoa-1.0.18": {
       "edition": "2021"
     },
-    "izumi-0.1.24": {
+    "izumi-0.1.25": {
       "edition": "2024"
     },
-    "izumi-config-0.1.24": {
+    "izumi-config-0.1.25": {
       "edition": "2024"
     },
-    "izumi-sources-0.1.24": {
+    "izumi-sources-0.1.25": {
       "edition": "2024"
     },
     "jobserver-0.1.35": {
@@ -53958,7 +53958,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.196": {
+    "mado-0.1.197": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54036,7 +54036,7 @@
     "monosashi-0.3.64": {
       "edition": "2021"
     },
-    "monosashi-0.4.5": {
+    "monosashi-0.4.6": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -54618,7 +54618,7 @@
     "rustls-pki-types-1.15.1": {
       "edition": "2021"
     },
-    "rustls-webpki-0.103.15": {
+    "rustls-webpki-0.103.16": {
       "edition": "2021",
       "lib_target": {
         "name": "webpki",
@@ -54962,14 +54962,14 @@
     "tatara-closed-set-0.3.64": {
       "edition": "2021"
     },
-    "tatara-closed-set-0.4.5": {
+    "tatara-closed-set-0.4.6": {
       "edition": "2021"
     },
     "tatara-closed-set-derive-0.3.64": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-closed-set-derive-0.4.5": {
+    "tatara-closed-set-derive-0.4.6": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -54985,21 +54985,21 @@
     "tatara-lisp-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-0.4.5": {
+    "tatara-lisp-0.4.6": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.3.52": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.4.5": {
+    "tatara-lisp-derive-0.4.6": {
       "edition": "2021",
       "proc_macro": true
     },
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-eval-0.4.5": {
+    "tatara-lisp-eval-0.4.6": {
       "edition": "2021"
     },
     "tatara-nix-0.2.568": {
@@ -55388,7 +55388,7 @@
     "webpki-roots-0.26.11": {
       "edition": "2021"
     },
-    "webpki-roots-1.0.9": {
+    "webpki-roots-1.0.10": {
       "edition": "2021"
     },
     "weezl-0.1.12": {
