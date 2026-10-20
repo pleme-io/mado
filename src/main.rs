@@ -929,6 +929,7 @@ fn main() -> anyhow::Result<()> {
         rows,
         scrollback,
         config.behavior.reflow_on_resize,
+        config.behavior.kitty_keyboard,
         None,
         extra_env,
         working_directory,

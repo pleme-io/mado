@@ -2878,6 +2878,33 @@ pub struct BehaviorConfig {
     /// the pointer is this many lines past the edge.
     #[serde(default = "default_autoscroll_max_overshoot")]
     pub selection_autoscroll_max_overshoot: f32,
+    /// Kitty keyboard protocol (CSI-u) policy. See [`KittyKeyboardConfig`].
+    #[serde(default)]
+    pub kitty_keyboard: KittyKeyboardConfig,
+}
+
+/// Kitty keyboard protocol knobs. The protocol stays available to every
+/// program that asks for it; these decide whether mado honours the request
+/// and what happens to a program's pushed flags when its command ends.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct KittyKeyboardConfig {
+    /// Honour `CSI > flags u` pushes. `false` leaves every key in its legacy
+    /// encoding.
+    pub enabled: bool,
+    /// Drop the pushed flag stack when a command ends (OSC 133 `D`), so a
+    /// program that exits without popping cannot leave `^[[13u` for Enter at
+    /// the next prompt.
+    pub reset_on_command_end: bool,
+}
+
+impl Default for KittyKeyboardConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            reset_on_command_end: true,
+        }
+    }
 }
 
 #[derive(
@@ -3719,6 +3746,10 @@ impl MadoConfig {
                 scroll_momentum: false,  // bare = direct 1:1 scroll, no inertia
                 scroll_friction: default_scroll_friction(),
                 scroll_max_velocity: default_scroll_max_velocity(),
+                kitty_keyboard: KittyKeyboardConfig {
+                    enabled: false,
+                    reset_on_command_end: true,
+                },
                 selection_autoscroll: false, // bare = selection frozen at edges
                 // bare = ghostty pixel accumulator at a literal 1:1 gain (no
                 // feel-bump), auto-scroll tuning at the shared defaults (it's
@@ -4358,6 +4389,7 @@ impl Default for BehaviorConfig {
             precise_scroll_multiplier: default_precise_scroll_multiplier(),
             selection_autoscroll_speed: default_autoscroll_speed(),
             selection_autoscroll_max_overshoot: default_autoscroll_max_overshoot(),
+            kitty_keyboard: KittyKeyboardConfig::default(),
         }
     }
 }
@@ -7559,6 +7591,8 @@ mod coverage {
         "behavior.confirm_close",
         "behavior.copy_on_select",
         "behavior.deselect_on_copy",
+        "behavior.kitty_keyboard.enabled",
+        "behavior.kitty_keyboard.reset_on_command_end",
         "behavior.mouse_hide_while_typing",
         "behavior.mouse_scroll_multiplier",
         "behavior.mouse_shift_capture",

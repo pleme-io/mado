@@ -137,6 +137,7 @@ pub fn spawn(
     rows: usize,
     scrollback: usize,
     reflow_on_resize: bool,
+    kitty_keyboard: crate::config::KittyKeyboardConfig,
     theme_colors: Option<(Color, Color, [Color; 16])>,
     extra_env: HashMap<String, String>,
     working_directory: Option<std::path::PathBuf>,
@@ -144,6 +145,7 @@ pub fn spawn(
 ) -> SinglePane {
     let mut term = Terminal::with_scrollback(cols, rows, scrollback);
     term.set_reflow_on_resize(reflow_on_resize);
+    term.set_kitty_keyboard(kitty_keyboard.enabled, kitty_keyboard.reset_on_command_end);
     if let Some((fg, bg, ansi)) = theme_colors {
         term.apply_theme(fg, bg, ansi);
     }

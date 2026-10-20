@@ -679,6 +679,8 @@ where
         // M2 — behavior.reflow_on_resize: rewrap-on-resize knob,
         // same wiring the local-PTY path gets via single_pane::spawn.
         term.set_reflow_on_resize(config.behavior.reflow_on_resize);
+        let kitty = config.behavior.kitty_keyboard;
+        term.set_kitty_keyboard(kitty.enabled, kitty.reset_on_command_end);
         term
     }));
 

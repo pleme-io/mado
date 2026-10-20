@@ -2229,6 +2229,8 @@ pub struct Terminal {
     // Bit 3 (8):  Report all keys as escape codes
     // Bit 4 (16): Report associated text
     kitty_keyboard_stack: Vec<u32>,
+    kitty_keyboard_enabled: bool,
+    kitty_reset_on_command_end: bool,
 
     // Kitty graphics protocol — image cache and placements
     images: HashMap<u32, KittyImage>,
@@ -2424,6 +2426,8 @@ impl Terminal {
             command_used_alt_screen: false,
             pending_command_completion: None,
             kitty_keyboard_stack: Vec::new(),
+            kitty_keyboard_enabled: true,
+            kitty_reset_on_command_end: true,
             images: HashMap::new(),
             image_placements: Vec::new(),
             next_image_id: 1,
@@ -2807,6 +2811,13 @@ impl Terminal {
     /// grid's logical lines; `false` = legacy truncate on both grids.
     pub fn set_reflow_on_resize(&mut self, on: bool) {
         self.reflow_on_resize = on;
+    }
+
+    /// Wire `behavior.kitty_keyboard`: whether pushes are honoured and
+    /// whether a command's end drops the pushed flag stack.
+    pub fn set_kitty_keyboard(&mut self, enabled: bool, reset_on_command_end: bool) {
+        self.kitty_keyboard_enabled = enabled;
+        self.kitty_reset_on_command_end = reset_on_command_end;
     }
 
     #[must_use]
@@ -3959,6 +3970,9 @@ impl Terminal {
             // the exit status; stamp the marks (existing) AND emit a typed
             // CommandCompletion (exit + C→D duration + whether a TUI ran).
             PromptKind::CommandEnd => {
+                if self.kitty_reset_on_command_end {
+                    self.kitty_keyboard_stack.clear();
+                }
                 let exit = params
                     .get(2)
                     .filter(|p| !p.is_empty())
@@ -4100,6 +4114,8 @@ impl Terminal {
         // Operator config, not VT state — survives RIS like the
         // scrollback cap does (M2: behavior.reflow_on_resize).
         let reflow_on_resize = self.reflow_on_resize;
+        let (kitty_enabled, kitty_reset) =
+            (self.kitty_keyboard_enabled, self.kitty_reset_on_command_end);
         // Environmental wiring, not VT state — an injected test clock
         // must keep ticking across a RIS mid-scenario.
         let clock_unix_ms = self.clock_unix_ms;
@@ -4114,6 +4130,7 @@ impl Terminal {
         self.pen_bg = default_bg;
         self.ansi_colors = ansi_colors;
         self.reflow_on_resize = reflow_on_resize;
+        self.set_kitty_keyboard(kitty_enabled, kitty_reset);
         self.clock_unix_ms = clock_unix_ms;
         self.grid_epoch = grid_epoch;
     }
@@ -6307,6 +6324,9 @@ impl vte::Perform for Terminal {
                 'u' => {
                     // Kitty keyboard protocol: push flags onto stack
                     let flags = params.iter().next().map_or(0, |p| p[0] as u32);
+                    if !self.kitty_keyboard_enabled {
+                        return;
+                    }
                     self.kitty_keyboard_stack.push(flags);
                     tracing::debug!(
                         flags,
@@ -9279,6 +9299,32 @@ mod tests {
 
         // Pop remaining
         term.feed(b"\x1b[<u");
+        assert_eq!(term.kitty_keyboard_flags(), 0);
+    }
+
+    #[test]
+    fn kitty_keyboard_stack_cleared_on_command_end() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]133;C\x07");
+        term.feed(b"\x1b[>1u");
+        assert_eq!(term.kitty_keyboard_flags(), 1);
+        term.feed(b"\x1b]133;D;0\x07");
+        assert_eq!(term.kitty_keyboard_flags(), 0);
+    }
+
+    #[test]
+    fn kitty_keyboard_reset_can_be_configured_off() {
+        let mut term = Terminal::new(80, 24);
+        term.set_kitty_keyboard(true, false);
+        term.feed(b"\x1b]133;C\x07\x1b[>1u\x1b]133;D;0\x07");
+        assert_eq!(term.kitty_keyboard_flags(), 1);
+    }
+
+    #[test]
+    fn kitty_keyboard_disabled_ignores_push() {
+        let mut term = Terminal::new(80, 24);
+        term.set_kitty_keyboard(false, true);
+        term.feed(b"\x1b[>1u");
         assert_eq!(term.kitty_keyboard_flags(), 0);
     }
 
