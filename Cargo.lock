@@ -1000,9 +1000,9 @@ checksum = "217698eaf96b4a3f0bc4f3662aaa55bdf913cd54d7204591faa790070c6d0853"
 
 [[package]]
 name = "crc32fast"
-version = "1.5.2"
+version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01a7799fd6b852db0e61728dde9a204c423b44d689dbd432522543614b490e78"
+checksum = "0ba106e844045ddc02c20768ac4b0b7cb45f2cc2ecbd833ac9f5dacb183c2055"
 dependencies = [
  "cfg-if",
 ]
@@ -3195,9 +3195,9 @@ dependencies = [
 
 [[package]]
 name = "kukaku"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39139876f7245efd087232ff169201390f3e51087b0c09ac1f66a5a84d9dd276"
+checksum = "457466bbb3c0b68e2c54e3fee37acfca05faf5980e065e5ffd37248e62091701"
 dependencies = [
  "serde",
 ]
@@ -3382,7 +3382,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.197"
+version = "0.1.198"
 dependencies = [
  "anyhow",
  "awase",
@@ -4976,9 +4976,9 @@ dependencies = [
 
 [[package]]
 name = "praca"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "949d42faff422e79c9bc39e22d781bec860005e6efbb6910311ef00e1fb7da2b"
+checksum = "31e4440177b8e1062eecad20cac5d37822fae075ce2988b2dbd6d7adc74931a3"
 dependencies = [
  "ishou-tokens",
  "serde",
@@ -7117,9 +7117,9 @@ dependencies = [
 
 [[package]]
 name = "tear-client"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31c2a91dd65e0d2022bf7cdd9caed8a90fde422f0181802fc190ad4e1863badd"
+checksum = "05e81e4b345ee1e443b3cb0b3064f5c300e8e26ab925e1d71ea28970d5b3cdb1"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -7131,9 +7131,9 @@ dependencies = [
 
 [[package]]
 name = "tear-config"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "232dc8fd5489d4c1dc661315e09f36b0cde2eaf3238f0f8db346360505973398"
+checksum = "973074628db183c398a10b580d572b6df087e6cb56429200fcb7d916f51f887f"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -7151,9 +7151,9 @@ dependencies = [
 
 [[package]]
 name = "tear-core"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3785ad32fe2262617daecffbd197bb161e2790214ac234fbb168dcf953f80b3"
+checksum = "57d46b2f96d48f007d85b6afa2fbd58d30d097a5c6ac6ddf9133a45eac04aae9"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7178,9 +7178,9 @@ dependencies = [
 
 [[package]]
 name = "tear-daemon"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e540de6f8ccb7d75aa6c2700d8c15ef73568f85a25fcee1a6b2aff8e2469a28"
+checksum = "86bcf49e3dd3eff978a32154a5ecb1f74ebd72c1e63f3200246a517cdfc7fc35"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7203,9 +7203,9 @@ dependencies = [
 
 [[package]]
 name = "tear-makimono"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ae9cffaf86c6d3aefc39159494b254a03f95f003a74d7fcdcca97c1cdae186c"
+checksum = "cbf1fa9fda6d1beb5b7663ac8d26ccb2c5cba6e50e94efba2c029a2291111642"
 dependencies = [
  "serde",
  "serde_json",
@@ -7216,9 +7216,9 @@ dependencies = [
 
 [[package]]
 name = "tear-tamotsu"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb59a81a59d09eee9f59bad21233cd9278265a30fe446913aa80af974079c3b7"
+checksum = "4c53bdadf8033b275d7f134915ecb2b46fb8194d88721d588b76d22da1267b43"
 dependencies = [
  "anyhow",
  "ciborium",
@@ -7232,9 +7232,9 @@ dependencies = [
 
 [[package]]
 name = "tear-types"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9f38245385954fe7dd68aa81ed44cb3686c6cd047d88036de7f1f11fa51d28a"
+checksum = "2e9e176e0782a5cf76a4ac1e8967208d5f793000debc1e49c68e797a3b5e6c0e"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7725,9 +7725,9 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "tsuuchi"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c12cd6350e674ebb732ba26a75e6fc9dbe4c43b9eacf1fe5777c2ea2d9a75a47"
+checksum = "5101934b782b6f5b20f2a3a7a1bc68163bfe6f4a32d65ba0650dd8b13b91618b"
 dependencies = [
  "block2 0.6.2",
  "objc2 0.6.5",

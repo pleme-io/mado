@@ -7291,7 +7291,7 @@ rec {
           }
           {
             name = "webpki-roots";
-            packageId = "webpki-roots 1.0.9";
+            packageId = "webpki-roots 1.0.10";
             optional = true;
           }
         ];
@@ -8493,9 +8493,9 @@ rec {
       };
       "izumi" = rec {
         crateName = "izumi";
-        version = "0.1.24";
+        version = "0.1.25";
         edition = "2024";
-        sha256 = "0wbl38dj72d4a9r31fpc4n59lzlln50icjwhaqi657f792d4rqp6";
+        sha256 = "0j37b6l03bldj26xaj4m3s06p51mbp2zgka1jslvpwpnhmzdjhf2";
         authors = [
           "pleme-io"
         ];
@@ -8561,9 +8561,9 @@ rec {
       };
       "izumi-config" = rec {
         crateName = "izumi-config";
-        version = "0.1.24";
+        version = "0.1.25";
         edition = "2024";
-        sha256 = "1cwl9jp72rxs21ldhjclkm8qa4zqggxwsfgk4ni1h8kf0s5nkcna";
+        sha256 = "0wwvfl7mrqdmwl2z1kgv7z1hv0xyhwa8a2b9669cqv6xrkrr8mcm";
         libName = "izumi_config";
         authors = [
           "pleme-io"
@@ -8587,9 +8587,9 @@ rec {
       };
       "izumi-sources" = rec {
         crateName = "izumi-sources";
-        version = "0.1.24";
+        version = "0.1.25";
         edition = "2024";
-        sha256 = "0x8y0p9d8jg69941h7z9jbpdh65wyfjql6iay9nph16cvk5im32c";
+        sha256 = "0414xq8xffy7z107h3mjrikqc13yn6zxrz2b9irvxf0vzf1al8vk";
         libName = "izumi_sources";
         authors = [
           "pleme-io"
@@ -10331,7 +10331,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.197";
+        version = "0.1.198";
         edition = "2024";
         crateBin = [
           {
@@ -11172,11 +11172,11 @@ rec {
         ];
 
       };
-      "monosashi 0.4.5" = rec {
+      "monosashi 0.4.6" = rec {
         crateName = "monosashi";
-        version = "0.4.5";
+        version = "0.4.6";
         edition = "2021";
-        sha256 = "1j910vz7z9w9pwj4sh3m9r3r4s37hxl72i10vp0b93p4jpv6h71a";
+        sha256 = "134qsv68cmr2r1xwzs7174gcvmw20g1xqk40m9rm72brcr7iziz6";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
@@ -18816,7 +18816,7 @@ rec {
           }
           {
             name = "webpki-roots";
-            packageId = "webpki-roots 1.0.9";
+            packageId = "webpki-roots 1.0.10";
             optional = true;
             target = { target, features }: (!("wasm32" == target."arch" or null));
           }
@@ -19833,9 +19833,9 @@ rec {
       };
       "rustls-webpki" = rec {
         crateName = "rustls-webpki";
-        version = "0.103.15";
+        version = "0.103.16";
         edition = "2021";
-        sha256 = "1hhanq3lz384v4nccacnjfwsyy99n3yc6m6iw8kljz8yicfwzhzk";
+        sha256 = "10djm2f00xzi5qlbcfqjhhn2smk2h9aw8b4l74qncz4xsfvb2hs4";
         libName = "webpki";
         dependencies = [
           {
@@ -24130,11 +24130,11 @@ rec {
         ];
 
       };
-      "tatara-closed-set 0.4.5" = rec {
+      "tatara-closed-set 0.4.6" = rec {
         crateName = "tatara-closed-set";
-        version = "0.4.5";
+        version = "0.4.6";
         edition = "2021";
-        sha256 = "0a4fz0nfrh6aqmgmf9j7fkvv0qq4gbj9qdq73h8ylkfdh8m9s1q3";
+        sha256 = "0y47aaff4dbdrxkh42v0kchn1nym6h0pxlv8v9b9gvp66bl4wfg9";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24142,7 +24142,7 @@ rec {
         dependencies = [
           {
             name = "tatara-closed-set-derive";
-            packageId = "tatara-closed-set-derive 0.4.5";
+            packageId = "tatara-closed-set-derive 0.4.6";
           }
         ];
 
@@ -24174,11 +24174,11 @@ rec {
         ];
 
       };
-      "tatara-closed-set-derive 0.4.5" = rec {
+      "tatara-closed-set-derive 0.4.6" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.4.5";
+        version = "0.4.6";
         edition = "2021";
-        sha256 = "1mp6nhsqjq4bbfkz9qlxr96jajjafblvralj2ab5fffvzsk54hxq";
+        sha256 = "0yzv4f8rnicnn0cx81x94pbdsh29q6xw0mfx0yqx4yi8ymm0hf05";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -24388,11 +24388,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "tatara-lisp 0.4.5" = rec {
+      "tatara-lisp 0.4.6" = rec {
         crateName = "tatara-lisp";
-        version = "0.4.5";
+        version = "0.4.6";
         edition = "2021";
-        sha256 = "03yc7vvgl8ni4cpinvnb1l1yc58l5b5gib060bvazmg149ixi74n";
+        sha256 = "01xlhii9sd8p94if4nd2ycph5lzks3jdxx4dlm146d9dihssqjmr";
         libName = "tatara_lisp";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24413,11 +24413,11 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set 0.4.5";
+            packageId = "tatara-closed-set 0.4.6";
           }
           {
             name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive 0.4.5";
+            packageId = "tatara-lisp-derive 0.4.6";
           }
           {
             name = "thiserror";
@@ -24455,11 +24455,11 @@ rec {
         ];
 
       };
-      "tatara-lisp-derive 0.4.5" = rec {
+      "tatara-lisp-derive 0.4.6" = rec {
         crateName = "tatara-lisp-derive";
-        version = "0.4.5";
+        version = "0.4.6";
         edition = "2021";
-        sha256 = "1h7zcxmvn9x19rfwh57bgwzcfx2wfj7vcpkiazzb8pnx6rnx7xbj";
+        sha256 = "18ysc1chlhr8ia0a9nwrvcm0vvj9plqbb8s1vnixgp6d4h4wp5v8";
         procMacro = true;
         libName = "tatara_lisp_derive";
         authors = [
@@ -24511,11 +24511,11 @@ rec {
         ];
 
       };
-      "tatara-lisp-eval 0.4.5" = rec {
+      "tatara-lisp-eval 0.4.6" = rec {
         crateName = "tatara-lisp-eval";
-        version = "0.4.5";
+        version = "0.4.6";
         edition = "2021";
-        sha256 = "1md1anygx6mhf2gf08i35bx0fr7alw25kxj5q4m62qc9bpdgic1g";
+        sha256 = "05n65d0kiap31g742dhqfdvhmjr3nlhj91dc9l86prpr1ikwmf1f";
         libName = "tatara_lisp_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24527,7 +24527,7 @@ rec {
           }
           {
             name = "monosashi";
-            packageId = "monosashi 0.4.5";
+            packageId = "monosashi 0.4.6";
           }
           {
             name = "stacker";
@@ -24536,11 +24536,11 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set 0.4.5";
+            packageId = "tatara-closed-set 0.4.6";
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.5";
+            packageId = "tatara-lisp 0.4.6";
           }
           {
             name = "thiserror";
@@ -27624,11 +27624,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.5";
+            packageId = "tatara-lisp 0.4.6";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.5";
+            packageId = "tatara-lisp-eval 0.4.6";
           }
           {
             name = "thiserror";
@@ -29065,17 +29065,17 @@ rec {
         dependencies = [
           {
             name = "webpki-roots";
-            packageId = "webpki-roots 1.0.9";
+            packageId = "webpki-roots 1.0.10";
             rename = "parent";
           }
         ];
 
       };
-      "webpki-roots 1.0.9" = rec {
+      "webpki-roots 1.0.10" = rec {
         crateName = "webpki-roots";
-        version = "1.0.9";
+        version = "1.0.10";
         edition = "2021";
-        sha256 = "0apja04243wz3vi26pqjg4sq8cqaac66prj490sgb1crlc4rvkbx";
+        sha256 = "1na80y0p8a3dk62brj7fx1kscjhf52vlxrxzbbbcg3x3r0h8w70w";
         libName = "webpki_roots";
         dependencies = [
           {
