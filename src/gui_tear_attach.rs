@@ -579,6 +579,36 @@ fn displayed_pane_fate(
     }
 }
 
+fn leave_displayed_pane(
+    control: &dyn tear_types::MultiplexerControl,
+    cur: PaneId,
+    reap: Option<tear_types::SessionId>,
+    next: Option<PaneId>,
+    reqs: &crate::session_switch::SwitchRequests,
+) -> bool {
+    if let Some(sid) = reap {
+        let _ = control.kill_session(sid);
+        tracing::info!(
+            pane = ?cur,
+            session = %sid,
+            "displayed pane exited — reaped its session"
+        );
+    } else {
+        tracing::info!(
+            pane = ?cur,
+            "displayed pane's session was deleted — leaving it"
+        );
+    }
+    match next {
+        Some(target) => {
+            tracing::info!(to = ?target, "auto-switching away from ended pane");
+            reqs.post(target);
+            false
+        }
+        None => true,
+    }
+}
+
 fn pump_displayed<P>(
     stream: &mut crate::pane_stream::PaneStream<P>,
     fate: &mut crate::pane_stream::FateWatch,
@@ -1027,6 +1057,7 @@ where
     let terminal_for_switch = Arc::clone(&terminal);
     let mut live_cell = live_cell;
     let mut last_reattach = std::time::Instant::now();
+    let mut last_fate_probe = std::time::Instant::now();
 
     // Frame pacing — and THIS is the site that actually costs the operator:
     // the embedded-tear window is the default render mode. Full reasoning and
@@ -1105,10 +1136,9 @@ where
             // already reads the new pane), then drain the new pane's
             // bytes.
             if woke && let Some(reqs) = switch_requests.as_ref() {
-                let reattach = if live_cell
-                    .as_ref()
-                    .is_some_and(crate::pane_stream::PaneStream::ended)
-                    && last_reattach.elapsed() >= crate::pane_stream::REATTACH_BACKOFF
+                let reattach = if crate::pane_stream::stream_needs_reattach(
+                    live_cell.as_ref().map(crate::pane_stream::PaneStream::ended),
+                ) && last_reattach.elapsed() >= crate::pane_stream::REATTACH_BACKOFF
                 {
                     last_reattach = std::time::Instant::now();
                     current_pane_for_switch
@@ -1196,61 +1226,30 @@ where
                 // produced since the last wake. Bounded so a noisy pane
                 // can't starve the event loop; a drain that hits the
                 // bound rings the window again for the rest.
-                if let Some(live) = live_cell.as_mut() {
-                    // ── Reap-on-exit + auto-switch ───────────────────
-                    // tear marks an exited pane `Exited` but KEEPS it
-                    // (tmux remain-on-exit), so a shell that exits would
-                    // otherwise STICK on screen and linger in the Ctrl-S
-                    // list. The fate is read when the pane's byte stream
-                    // ends — tear ends it on exit and on kill — plus a
-                    // backstop every `tear.fate_backstop_secs`, so an
-                    // idle window makes no registry read;
-                    // `tear.pane_fate: poll` reads it on every idle tick
-                    // as before (`FateWatch`). When the displayed pane's
-                    // session ENDS — its shell exited, or it was deleted out
-                    // from under the window (Ctrl-S Ctrl-D, MCP) — reap what
-                    // is left of it (→ gone from the picker) and auto-switch
-                    // to another live pane, or close the window if none
-                    // remain. The decision is `displayed_pane_fate`.
-                    if let (Some(cp), Some(reqs)) = (
-                        current_pane_for_switch.as_ref(),
-                        switch_requests.as_ref(),
-                    ) {
-                        let cur = cp.get();
-                        if let DisplayedPaneFate::Leave { reap, next } = pump_displayed(
+                if let Some(cp) = current_pane_for_switch.as_ref() {
+                    let cur = cp.get();
+                    let verdict = if let Some(live) = live_cell.as_mut() {
+                        pump_displayed(
                             live,
                             &mut fate,
                             &*control_for_switch,
                             cur,
                             std::time::Instant::now(),
-                        ) {
-                            if let Some(sid) = reap {
-                                let _ = control_for_switch.kill_session(sid);
-                                tracing::info!(
-                                    pane = ?cur,
-                                    session = %sid,
-                                    "displayed pane exited — reaped its session"
-                                );
-                            } else {
-                                tracing::info!(
-                                    pane = ?cur,
-                                    "displayed pane's session was deleted — leaving it"
-                                );
-                            }
-                            match next {
-                                Some(target) => {
-                                    tracing::info!(to = ?target, "auto-switching away from ended pane");
-                                    reqs.post(target);
-                                }
-                                None => {
-                                    return EventResponse {
-                                        consumed: true,
-                                        exit: true,
-                                        ..Default::default()
-                                    };
-                                }
-                            }
-                        }
+                        )
+                    } else if last_fate_probe.elapsed() >= crate::pane_stream::REATTACH_BACKOFF {
+                        last_fate_probe = std::time::Instant::now();
+                        displayed_pane_fate(&*control_for_switch, cur)
+                    } else {
+                        DisplayedPaneFate::Keep
+                    };
+                    if let DisplayedPaneFate::Leave { reap, next } = verdict
+                        && leave_displayed_pane(&*control_for_switch, cur, reap, next, reqs)
+                    {
+                        return EventResponse {
+                            consumed: true,
+                            exit: true,
+                            ..Default::default()
+                        };
                     }
                 }
             }
@@ -1365,11 +1364,15 @@ where
 
             if woke {
                 let mut demand = engine.frame_demand();
-                if switch_requests.is_some()
-                    && let Some(live) = live_cell.as_ref()
-                {
-                    demand = demand.with(fate.next());
-                    if live.ended() {
+                if switch_requests.is_some() {
+                    if let Some(live) = live_cell.as_ref() {
+                        demand = demand.with(fate.next());
+                        if live.ended() {
+                            demand = demand.with(madori::FrameDemand::At(
+                                last_reattach + crate::pane_stream::REATTACH_BACKOFF,
+                            ));
+                        }
+                    } else {
                         demand = demand.with(madori::FrameDemand::At(
                             last_reattach + crate::pane_stream::REATTACH_BACKOFF,
                         ));
@@ -2011,8 +2014,8 @@ fn run_against_pane(
 mod tests {
     use super::{
         CurrentPane, DisplayedPaneFate, adoptable_session, directory_session_name,
-        displayed_pane_fate, pump_displayed, resolve_boot_name, tear_pty_sink, tear_resize_sink,
-        with_title,
+        displayed_pane_fate, leave_displayed_pane, pump_displayed, resolve_boot_name,
+        tear_pty_sink, tear_resize_sink, with_title,
     };
     use crate::perf::{TEAR_WRITE_FAILURES, TearWrite};
     use madori::EventResponse;
@@ -2148,6 +2151,31 @@ mod tests {
                 next: None
             },
             "nothing left → the window closes, as it does for a last exited shell"
+        );
+    }
+
+    #[test]
+    fn leaving_a_dead_pane_posts_the_next_pane_or_closes_the_window() {
+        let inproc = tear_core::InProcess::new();
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let (a, a_pane) = live_session(&inproc, "shown");
+        let (_b, b_pane) = live_session(&inproc, "other");
+        let reqs = crate::session_switch::SwitchRequests::default();
+
+        let close = leave_displayed_pane(&inproc, a_pane, None, Some(b_pane), &reqs);
+        assert!(!close, "a next pane keeps the window open");
+        assert_eq!(
+            reqs.take_request().map(|r| r.pane),
+            Some(b_pane),
+            "the switch to the next pane is posted"
+        );
+
+        let close = leave_displayed_pane(&inproc, a_pane, Some(a), None, &reqs);
+        assert!(close, "nothing left closes the window");
+        assert!(reqs.take_request().is_none());
+        assert!(
+            inproc.get_session(a).is_err(),
+            "an exited pane's session is reaped"
         );
     }
 

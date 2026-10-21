@@ -139,6 +139,11 @@ where
     }
 }
 
+#[must_use]
+pub fn stream_needs_reattach(ended: Option<bool>) -> bool {
+    ended.unwrap_or(true)
+}
+
 pub fn spawn_feeder<P>(
     producer: P,
     calls: &'static TearCalls,
@@ -221,6 +226,16 @@ impl FateWatch {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_missing_or_ended_stream_needs_a_reattach_and_a_live_one_does_not() {
+        assert!(
+            stream_needs_reattach(None),
+            "a failed rebuild leaves no stream"
+        );
+        assert!(stream_needs_reattach(Some(true)));
+        assert!(!stream_needs_reattach(Some(false)));
+    }
+
     use super::*;
 
     const IDLE: Drained = Drained {
