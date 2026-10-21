@@ -155,14 +155,14 @@ mado brackets every shell command with OSC 133 marks (`C` output-start →
   TUI (`used_alt_screen`) never pulses (you just quit an editor). This rides
   the one tintable engawa `glow_on_bell` effect — `ring_tinted(rgb)` — so the
   bell ring and the exit pulse share one GPU pass.
-- **Away-notification** — a slow command finishing while you're in another
-  app raises a **"✓ Command finished" / "✗ Command failed"** banner with the
-  humanized runtime (`CommandCompletionConfig::should_notify`: enabled ∧
-  not-a-TUI ∧ ≥ `min_duration_ms` (10 s) ∧ outcome-wanted ∧ unfocused).
+- **Away-notification** — a command that finishes while you're in another
+  app raises a structured card (see "Relevant cards" below).
+  `CommandCompletionConfig::rank` decides: not-a-TUI ∧ outcome-wanted ∧
+  (a failure, or a success that ran ≥ `min_duration_ms` (10 s)) ∧ unfocused.
   `should_notify` already applies the focus gate, so the dispatch is
   `NotifyWhen::Always` — no double-gate drops it.
 
-The raw fact (`CommandCompletion { exit_code, duration_ms, used_alt_screen }`)
+The raw fact (`CommandCompletion { exit_code, duration_ms, used_alt_screen, command }`)
 is emitted by `Terminal` and *all* policy lives in `apply_side_effects` +
 config — the signal stays a pure fact (TYPED-SPEC discipline). Try it inside
 a Mado.app window with `mado feedback-test`.
@@ -184,9 +184,8 @@ An alert prefixes the window title with `badge` (visible in the native tab
 label, the Window menu and window switchers; mado's flush titlebar hides the
 title text itself), adds one to the dock badge (`badge_unread`), and with
 `flash` plays the visual-bell flash in the window and bounces the dock once.
-A `notify` reason also sends one banner titled with the pane's title through
-the notification center, so it goes to shirase when its socket is live
-(`backend: auto`). It is published to
+A `notify` reason also sends one card through the notification center, so it
+goes to shirase when its socket is live (`backend: auto`). It is published to
 the kanshou leaf `pane_alert`, which `attention_get` forwards as `pane_alert`.
 Focusing the window clears it.
 
@@ -222,8 +221,65 @@ notifications:
 Scope: mado renders one tear pane per window, so "pane not focused" is "its
 window is not key". Panes that no mado window is attached to send mado no
 bytes and are not watched; covering them needs tear to publish per-pane
-activity. Shirase has no action routing back into mado yet, so clicking a
-banner informs rather than focusing the pane.
+activity.
+
+## Relevant cards — shipped
+
+`notifications.relevance` (prescribed on) replaces the generic banner with a
+card that carries the fact. `enabled: false` restores the old generic banner.
+
+| Field | Command finished | Waiting for input |
+|---|---|---|
+| title | the command line, one line, cut at `title_max_chars` (80) with `…`; "Command finished" / "Command failed" when no text was captured | "Waiting for input" |
+| subtitle | pane title, else working dir (OSC 7) | same |
+| body | `✅ exit 0 · 2m 14s` or `❌ exit 1 · 1m 34s` (`humanize_duration`) | `⏳ ` + the prompt shape ("Claude Code is waiting for input", "Waiting for a password", …) |
+| category | `command-finished` | `waiting-for-input` |
+| group | the pane id | the pane id |
+| id | `pane-<pane id>` | `pane-<pane id>` |
+| action | `focus_pane` ("Focus"), when `focus_action` | same |
+
+The id is one per pane, so a newer card replaces the older one on backends that
+update in place. The pane id is the tear `PaneId` in the embedded and daemon
+loops and `local` in the local-PTY loop.
+
+Rank, all of it config:
+
+| Event | Urgency (key) | Notifies when unfocused |
+|---|---|---|
+| failure | `relevance.failure` = normal | always, whatever its duration (`command_completion.failure_ignores_min_duration`, on) |
+| slow success | `relevance.slow_success` = low | only past `command_completion.min_duration_ms` |
+| waiting for input | `relevance.waiting_for_input` = normal | when `pane_alerts.reasons.waiting_for_input` is `notify` |
+| fast success | none | never |
+
+A TUI exit (`respect_alt_screen`) never notifies. One finished command makes one
+notification: pane alerts own it while `long_command` is not `off`, and the
+`command_completion` banner stays quiet.
+
+**Command text.** `Terminal` records it as a fact on `CommandCompletion.command`,
+never in policy. Source order: the `cmdline_url=<percent-encoded>` parameter on
+OSC 133 `C` (kitty's spelling), else the text between the `B` mark and the `C`
+mark on the primary grid. A shell that emits neither `B` nor `cmdline_url` (the
+bundled zsh and fish integrations emit no `B`) gets the "Command finished" /
+"Command failed" title, never a guessed command. bash emits `B`.
+
+## Focus back — shipped
+
+`notifications.focus` (prescribed on) opens a Unix socket,
+`notifications.focus.socket`, default `$XDG_RUNTIME_DIR/mado-focus.sock`, else
+`$TMPDIR/mado-focus.sock`, mode 0600. One client sends one JSON line:
+
+```
+{"focus_pane":"<group>"}\n   ->   {"ok":true}\n
+```
+
+`<group>` is the card's `group`. Other lines are refused with
+`{"ok":false,"error":"malformed|empty-pane|unsupported-action"}`; the wire is
+`tsuuchi::ActionMessage` (`{"action":"<id>"}` is its other shape, refused here).
+`ok:true` means queued. On the next event-loop tick mado raises the app and its
+window, clears the pane alert, and, when the group is another live pane and
+`tear.session_switching` is on, switches the window to it (the `switch_session`
+channel). A group that is neither displayed nor switchable is logged and
+ignored. One socket per path: a second mado finds it live and does not take it.
 
 ## Milestones
 
@@ -242,5 +298,11 @@ banner informs rather than focusing the pane.
   delegate (route taps: Focus pane / Copy / Open / Reply-inject) ·
   foreground-presentation delegate · attachments delivery · MCP
   `notify_send` / `notifications_list` / mute.
+- **M1.5 (relevance and focus-back — shipped):** structured cards, rank by
+  config, `focus_pane` socket. **Open:** the card reaches shirase's click only
+  when the backend sends `action_socket`; that needs a tsuuchi release with
+  `ShiraseBackend::with_action_socket` (in tsuuchi's tree, not in 0.1.5), then
+  one call in `platform::notification_dispatcher` with
+  `focus_server::default_socket_path()`.
 - **M2:** Linux `libnotify` backend parity; converge with `shirase` (the
   notification *center*/observe side) on one action model.

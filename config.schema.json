@@ -645,6 +645,7 @@
           "mado"
         ],
         "enabled": true,
+        "failure_ignores_min_duration": true,
         "min_duration_ms": 10000,
         "notify_on_failure": true,
         "notify_on_success": true,
@@ -658,6 +659,14 @@
       "default": true,
       "description": "Master switch. When `false`, no desktop notification is ever\nraised (the visual/audible bell + dock attention still work).",
       "type": "bool"
+    },
+    "focus": {
+      "default": {
+        "enabled": true,
+        "socket": null
+      },
+      "description": "",
+      "type": "object"
     },
     "history_capacity": {
       "default": 50,
@@ -701,6 +710,18 @@
       "default": 30,
       "description": "Max notifications delivered per rolling minute (0 = unlimited).\nA storm beyond this is dropped (and traced), never queued forever.",
       "type": "int"
+    },
+    "relevance": {
+      "default": {
+        "enabled": true,
+        "failure": "normal",
+        "focus_action": true,
+        "slow_success": "low",
+        "title_max_chars": 80,
+        "waiting_for_input": "normal"
+      },
+      "description": "",
+      "type": "object"
     },
     "when": {
       "default": "unfocused",

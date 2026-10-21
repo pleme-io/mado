@@ -162,6 +162,14 @@ pub fn request_dock_attention() {
     tracing::debug!("dock attention requested — no platform surface on this OS");
 }
 
+pub fn raise_app() {
+    #[cfg(target_os = "macos")]
+    macos::raise_app();
+
+    #[cfg(not(target_os = "macos"))]
+    tracing::debug!("raise requested — no platform surface on this OS");
+}
+
 pub fn request_dock_attention_once() {
     #[cfg(target_os = "macos")]
     macos::request_attention(false);
@@ -1251,6 +1259,26 @@ mod macos {
     /// the main thread; the guard covers tests).
     pub fn request_dock_attention() {
         request_attention(true);
+    }
+
+    pub fn raise_app() {
+        let Some(mtm) = MainThreadMarker::new() else {
+            tracing::debug!("raise_app off main thread — skipped");
+            return;
+        };
+        let app = NSApplication::sharedApplication(mtm);
+        #[allow(deprecated)]
+        app.activateIgnoringOtherApps(true);
+        let windows = app.windows();
+        let target = app
+            .keyWindow()
+            .or_else(|| windows.iter().next().map(|w| w.clone()));
+        if let Some(window) = target {
+            if window.isMiniaturized() {
+                window.deminiaturize(None);
+            }
+            window.makeKeyAndOrderFront(None);
+        }
     }
 
     /// Request attention at a typed level. `CriticalRequest` bounces the

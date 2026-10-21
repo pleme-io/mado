@@ -157,6 +157,8 @@ impl NotificationGate {
     }
 }
 
+pub const LOCAL_PANE_GROUP: &str = "local";
+
 /// The orchestrator the event loops own: a gate + a backend dispatcher +
 /// a delivered-notification history ring.
 pub struct NotificationCenter {
@@ -179,6 +181,8 @@ pub struct NotificationCenter {
     alerts: crate::pane_alert::Detector,
     base_title: Option<String>,
     pane_flash: bool,
+    pane_group: String,
+    cwd: Option<String>,
 }
 
 impl NotificationCenter {
@@ -196,6 +200,8 @@ impl NotificationCenter {
             alerts: crate::pane_alert::Detector::new(&cfg.pane_alerts),
             base_title: None,
             pane_flash: false,
+            pane_group: LOCAL_PANE_GROUP.to_owned(),
+            cwd: None,
         }
     }
 
@@ -278,6 +284,48 @@ impl NotificationCenter {
         self.alerts.next_deadline()
     }
 
+    pub fn set_pane_group(&mut self, group: &str) {
+        if self.pane_group != group {
+            group.clone_into(&mut self.pane_group);
+        }
+    }
+
+    #[must_use]
+    pub fn pane_group(&self) -> &str {
+        &self.pane_group
+    }
+
+    pub fn note_cwd(&mut self, osc7: &str) {
+        self.cwd = Some(cwd_path(osc7));
+    }
+
+    fn context(&self) -> crate::notify_card::PaneContext<'_> {
+        crate::notify_card::PaneContext {
+            group: &self.pane_group,
+            title: self.base_title.as_deref(),
+            cwd: self.cwd.as_deref(),
+        }
+    }
+
+    #[must_use]
+    pub fn command_notice(&self, cc: &crate::ux::CommandCompletion) -> Option<Notification> {
+        let rank = self.cfg.command_completion.rank(cc)?;
+        Some(if self.cfg.relevance.enabled {
+            crate::notify_card::command_card(cc, rank, &self.cfg.relevance, &self.context())
+        } else {
+            crate::ux::side_effects::completion_notification(cc)
+        })
+    }
+
+    #[must_use]
+    pub fn has_pane_alert(&self) -> bool {
+        self.alerts.alert().is_some()
+    }
+
+    pub fn acknowledge(&mut self, now: Instant) -> bool {
+        self.pane_alert(now, crate::pane_alert::Input::Focus(true), None, true)
+    }
+
     pub fn pane_alert(
         &mut self,
         now: Instant,
@@ -285,7 +333,18 @@ impl NotificationCenter {
         detail: Option<&str>,
         focused: bool,
     ) -> bool {
-        use crate::pane_alert::Outcome;
+        self.pane_alert_notice(now, input, detail, None, focused)
+    }
+
+    pub fn pane_alert_notice(
+        &mut self,
+        now: Instant,
+        input: crate::pane_alert::Input<'_>,
+        detail: Option<&str>,
+        notice: Option<&Notification>,
+        focused: bool,
+    ) -> bool {
+        use crate::pane_alert::{AlertReason, Outcome};
         let Some(outcome) = self.alerts.step(now, input) else {
             return false;
         };
@@ -298,7 +357,10 @@ impl NotificationCenter {
                 crate::platform::request_dock_attention_once();
             }
             if delivery == crate::config::AlertDelivery::Notify {
-                let n = self.pane_alert_notification(reason, detail);
+                let n = match (reason, notice) {
+                    (AlertReason::LongCommand, Some(card)) => card.clone(),
+                    _ => self.pane_alert_notification(reason, detail),
+                };
                 self.notify_with(&n, NotifyWhen::Always, focused);
             } else if self.cfg.badge_unread {
                 self.badge_count = self.badge_count.saturating_add(1);
@@ -315,6 +377,20 @@ impl NotificationCenter {
         detail: Option<&str>,
     ) -> Notification {
         use crate::pane_alert::AlertReason;
+        if self.cfg.relevance.enabled && reason == AlertReason::WaitingForInput {
+            let awaited = detail.map(str::to_owned).unwrap_or_else(|| {
+                self.alerts
+                    .alert()
+                    .and_then(|a| a.prompt)
+                    .map_or("Waiting for input", crate::pane_alert::PromptKind::label)
+                    .to_owned()
+            });
+            return crate::notify_card::waiting_card(
+                &awaited,
+                &self.cfg.relevance,
+                &self.context(),
+            );
+        }
         let title = self.base_title.clone().unwrap_or_else(|| "mado".to_owned());
         let body = match (reason, detail) {
             (_, Some(d)) => d.to_owned(),
@@ -427,6 +503,13 @@ impl NotificationCenter {
             }
         }
     }
+}
+
+fn cwd_path(osc7: &str) -> String {
+    let path = osc7
+        .strip_prefix("file://")
+        .map_or(osc7, |rest| rest.find('/').map_or(rest, |i| &rest[i..]));
+    crate::links::percent_decode(path)
 }
 
 #[cfg(test)]
@@ -687,10 +770,14 @@ mod tests {
         );
         let delivered = center.recent(10);
         assert_eq!(delivered.len(), 1);
-        assert_eq!(delivered[0].notification.title, "agent run");
+        assert_eq!(delivered[0].notification.title, "Waiting for input");
+        assert_eq!(
+            delivered[0].notification.subtitle.as_deref(),
+            Some("agent run")
+        );
         assert_eq!(
             delivered[0].notification.body,
-            "Claude Code is waiting for input"
+            "⏳ Claude Code is waiting for input"
         );
         assert!(center.pane_alert(t0 + Duration::from_secs(2), Input::Focus(true), None, true));
         assert_eq!(center.pane_title(None, true).as_deref(), Some("agent run"));
@@ -745,5 +832,143 @@ mod tests {
         let dispatcher = NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()));
         let center = NotificationCenter::new(dispatcher, &c);
         assert!(!center.pane_alerts_own_long_command());
+    }
+
+    fn completion(exit_code: i32, duration_ms: u64, command: &str) -> crate::ux::CommandCompletion {
+        crate::ux::CommandCompletion {
+            exit_code,
+            duration_ms,
+            used_alt_screen: false,
+            command: Some(command.to_owned()),
+        }
+    }
+
+    fn finish_command(center: &mut NotificationCenter, cc: &crate::ux::CommandCompletion) {
+        use crate::pane_alert::Input;
+        let notice = center.command_notice(cc);
+        center.pane_alert_notice(
+            Instant::now(),
+            Input::CommandFinished {
+                qualifies: notice.is_some(),
+            },
+            None,
+            notice.as_ref(),
+            false,
+        );
+    }
+
+    #[test]
+    fn a_fast_failure_beats_the_duration_threshold() {
+        let mut center = alert_center();
+        center.pane_alert(
+            Instant::now(),
+            crate::pane_alert::Input::Focus(false),
+            None,
+            false,
+        );
+        finish_command(&mut center, &completion(1, 40, "false"));
+        let delivered = center.recent(10);
+        assert_eq!(delivered.len(), 1);
+        assert_eq!(delivered[0].notification.title, "false");
+        assert_eq!(delivered[0].notification.urgency, tsuuchi::Urgency::Normal);
+    }
+
+    #[test]
+    fn a_fast_success_sends_nothing() {
+        let mut center = alert_center();
+        center.pane_alert(
+            Instant::now(),
+            crate::pane_alert::Input::Focus(false),
+            None,
+            false,
+        );
+        assert!(center.command_notice(&completion(0, 300, "ls")).is_none());
+        finish_command(&mut center, &completion(0, 300, "ls"));
+        assert!(center.recent(10).is_empty());
+    }
+
+    #[test]
+    fn a_slow_success_is_low_urgency() {
+        let mut center = alert_center();
+        center.pane_alert(
+            Instant::now(),
+            crate::pane_alert::Input::Focus(false),
+            None,
+            false,
+        );
+        finish_command(&mut center, &completion(0, 134_000, "make"));
+        let delivered = center.recent(10);
+        assert_eq!(delivered[0].notification.urgency, tsuuchi::Urgency::Low);
+        assert_eq!(delivered[0].notification.body, "✅ exit 0 · 2m 14s");
+    }
+
+    #[test]
+    fn the_duration_gate_returns_for_failures_when_the_knob_is_off() {
+        let mut c = cfg();
+        c.command_completion.failure_ignores_min_duration = false;
+        let dispatcher = NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()));
+        let center = NotificationCenter::new(dispatcher, &c);
+        assert!(center.command_notice(&completion(1, 40, "false")).is_none());
+        assert!(
+            center
+                .command_notice(&completion(1, 20_000, "false"))
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn a_newer_card_for_the_pane_carries_the_same_id() {
+        let mut center = alert_center();
+        center.set_pane_group("p1");
+        let a = center.command_notice(&completion(1, 40, "first")).unwrap();
+        let b = center
+            .command_notice(&completion(0, 40_000, "second"))
+            .unwrap();
+        assert_eq!(a.id, b.id);
+        assert_eq!(a.group.as_deref(), Some("p1"));
+        center.set_pane_group("p2");
+        let c = center.command_notice(&completion(1, 40, "first")).unwrap();
+        assert_ne!(a.id, c.id);
+    }
+
+    #[test]
+    fn the_cwd_becomes_the_subtitle_when_the_pane_has_no_title() {
+        let mut center = alert_center();
+        center.note_cwd("file://host/Users/me/my%20proj");
+        let n = center.command_notice(&completion(1, 40, "x")).unwrap();
+        assert_eq!(n.subtitle.as_deref(), Some("/Users/me/my proj"));
+    }
+
+    #[test]
+    fn the_generic_banner_returns_when_relevance_is_off() {
+        let mut c = cfg();
+        c.relevance.enabled = false;
+        let dispatcher = NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()));
+        let center = NotificationCenter::new(dispatcher, &c);
+        let n = center.command_notice(&completion(1, 40, "x")).unwrap();
+        assert_eq!(n.title, "✗ Command failed");
+    }
+
+    #[test]
+    fn waiting_for_input_is_a_card_with_the_prompt_shape() {
+        use crate::pane_alert::Input;
+        let mut center = alert_center();
+        let t0 = Instant::now();
+        center.pane_alert(t0, Input::Focus(false), None, false);
+        center.pane_alert(
+            t0,
+            Input::Output {
+                tail: Some("Password: "),
+            },
+            None,
+            false,
+        );
+        center.pane_alert(t0 + Duration::from_secs(2), Input::Tick, None, false);
+        let delivered = center.recent(10);
+        assert_eq!(delivered.len(), 1);
+        let n = &delivered[0].notification;
+        assert_eq!(n.category.as_deref(), Some("waiting-for-input"));
+        assert_eq!(n.body, "⏳ Waiting for a password");
+        assert_eq!(n.urgency, tsuuchi::Urgency::Normal);
     }
 }

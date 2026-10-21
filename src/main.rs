@@ -68,6 +68,8 @@ mod terminfo;
 // it; re-export it here so `crate::motion::…` still resolves at every call
 // site (render.rs / config.rs) and the module compiles exactly once.
 use mado::motion;
+mod focus_server;
+mod notify_card;
 mod notify_center;
 // NOT macOS-gated: osc_1337 is a pure VT-parameter parser + two typed
 // histories, with no platform code in it, and BOTH its consumers
@@ -1037,6 +1039,7 @@ fn main() -> anyhow::Result<()> {
         crate::platform::notification_dispatcher(config.notifications.backend),
         &config.notifications,
     );
+    let focus_relay = crate::focus_server::FocusRelay::start(&config.notifications.focus);
     let default_font_size = effective_font_size;
     // macOS window-chrome styling latch — owns the style extracted from
     // the shikumi config plus its applied state, so the `'static`
@@ -1354,6 +1357,7 @@ fn main() -> anyhow::Result<()> {
                     // adapter owns only the EventResponse translation.
                     let ws = &*pane_for_events;
                     if let Some(pane) = ws.focused_pane() {
+                        focus_relay.service(None, &mut notify_center);
                         let effects = pane.terminal.write().drain_side_effects();
                         if let Some(title) = crate::ux::apply_side_effects(
                             effects,

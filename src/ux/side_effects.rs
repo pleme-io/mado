@@ -120,7 +120,7 @@ pub struct TerminalSideEffects {
 /// One completed shell command, derived from the OSC 133 `C`→`D` span.
 /// The *raw signal* — the policy (notify when away, skip TUIs, glow) lives
 /// in `apply_side_effects` + the config, keeping this a pure fact.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandCompletion {
     /// The command's exit status (OSC 133 `D;<code>`).
     pub exit_code: i32,
@@ -130,6 +130,7 @@ pub struct CommandCompletion {
     /// it was an interactive TUI (vim/less/lazygit), so completion is not
     /// interesting (the operator just quit an editor).
     pub used_alt_screen: bool,
+    pub command: Option<String>,
 }
 
 impl CommandCompletion {
@@ -236,6 +237,7 @@ pub fn apply_side_effects(
     }
     if let Some(cwd) = effects.cwd {
         tracing::trace!(%cwd, "OSC 7 cwd update");
+        notify.note_cwd(&cwd);
     }
     if let Some(cc) = effects.command_completion {
         // Peripheral exit-status glow. A finished command pulses the cursor
@@ -250,18 +252,22 @@ pub fn apply_side_effects(
         // Away-notification for a long-running command. `should_notify`
         // already applied the focus gate (`only_when_unfocused`), so the
         // dispatch uses `Always` — double-gating here would silently drop it.
-        let summary = completion_notification(&cc);
-        let qualifies = notify.command_completion().qualifies(&cc);
-        alert_dirty |= notify.pane_alert(
+        let notice = notify.command_notice(&cc);
+        let detail = notice.as_ref().map(|n| format!("{} · {}", n.title, n.body));
+        alert_dirty |= notify.pane_alert_notice(
             now,
-            PaneInput::CommandFinished { qualifies },
-            Some(&format!("{} · {}", summary.title, summary.body)),
+            PaneInput::CommandFinished {
+                qualifies: notice.is_some(),
+            },
+            detail.as_deref(),
+            notice.as_ref(),
             focused,
         );
-        if !notify.pane_alerts_own_long_command()
+        if let Some(card) = &notice
+            && !notify.pane_alerts_own_long_command()
             && notify.command_completion().should_notify(&cc, focused)
         {
-            notify.notify_with(&summary, crate::config::NotifyWhen::Always, focused);
+            notify.notify_with(card, crate::config::NotifyWhen::Always, focused);
         }
     }
     if let Some(tail) = effects.output.as_deref() {
@@ -293,7 +299,7 @@ fn should_exit_glow(cc: &CommandCompletion) -> bool {
 /// [`tsuuchi::Notification`], never a hand-spliced string. Title names the
 /// outcome (✓/✗); body is the humanized runtime (+ exit code on failure).
 /// Grouped `command` so a burst of completions coalesces to the latest.
-fn completion_notification(cc: &CommandCompletion) -> tsuuchi::Notification {
+pub(crate) fn completion_notification(cc: &CommandCompletion) -> tsuuchi::Notification {
     let dur = humanize_duration(cc.duration_ms);
     let (title, body) = if cc.succeeded() {
         ("✓ Command finished".to_owned(), format!("Done in {dur}"))
@@ -312,7 +318,7 @@ fn completion_notification(cc: &CommandCompletion) -> tsuuchi::Notification {
 /// `820ms`, `3.4s`, `1m 05s`, `1h 02m`. Pure + total (saturating), so it
 /// is trivially testable and never panics on absurd inputs.
 #[must_use]
-fn humanize_duration(ms: u64) -> String {
+pub(crate) fn humanize_duration(ms: u64) -> String {
     if ms < 1_000 {
         return format!("{ms}ms");
     }
@@ -339,6 +345,7 @@ mod completion_tests {
             exit_code,
             duration_ms,
             used_alt_screen,
+            command: None,
         }
     }
 

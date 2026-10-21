@@ -2219,6 +2219,8 @@ pub struct Terminal {
     // emitted into `pending_command_completion` and drained once.
     command_start_ms: Option<u64>,
     command_used_alt_screen: bool,
+    command_input_anchor: Option<(usize, usize)>,
+    command_text: Option<String>,
     pending_command_completion: Option<crate::ux::CommandCompletion>,
 
     // Kitty keyboard protocol — progressive enhancement mode stack.
@@ -2424,6 +2426,8 @@ impl Terminal {
             output_since_drain: false,
             command_start_ms: None,
             command_used_alt_screen: false,
+            command_input_anchor: None,
+            command_text: None,
             pending_command_completion: None,
             kitty_keyboard_stack: Vec::new(),
             kitty_keyboard_enabled: true,
@@ -3962,9 +3966,18 @@ impl Terminal {
         match kind {
             // `C` — the command begins executing. Start the completion
             // clock and reset the TUI (alt-screen-used) flag.
+            PromptKind::Start => {
+                self.command_input_anchor = None;
+            }
+            PromptKind::CommandStart => {
+                self.command_input_anchor = Some((grid_row, self.cursor.col));
+            }
             PromptKind::CommandOutput => {
                 self.command_start_ms = Some(now_ms);
                 self.command_used_alt_screen = false;
+                self.command_text = Self::cmdline_param(&params[2..])
+                    .or_else(|| self.command_text_from_input_span(grid_row));
+                self.command_input_anchor = None;
             }
             // `D` — the command finished. `OSC 133 ; D ; <code>` carries
             // the exit status; stamp the marks (existing) AND emit a typed
@@ -3990,6 +4003,7 @@ impl Terminal {
                         exit_code: exit.unwrap_or(0),
                         duration_ms: now_ms.saturating_sub(start),
                         used_alt_screen: self.command_used_alt_screen,
+                        command: self.command_text.take(),
                     });
                 }
             }
@@ -4001,6 +4015,47 @@ impl Terminal {
             kind = ?kind,
             "OSC 133 mark recorded",
         );
+    }
+
+    fn cmdline_param(params: &[&[u8]]) -> Option<String> {
+        params
+            .iter()
+            .filter_map(|p| std::str::from_utf8(p).ok())
+            .find_map(|p| p.strip_prefix("cmdline_url="))
+            .map(crate::links::percent_decode)
+            .and_then(|c| crate::notify_card::one_line(&c))
+    }
+
+    fn command_text_from_input_span(&self, end_row: usize) -> Option<String> {
+        let (start_row, start_col) = self.command_input_anchor?;
+        let last = if self.cursor.col == 0 {
+            end_row.checked_sub(1)?
+        } else {
+            end_row
+        };
+        if last < start_row {
+            return None;
+        }
+        let grid = self.grid();
+        let mut out = String::new();
+        for row in start_row..=last {
+            let line = grid.line(row)?;
+            let from = if row == start_row { start_col } else { 0 };
+            let seg_start = out.len();
+            for cell in line.cells.iter().skip(from) {
+                if cell.width != 0 {
+                    cell.write_to(&mut out);
+                }
+            }
+            if !line.wrapped {
+                let kept = out[seg_start..].trim_end().len();
+                out.truncate(seg_start + kept);
+                if row < last {
+                    out.push(' ');
+                }
+            }
+        }
+        crate::notify_card::one_line(&out)
     }
 
     /// Grid-internal row of the most recent prompt start, if any.
@@ -8639,6 +8694,61 @@ mod tests {
         // Enter alt screen (DEC mode 1049).
         term.feed(b"\x1b[?1049h");
         assert!(term.block_separator_viewport_rows().is_empty());
+    }
+
+    fn completed_command(feed: &[&[u8]]) -> Option<crate::ux::CommandCompletion> {
+        let mut term = Terminal::new(80, 24);
+        for chunk in feed {
+            term.feed(chunk);
+        }
+        term.drain_side_effects().command_completion
+    }
+
+    #[test]
+    fn command_text_comes_from_the_cmdline_url_param() {
+        let cc = completed_command(&[
+            b"\x1b]133;A\x1b\\",
+            b"\x1b]133;C;cmdline_url=cargo%20test%20--lib\x1b\\",
+            b"\x1b]133;D;1\x1b\\",
+        ])
+        .expect("completion");
+        assert_eq!(cc.command.as_deref(), Some("cargo test --lib"));
+        assert_eq!(cc.exit_code, 1);
+    }
+
+    #[test]
+    fn command_text_comes_from_the_span_between_b_and_c() {
+        let cc = completed_command(&[
+            b"\x1b]133;A\x1b\\$ \x1b]133;B\x1b\\",
+            b"make  all\r\n",
+            b"\x1b]133;C\x1b\\",
+            b"\x1b]133;D;0\x1b\\",
+        ])
+        .expect("completion");
+        assert_eq!(cc.command.as_deref(), Some("make all"));
+    }
+
+    #[test]
+    fn a_wrapped_command_reads_as_one_line() {
+        let long = "x".repeat(100);
+        let cc = completed_command(&[
+            b"\x1b]133;B\x1b\\",
+            long.as_bytes(),
+            b"\r\n\x1b]133;C\x1b\\",
+            b"\x1b]133;D;0\x1b\\",
+        ])
+        .expect("completion");
+        assert_eq!(cc.command.as_deref(), Some(long.as_str()));
+    }
+
+    #[test]
+    fn without_b_or_a_param_the_command_text_is_absent_not_guessed() {
+        let cc = completed_command(&[
+            b"\x1b]133;A\x1b\\echo hi\r\n\x1b]133;C\x1b\\",
+            b"\x1b]133;D;0\x1b\\",
+        ])
+        .expect("completion");
+        assert_eq!(cc.command, None);
     }
 
     #[test]

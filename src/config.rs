@@ -1651,6 +1651,10 @@ pub struct CommandCompletionConfig {
     /// (a TUI: vim/less/lazygit/btop) — you just quit an editor, not
     /// finished a batch job. The robust, text-free filter.
     pub respect_alt_screen: bool,
+    #[schemars(
+        description = "A failed command notifies when unfocused whatever its duration; min_duration_ms then gates successes only."
+    )]
+    pub failure_ignores_min_duration: bool,
 }
 
 impl Default for CommandCompletionConfig {
@@ -1671,6 +1675,7 @@ impl CommandCompletionConfig {
             only_when_unfocused: true,
             deny: Self::default_deny(),
             respect_alt_screen: true,
+            failure_ignores_min_duration: true,
         }
     }
 
@@ -1686,6 +1691,7 @@ impl CommandCompletionConfig {
             only_when_unfocused: true,
             deny: Self::default_deny(),
             respect_alt_screen: true,
+            failure_ignores_min_duration: true,
         }
     }
 
@@ -1711,13 +1717,119 @@ impl CommandCompletionConfig {
 
     #[must_use]
     pub fn qualifies(&self, c: &crate::ux::CommandCompletion) -> bool {
-        !(self.respect_alt_screen && c.used_alt_screen)
-            && c.duration_ms >= self.min_duration_ms
-            && (if c.succeeded() {
-                self.notify_on_success
-            } else {
-                self.notify_on_failure
-            })
+        self.rank(c).is_some()
+    }
+
+    #[must_use]
+    pub fn rank(&self, c: &crate::ux::CommandCompletion) -> Option<CommandRank> {
+        if self.respect_alt_screen && c.used_alt_screen {
+            return None;
+        }
+        let slow = c.duration_ms >= self.min_duration_ms;
+        if c.succeeded() {
+            (self.notify_on_success && slow).then_some(CommandRank::SlowSuccess)
+        } else {
+            (self.notify_on_failure && (slow || self.failure_ignores_min_duration))
+                .then_some(CommandRank::Failure)
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommandRank {
+    Failure,
+    SlowSuccess,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct RelevanceConfig {
+    #[schemars(
+        description = "Send structured cards (command line, outcome, pane, category, stable id) instead of the generic banner."
+    )]
+    pub enabled: bool,
+    #[schemars(description = "Urgency of a failed command.")]
+    pub failure: NotifyUrgency,
+    #[schemars(description = "Urgency of a successful command that ran past min_duration_ms.")]
+    pub slow_success: NotifyUrgency,
+    #[schemars(description = "Urgency of a pane waiting for input.")]
+    pub waiting_for_input: NotifyUrgency,
+    #[schemars(description = "Longest command line (characters) shown as a card title.")]
+    pub title_max_chars: usize,
+    #[schemars(description = "Add a Focus action that raises the pane when the card is clicked.")]
+    pub focus_action: bool,
+}
+
+impl Default for RelevanceConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl RelevanceConfig {
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            enabled: false,
+            ..Self::prescribed()
+        }
+    }
+
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self {
+            enabled: true,
+            failure: NotifyUrgency::Normal,
+            slow_success: NotifyUrgency::Low,
+            waiting_for_input: NotifyUrgency::Normal,
+            title_max_chars: 80,
+            focus_action: true,
+        }
+    }
+
+    #[must_use]
+    pub fn command_urgency(&self, rank: CommandRank) -> NotifyUrgency {
+        match rank {
+            CommandRank::Failure => self.failure,
+            CommandRank::SlowSuccess => self.slow_success,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct FocusServerConfig {
+    #[schemars(
+        description = "Listen on a Unix socket for one JSON line {\"focus_pane\":\"<pane>\"} that raises mado and switches to that pane."
+    )]
+    pub enabled: bool,
+    #[schemars(
+        description = "Socket path. Unset: $XDG_RUNTIME_DIR/mado-focus.sock, else $TMPDIR."
+    )]
+    pub socket: Option<std::path::PathBuf>,
+}
+
+impl Default for FocusServerConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl FocusServerConfig {
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            enabled: false,
+            socket: None,
+        }
+    }
+
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self {
+            enabled: true,
+            socket: None,
+        }
     }
 }
 
@@ -1909,6 +2021,8 @@ pub struct NotificationsConfig {
     /// `45%`), taking precedence over the unread count while active.
     pub progress_dock: bool,
     pub pane_alerts: PaneAlertsConfig,
+    pub relevance: RelevanceConfig,
+    pub focus: FocusServerConfig,
 }
 
 impl Default for NotificationsConfig {
@@ -1934,6 +2048,8 @@ impl NotificationsConfig {
             badge_unread: false,
             progress_dock: false,
             pane_alerts: PaneAlertsConfig::bare(),
+            relevance: RelevanceConfig::bare(),
+            focus: FocusServerConfig::bare(),
         }
     }
 
@@ -1954,6 +2070,8 @@ impl NotificationsConfig {
             badge_unread: true,
             progress_dock: true,
             pane_alerts: PaneAlertsConfig::prescribed(),
+            relevance: RelevanceConfig::prescribed(),
+            focus: FocusServerConfig::prescribed(),
         }
     }
 }
@@ -7692,12 +7810,15 @@ mod coverage {
         "notifications.bell.sound",
         "notifications.coalesce_window_ms",
         "notifications.command_completion.enabled",
+        "notifications.command_completion.failure_ignores_min_duration",
         "notifications.command_completion.min_duration_ms",
         "notifications.command_completion.notify_on_failure",
         "notifications.command_completion.notify_on_success",
         "notifications.command_completion.only_when_unfocused",
         "notifications.command_completion.respect_alt_screen",
         "notifications.enabled",
+        "notifications.focus.enabled",
+        "notifications.focus.socket",
         "notifications.history_capacity",
         "notifications.pane_alerts.badge",
         "notifications.pane_alerts.cooldown_secs",
@@ -7712,6 +7833,12 @@ mod coverage {
         "notifications.pane_alerts.reasons.waiting_for_input",
         "notifications.progress_dock",
         "notifications.rate_limit_per_min",
+        "notifications.relevance.enabled",
+        "notifications.relevance.failure",
+        "notifications.relevance.focus_action",
+        "notifications.relevance.slow_success",
+        "notifications.relevance.title_max_chars",
+        "notifications.relevance.waiting_for_input",
         "notifications.when",
         "performance.battery_fps_cap",
         "performance.fps_cap",

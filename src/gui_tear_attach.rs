@@ -976,6 +976,8 @@ where
         crate::platform::notification_dispatcher(config.notifications.backend),
         &config.notifications,
     );
+    let focus_relay = crate::focus_server::FocusRelay::start(&config.notifications.focus);
+    let current_pane_for_focus = current_pane.clone();
     let terminal_for_side_effects = Arc::clone(&terminal);
     let mut engine = crate::ux::InputEngine::attach_to_renderer(
         window.renderer_mut(),
@@ -1305,6 +1307,8 @@ where
             // own response (the event wins on consumed/exit; the title
             // rides along on an otherwise-untouched field).
             let drained_title = if woke {
+                notify_center.set_pane_group(&current_pane_for_focus.get().to_string());
+                focus_relay.service(switch_requests.as_ref(), &mut notify_center);
                 let effects = terminal_for_side_effects.write().drain_side_effects();
                 crate::ux::apply_side_effects(
                     effects,
