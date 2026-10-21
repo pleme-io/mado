@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "8081e67173a0590f1034cf86d30132b443dd9c4118f4d6915a2b6889a0ffc146",
+  "cargo_lock_sha256": "293ea132efab1c03c7c6601784fdc6b88d9a2c9ce18de4fe07456864811bd95c",
   "manifest_sha256": {
-    "Cargo.toml": "22eb8ff33ba4254c9f677e168bd2e30f9d841bab116bb920a84d5b0fc64e9777"
+    "Cargo.toml": "a823f77623b779806a8423215440414188b8a19a9082083555563919b446c6f4"
   },
   "target_resolves": {
     "base": {
@@ -21940,7 +21940,7 @@
           },
           {
             "name": "getrandom",
-            "package_key": "getrandom-0.3.4",
+            "package_key": "getrandom-0.4.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -26919,7 +26919,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.201": {
+          "mado-0.1.202": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32008,7 +32008,7 @@
               "system"
             ]
           },
-          "mado-0.1.201": {
+          "mado-0.1.202": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36154,7 +36154,7 @@
               "system"
             ]
           },
-          "mado-0.1.201": {
+          "mado-0.1.202": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40423,7 +40423,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.201": {
+          "mado-0.1.202": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45529,7 +45529,7 @@
               "system"
             ]
           },
-          "mado-0.1.201": {
+          "mado-0.1.202": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49692,7 +49692,7 @@
               "system"
             ]
           },
-          "mado-0.1.201": {
+          "mado-0.1.202": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -53958,7 +53958,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.201": {
+    "mado-0.1.202": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
