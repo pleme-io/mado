@@ -815,6 +815,26 @@ pub struct MadoTearConfig {
         description = "Under pane_fate: edge, seconds between backstop reads of the displayed pane's fate while its stream stays open. 0 turns the backstop off."
     )]
     pub fate_backstop_secs: u64,
+    #[serde(default)]
+    #[schemars(
+        description = "On a session switch or re-attach, when the pane is resized to the window. before_attach sizes the pane first, so tear replays a grid that already fits the window; after_attach replays at the pane's old size and resizes afterward, the previous behaviour, which clips and scrolls a window smaller than the pane."
+    )]
+    pub switch_sizing: SwitchSizing,
+    #[serde(default = "default_reattach_backoff_ms")]
+    #[schemars(
+        description = "Milliseconds between attempts to re-attach a window whose pane stream ended or failed to attach. Values under 50 are raised to 50."
+    )]
+    pub reattach_backoff_ms: u64,
+}
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum SwitchSizing {
+    #[default]
+    BeforeAttach,
+    AfterAttach,
 }
 
 #[derive(
@@ -2411,6 +2431,8 @@ impl Default for MadoTearConfig {
             session_picker_badges: BadgeMode::Auto,
             pane_fate: PaneFate::default(),
             fate_backstop_secs: default_fate_backstop_secs(),
+            switch_sizing: SwitchSizing::default(),
+            reattach_backoff_ms: default_reattach_backoff_ms(),
         }
     }
 }
@@ -2616,6 +2638,17 @@ fn default_spawn_wait_ms() -> u64 {
 
 fn default_fate_backstop_secs() -> u64 {
     30
+}
+
+fn default_reattach_backoff_ms() -> u64 {
+    500
+}
+
+impl MadoTearConfig {
+    #[must_use]
+    pub fn reattach_backoff(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.reattach_backoff_ms.max(50))
+    }
 }
 
 /// Font family and rendering configuration (mirrors Ghostty's font-* options).
@@ -3975,6 +4008,8 @@ impl MadoConfig {
                 session_picker_badges: BadgeMode::Off,
                 pane_fate: PaneFate::default(),
                 fate_backstop_secs: default_fate_backstop_secs(),
+                switch_sizing: SwitchSizing::default(),
+                reattach_backoff_ms: default_reattach_backoff_ms(),
             },
             // ── Effects ──────────────────────────────────────────
             // All effects disabled in bare. Snow params stay at
@@ -7888,6 +7923,7 @@ mod coverage {
         "tear.impose",
         "tear.mode",
         "tear.pane_fate",
+        "tear.reattach_backoff_ms",
         "tear.resident_adopt",
         "tear.runtime",
         "tear.session_name",
@@ -7898,6 +7934,7 @@ mod coverage {
         "tear.session_switching",
         "tear.socket",
         "tear.spawn_wait_ms",
+        "tear.switch_sizing",
         "theme",
         "vigy.enabled",
         "window.decorations",

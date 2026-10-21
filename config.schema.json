@@ -1196,6 +1196,11 @@
         "poll"
       ]
     },
+    "reattach_backoff_ms": {
+      "default": 500,
+      "description": "Milliseconds between attempts to re-attach a window whose pane stream ended or failed to attach. Values under 50 are raised to 50.",
+      "type": "int"
+    },
     "resident_adopt": {
       "default": true,
       "description": "",
@@ -1264,6 +1269,15 @@
       "default": 2000,
       "description": "Milliseconds to wait for an auto-spawned daemon to bind\nits socket before giving up. Default 2000 — plenty even on\nslow CI hardware.",
       "type": "int"
+    },
+    "switch_sizing": {
+      "default": "before_attach",
+      "description": "On a session switch or re-attach, when the pane is resized to the window. before_attach sizes the pane first, so tear replays a grid that already fits the window; after_attach replays at the pane's old size and resizes afterward, the previous behaviour, which clips and scrolls a window smaller than the pane.",
+      "type": "enum",
+      "values": [
+        "before_attach",
+        "after_attach"
+      ]
     }
   },
   "vigy": {

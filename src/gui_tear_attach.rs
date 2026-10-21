@@ -580,13 +580,23 @@ fn displayed_pane_fate(
 }
 
 fn resize_then_attach<S>(
+    sizing: crate::config::SwitchSizing,
     window: (usize, usize),
     resize: impl FnOnce(u16, u16),
     attach: impl FnOnce() -> S,
 ) -> S {
     let clamp = |n: usize| u16::try_from(n).unwrap_or(u16::MAX).max(1);
-    resize(clamp(window.0), clamp(window.1));
-    attach()
+    match sizing {
+        crate::config::SwitchSizing::BeforeAttach => {
+            resize(clamp(window.0), clamp(window.1));
+            attach()
+        }
+        crate::config::SwitchSizing::AfterAttach => {
+            let attached = attach();
+            resize(clamp(window.0), clamp(window.1));
+            attached
+        }
+    }
 }
 
 fn leave_displayed_pane(
@@ -1066,6 +1076,8 @@ where
     let response_writer_for_switch = Arc::clone(&response_writer);
     let terminal_for_switch = Arc::clone(&terminal);
     let mut live_cell = live_cell;
+    let reattach_backoff = config.tear.reattach_backoff();
+    let switch_sizing = config.tear.switch_sizing;
     let mut last_reattach = std::time::Instant::now();
     let mut last_fate_probe = std::time::Instant::now();
 
@@ -1148,7 +1160,7 @@ where
             if woke && let Some(reqs) = switch_requests.as_ref() {
                 let reattach = if crate::pane_stream::stream_needs_reattach(
                     live_cell.as_ref().map(crate::pane_stream::PaneStream::ended),
-                ) && last_reattach.elapsed() >= crate::pane_stream::REATTACH_BACKOFF
+                ) && last_reattach.elapsed() >= reattach_backoff
                 {
                     last_reattach = std::time::Instant::now();
                     current_pane_for_switch
@@ -1190,6 +1202,7 @@ where
                             (t.cols(), t.rows())
                         };
                         match resize_then_attach(
+                            switch_sizing,
                             window_size,
                             |c, r| {
                                 if let Err(e) = control_for_switch.pane_resize_absolute(target, c, r)
@@ -1246,7 +1259,7 @@ where
                             cur,
                             std::time::Instant::now(),
                         )
-                    } else if last_fate_probe.elapsed() >= crate::pane_stream::REATTACH_BACKOFF {
+                    } else if last_fate_probe.elapsed() >= reattach_backoff {
                         last_fate_probe = std::time::Instant::now();
                         displayed_pane_fate(&*control_for_switch, cur)
                     } else {
@@ -1379,12 +1392,12 @@ where
                         demand = demand.with(fate.next());
                         if live.ended() {
                             demand = demand.with(madori::FrameDemand::At(
-                                last_reattach + crate::pane_stream::REATTACH_BACKOFF,
+                                last_reattach + reattach_backoff,
                             ));
                         }
                     } else {
                         demand = demand.with(madori::FrameDemand::At(
-                            last_reattach + crate::pane_stream::REATTACH_BACKOFF,
+                            last_reattach + reattach_backoff,
                         ));
                     }
                 }
@@ -2406,6 +2419,7 @@ mod tests {
         inproc: &std::sync::Arc<tear_core::InProcess>,
         pane: PaneId,
         window: (usize, usize),
+        sizing: crate::config::SwitchSizing,
     ) -> SwitchRun {
         let calls: &'static crate::perf::TearCalls =
             Box::leak(Box::new(kanshou::metrics::Family::new()));
@@ -2420,6 +2434,7 @@ mod tests {
         terminal.write().reset();
         let bell = std::task::Waker::noop().clone();
         let mut stream = resize_then_attach(
+            sizing,
             window,
             |c, r| control.pane_resize_absolute(pane, c, r).expect("resize"),
             || {
@@ -2457,7 +2472,12 @@ mod tests {
                 let inproc = std::sync::Arc::new(tear_core::InProcess::new());
                 inproc.set_spawn_env(tear_types::SpawnEnv::none());
                 let (_s, pane) = painted_pane_with_history(&inproc, "P", history);
-                let run = switch_to(&inproc, pane, window);
+                let run = switch_to(
+                    &inproc,
+                    pane,
+                    window,
+                    crate::config::SwitchSizing::BeforeAttach,
+                );
                 for (m, ..) in MARKS {
                     let needle = format!("P-{m}");
                     assert_eq!(
@@ -2481,7 +2501,12 @@ mod tests {
         let inproc = std::sync::Arc::new(tear_core::InProcess::new());
         inproc.set_spawn_env(tear_types::SpawnEnv::none());
         let (_s, pane) = painted_pane(&inproc, "B");
-        let run = switch_to(&inproc, pane, (120, 40));
+        let run = switch_to(
+            &inproc,
+            pane,
+            (120, 40),
+            crate::config::SwitchSizing::BeforeAttach,
+        );
         for (m, r, c) in MARKS {
             assert_eq!(
                 where_is(&run.mado, &format!("B-{m}")),
@@ -2495,6 +2520,7 @@ mod tests {
     fn the_pane_is_sized_to_the_window_before_its_grid_is_replayed() {
         let order = std::cell::RefCell::new(Vec::<String>::new());
         let attached = resize_then_attach(
+            crate::config::SwitchSizing::BeforeAttach,
             (60, 20),
             |c, r| order.borrow_mut().push(format!("resize {c}x{r}")),
             || {
@@ -2507,11 +2533,49 @@ mod tests {
     }
 
     #[test]
+    fn the_previous_order_stays_available_as_after_attach() {
+        let order = std::cell::RefCell::new(Vec::<&str>::new());
+        resize_then_attach(
+            crate::config::SwitchSizing::AfterAttach,
+            (60, 20),
+            |_, _| order.borrow_mut().push("resize"),
+            || order.borrow_mut().push("attach"),
+        );
+        assert_eq!(*order.borrow(), vec!["attach", "resize"]);
+    }
+
+    #[test]
+    fn the_reattach_backoff_is_configurable_with_a_floor() {
+        let mut tear = crate::config::MadoTearConfig::default();
+        assert_eq!(
+            tear.reattach_backoff(),
+            std::time::Duration::from_millis(500)
+        );
+        tear.reattach_backoff_ms = 2000;
+        assert_eq!(tear.reattach_backoff(), std::time::Duration::from_secs(2));
+        tear.reattach_backoff_ms = 0;
+        assert_eq!(
+            tear.reattach_backoff(),
+            std::time::Duration::from_millis(50)
+        );
+    }
+
+    #[test]
     fn a_degenerate_window_size_is_clamped_into_a_valid_pane_size() {
         let seen = std::cell::Cell::new((0u16, 0u16));
-        resize_then_attach((0, 0), |c, r| seen.set((c, r)), || ());
+        resize_then_attach(
+            crate::config::SwitchSizing::BeforeAttach,
+            (0, 0),
+            |c, r| seen.set((c, r)),
+            || (),
+        );
         assert_eq!(seen.get(), (1, 1));
-        resize_then_attach((usize::MAX, 70_000), |c, r| seen.set((c, r)), || ());
+        resize_then_attach(
+            crate::config::SwitchSizing::BeforeAttach,
+            (usize::MAX, 70_000),
+            |c, r| seen.set((c, r)),
+            || (),
+        );
         assert_eq!(seen.get(), (u16::MAX, u16::MAX));
     }
 
