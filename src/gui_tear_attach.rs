@@ -2664,7 +2664,7 @@ mod tests {
     #[test]
     fn an_unreadable_backend_keeps_the_displayed_pane() {
         assert_eq!(
-            displayed_pane_fate(&crate::control_stub::Unreachable, PaneId::from_seed("p")),
+            displayed_pane_fate(&tear_picker::testing::Unreachable, PaneId::from_seed("p")),
             DisplayedPaneFate::Keep
         );
     }

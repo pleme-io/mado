@@ -3195,9 +3195,9 @@ dependencies = [
 
 [[package]]
 name = "kukaku"
-version = "0.1.46"
+version = "0.1.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03be8978dda9333f6126c80a1e8f75e4e7ad48b278ffe663db3e2806450467b1"
+checksum = "add23698fd72bc9beb2cb24057134d8190553da39fceaa3ccba8725bb8ed2aa9"
 dependencies = [
  "serde",
 ]
@@ -3450,6 +3450,7 @@ dependencies = [
  "tear-config",
  "tear-core",
  "tear-daemon",
+ "tear-picker",
  "tear-types",
  "tempfile",
  "thiserror 2.0.21",
@@ -4976,9 +4977,9 @@ dependencies = [
 
 [[package]]
 name = "praca"
-version = "0.1.46"
+version = "0.1.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c368c39e6120021ac4e5ac31c87e033fda103cc07d9a7662215930a5043b32bb"
+checksum = "0b04e11e8e34047d45c1325d62a997116e5c05d3333f12ebec9da6f64b474c5a"
 dependencies = [
  "ishou-tokens",
  "serde",
@@ -7215,6 +7216,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "tear-picker"
+version = "0.1.47"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c37f029712b7d5c70aa133721f3077648c52548590cf222cbdeffbd3fe4c8d4c"
+dependencies = [
+ "ishou-tokens",
+ "praca",
+ "schemars 1.2.3",
+ "serde",
+ "tear-types",
+ "tracing",
+]
+
+[[package]]
 name = "tear-tamotsu"
 version = "0.1.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7232,9 +7247,9 @@ dependencies = [
 
 [[package]]
 name = "tear-types"
-version = "0.1.46"
+version = "0.1.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a1ecfff1b2c8ce16f86d359e97caecfecacc4a1ab2f844bc095f6a5380fb103"
+checksum = "bc26c2e8c3c8ced4d8b7b39a26c5fece3d3fc0ecc06cd6f4467051f128dcf701"
 dependencies = [
  "anyhow",
  "blake3",

@@ -31,7 +31,7 @@ pub const ROWS_MAX: usize = 200;
 /// The historical fixed window height, kept as the [`Bounds::default`] and the
 /// screen-less fallback (e.g. the session-picker reserved-band anchor, a
 /// union-ordering policy that is not a viewport-fit concern).
-pub const ROWS_DEFAULT: usize = 12;
+pub const ROWS_DEFAULT: usize = tear_picker::ROWS_DEFAULT;
 
 /// Zero-sized marker for the picker row-budget bounds. The `Bounds<usize>`
 /// impl makes the constants above visible to `Refined<usize, Self>`.

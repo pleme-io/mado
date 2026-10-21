@@ -21,13 +21,11 @@
 //! method in [`crate::render`]; the colours resolve from the active
 //! [`crate::theme::Theme`] (no Nord literal survives), so a theme swap
 //! restyles every picker. The `Row`/source split is extraction-ready —
-//! Phase 2 lifts [`state`] + [`reconcile`] + [`presets`] into a fleet
-//! crate the other "curated data + live fuzzy search" tools (frost
+//! Phase 3 consumes [`state`] + [`reconcile`] (and `presets`) from the fleet
+//! `tear-picker` crate, which the other "curated data + live fuzzy search" tools (frost
 //! pickers, Ctrl-R history, skim-tab, tend) consume the same way.
 
 pub mod component;
 pub mod motion;
 pub mod pointer;
-pub mod presets;
-pub mod reconcile;
-pub mod state;
+pub use tear_picker::{reconcile, state};

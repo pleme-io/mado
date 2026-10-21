@@ -236,6 +236,7 @@ tear-config = "0.1"
 # phases. Same tear git source + rev as the tear-* crates above so cargo
 # unifies the shared tear-types crate identity (one git source rule).
 praca = "0.1"
+tear-picker = { version = "0.1.47", features = ["schema"] }
 
 # egaku — the fleet widget-geometry + widget typescape. Consumed today ONLY
 # for `egaku::Rect` (the geometry type the `float` floating-browser module
@@ -506,6 +507,7 @@ block2 = "0.6"
 # delegate-routed tier) land in M1 with more features.
 
 [dev-dependencies]
+tear-picker = { version = "0.1.47", features = ["schema", "testing"] }
 tempfile = "3"
 proptest = "1"
 # Perf-regression benches for the pure `motion` algebra (benches/motion.rs).

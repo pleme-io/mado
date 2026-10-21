@@ -62,57 +62,14 @@ use crate::suggest::{StoredSuggestion, SuggestionId, SuggestionStore};
 // window. Only the reserved-band ANCHOR (a screen-less union-ordering policy)
 // keeps a constant, `crate::row_budget::ROWS_DEFAULT`.
 
-/// What creating a session from the picker should name it.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum CreateSpec {
-    /// Create a session whose identity is exactly
-    /// [`FleetSessionNames::POOL`]`[pool_index]` (the chosen emoji preset).
-    Preset { pool_index: usize },
-    /// Create a session named literally by the typed query.
-    Named { name: String },
-}
+pub use tear_picker::CreateSpec;
 
-/// What accepting a picker row does — the typed delta the engine's accept
-/// arm dispatches on. Either jump to an existing live session, or create a
-/// new one (from an emoji preset or a typed name) and jump to it.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum RowKind {
-    /// Switch to this existing, live session.
-    Switch(SessionId),
-    /// Instantiate this latent preset (a saved/authored definition with no
-    /// live instance), then switch to it. The ○ rows in the union picker.
-    Instantiate(DefinitionId),
-    /// Spawn a session aimed at an external task suggestion (PR, ticket,
-    /// failing resource, …), then switch to it. The continuously-refreshing
-    /// ○ rows the suggestion stream shades in beneath sessions + presets.
-    Suggestion(SuggestionId),
-    /// Create a new session per the spec, then switch to it.
-    Create(CreateSpec),
-}
+pub type RowKind = tear_picker::RowKind<SuggestionId>;
 
-/// One row the picker displays. Plain data (the renderer draws `label`;
-/// the engine's accept dispatches on `kind`) — no praca / tear type leaks
-/// into the render layer beyond the [`SessionId`] inside
-/// [`RowKind::Switch`].
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SessionPickerRow {
-    /// The display line: `🌊 tide  mado` for a live session, `🌊 tide` for
-    /// an emoji preset, or `＋ create foo` for a typed name. Pre-composed
-    /// by the bridge so the renderer draws plain text.
-    pub label: String,
-    /// What Enter on this row does.
-    pub kind: RowKind,
-    /// The suggestion's urgency, carried ON the row so the renderer tints
-    /// without touching the store (the frame loop stays lock-free).
-    /// `None` for session / preset / create rows — calm default colour.
-    pub urgency: Option<crate::suggest::Urgency>,
-}
+pub type SessionPickerRow = tear_picker::SessionPickerRow<SuggestionId, crate::suggest::Urgency>;
 
-/// The modal state of the Ctrl-S switcher — the generic fuzzy-picker over
-/// [`SessionPickerRow`]. (`SessionPickerState` is now just this alias; the
-/// shape is shared with the dir picker via
-/// [`crate::picker::state::FuzzyPicker`].)
-pub type SessionPickerState = crate::picker::state::FuzzyPicker<SessionPickerRow>;
+pub type SessionPickerState =
+    tear_picker::SessionPickerState<SuggestionId, crate::suggest::Urgency>;
 
 /// The seam between the mode-agnostic input engine and the live praça
 /// index + registry + switch channel + spawn capability. The engine holds
@@ -325,37 +282,7 @@ impl PracaPickerBridge {
     /// Resolve a session's first pane from the live registry — the
     /// `SessionId` → `PaneId` half of the switch translation.
     fn first_pane_of(&self, session: SessionId) -> Option<PaneId> {
-        self.control
-            .get_session(session)
-            .ok()
-            .and_then(|s| s.windows.values().next().map(|w| w.active_pane))
-    }
-
-    /// Compose a picker row label: `<badge> display_name  basename`. A
-    /// running session gets a `● ` live badge; a not-running preset gets a
-    /// `○ ` latent badge — so the union picker reads at a glance which rows
-    /// are alive vs launchable. The renderer draws it verbatim.
-    fn row_label(
-        display_name: &str,
-        project_root: &std::path::Path,
-        badge: Option<bool>,
-    ) -> String {
-        let mut label = String::new();
-        match badge {
-            Some(true) => label.push_str("\u{25cb} "),  // ○ latent
-            Some(false) => label.push_str("\u{25cf} "), // ● live
-            None => {}                                  // no badge (stripped / all-homogeneous)
-        }
-        label.push_str(display_name);
-        let basename = project_root
-            .file_name()
-            .map(|s| s.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        if !basename.is_empty() && basename != "/" {
-            label.push_str("  ");
-            label.push_str(&basename);
-        }
-        label
+        tear_picker::first_pane_of(&self.control, session)
     }
 
     /// Instantiate a latent preset by its [`DefinitionId`] and switch to it
@@ -833,152 +760,20 @@ pub(crate) fn delete_preset(praca: &Mutex<praca::Praca>, def_id: DefinitionId) -
 
 impl SessionPickerBridge for PracaPickerBridge {
     fn list(&self, query: &str, now: u64) -> Vec<SessionPickerRow> {
-        let (mut rows, style) = {
-            let praca = self.praca();
-            // Live sessions with a live pane (a reaped one would post a
-            // no-op — keep the picker honest).
-            let live_recs: Vec<&praca::SessionRecord> = praca
-                .index
-                .all()
-                .iter()
-                .filter(|rec| self.first_pane_of(rec.id).is_some())
-                .collect();
-            // Project roots with a live session — suppress a latent row for
-            // a running preset (it shows as its Switch row instead).
-            let live_roots: std::collections::HashSet<&std::path::Path> =
-                live_recs.iter().map(|r| r.project_root.as_path()).collect();
-            // ONE heterogeneous set: live sessions + non-running presets,
-            // ranked TOGETHER by the shared comparator so they interleave by
-            // frecency / fuzzy match — not "live always above latent".
-            let mut items: Vec<praca::Ranked> =
-                live_recs.iter().map(|r| praca::Ranked::Live(*r)).collect();
-            // Latent presets are surfaced only when the tier opts in
-            // (`surface_presets`); bare keeps the picker live-only.
-            if self.surface_presets {
-                for def in praca.definitions.all() {
-                    if !live_roots.contains(def.project_root.as_path()) {
-                        items.push(praca::Ranked::Latent(def));
-                    }
-                }
-            }
-            // Badge decision per the tiered mode. Auto badges ONLY when the
-            // list actually mixes live + latent — so an all-live picker (the
-            // common case) stays byte-identical to legacy.
-            let has_live = items.iter().any(|r| matches!(r, praca::Ranked::Live(_)));
-            let has_latent = items.iter().any(|r| matches!(r, praca::Ranked::Latent(_)));
-            let badge_rows = match self.badges {
-                crate::config::BadgeMode::Off => false,
-                crate::config::BadgeMode::Always => true,
-                crate::config::BadgeMode::Auto => has_live && has_latent,
-            };
-            let mut rows: Vec<SessionPickerRow> = praca::rank_mixed(items, query, now)
-                .into_iter()
-                .map(|ranked| match ranked {
-                    praca::Ranked::Live(rec) => SessionPickerRow {
-                        label: Self::row_label(
-                            &rec.display_name(),
-                            &rec.project_root,
-                            badge_rows.then_some(false),
-                        ),
-                        kind: RowKind::Switch(rec.id),
-                        urgency: None,
-                    },
-                    praca::Ranked::Latent(def) => SessionPickerRow {
-                        label: Self::row_label(
-                            &def.display_name(),
-                            &def.project_root,
-                            badge_rows.then_some(true),
-                        ),
-                        kind: RowKind::Instantiate(def.def_id),
-                        urgency: None,
-                    },
-                })
-                .collect();
-
-            // MRU rule: on an EMPTY query, the FIRST row is the session you
-            // last came FROM. `last_seen` is a true visit order (every switch
-            // records a visit), so the most-recent live session is the one
-            // you're in NOW and the 2nd-most-recent is where you came from —
-            // hoist that to the top so Ctrl-S+Enter toggles back. With a real
-            // query the fuzzy rank wins (we don't reorder).
-            if query.trim().is_empty() {
-                let mut by_recency = live_recs.clone();
-                by_recency.sort_by(|a, b| b.last_seen.cmp(&a.last_seen));
-                if let Some(came_from) = by_recency.get(1).map(|r| r.id) {
-                    if let Some(pos) = rows
-                        .iter()
-                        .position(|row| matches!(row.kind, RowKind::Switch(id) if id == came_from))
-                    {
-                        let row = rows.remove(pos);
-                        rows.insert(0, row);
-                    }
-                }
-            }
-            (rows, praca.name_style)
-        };
-        // Shade in the continuously-refreshing task suggestions BELOW the live
-        // sessions + presets (the union-navigator law: Ctrl-S stays the one
-        // navigator). Query-filtered + capped; empty when the stream is off.
-        //
-        // Reserved band quota (empty query only): a long session list would
-        // otherwise push the whole band below the render fold. INSERT the
-        // band at `ROWS_DEFAULT - reserve` (the reserved anchor) — displaced union rows slide below
-        // it (still scrollable, still counted by the +N-more footer), and
-        // nothing is ever truncated. Non-empty query: plain append (fuzzy
-        // rank rules the whole list).
         let band = self.suggestion_rows(query, now);
-        if query.trim().is_empty() && !band.is_empty() && self.suggest_reserved > 0 {
-            // Reserved-band anchor: a union-ordering policy (where the
-            // suggestion band lands within the first rows), NOT a viewport-fit
-            // concern — this seam has no screen access. The VISIBLE row cap is
-            // screen-derived at the render layer (`overlay_row_budget`); this
-            // anchor stays the historical constant so the band never sinks
-            // below the guaranteed-visible head of the list.
-            let anchor = crate::row_budget::ROWS_DEFAULT;
-            let reserve = self.suggest_reserved.min(band.len()).min(anchor - 1);
-            let cut = rows.len().min(anchor - reserve);
-            let tail = rows.split_off(cut);
-            rows.extend(band);
-            rows.extend(tail);
-        } else {
-            rows.extend(band);
-        }
-        // If anything matched (live, latent, or a suggestion), that's the
-        // picker's answer; only an empty union falls through to create.
-        if !rows.is_empty() {
-            return rows;
-        }
-
-        // No live session matched → the CREATE surface. Emoji presets
-        // first (every emoji on an empty query; fuzzy-matched by name /
-        // keyword otherwise — "type smile, get the smile preset").
-        let presets = crate::picker::presets::matching(query, style);
-        if !presets.is_empty() {
-            return presets
-                .into_iter()
-                .map(|p| SessionPickerRow {
-                    label: p.label,
-                    kind: RowKind::Create(CreateSpec::Preset {
-                        pool_index: p.pool_index,
-                    }),
-                    urgency: None,
-                })
-                .collect();
-        }
-
-        // The query matches no session AND no emoji → offer to create a
-        // session named literally by the query.
-        let q = query.trim();
-        if q.is_empty() {
-            return Vec::new();
-        }
-        let mut label = String::from("\u{ff0b} create ");
-        label.push_str(q);
-        vec![SessionPickerRow {
-            label,
-            kind: RowKind::Create(CreateSpec::Named { name: q.to_owned() }),
-            urgency: None,
-        }]
+        let praca = self.praca();
+        tear_picker::session_rows(
+            &praca,
+            &|session| self.first_pane_of(session),
+            tear_picker::UnionOptions {
+                surface_presets: self.surface_presets,
+                badges: self.badges,
+            },
+            query,
+            now,
+            band,
+            self.suggest_reserved,
+        )
     }
 
     fn switch_to(&self, session: SessionId) -> bool {
@@ -2492,7 +2287,7 @@ mod tests {
             p.binding.bind(PathBuf::from("/code/x"), session);
         }
         assert!(!delete_session(
-            &crate::control_stub::Unreachable,
+            &tear_picker::testing::Unreachable,
             &praca,
             session
         ));

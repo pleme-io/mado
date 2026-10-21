@@ -847,23 +847,7 @@ pub enum PaneFate {
     Poll,
 }
 
-/// How the Ctrl-S union picker badges live vs latent rows — a tiered knob
-/// so the badge surface scales from stripped (`Off`) to always-on.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema, Default,
-)]
-#[serde(rename_all = "snake_case")]
-pub enum BadgeMode {
-    /// Never badge — rows show their bare name (the stripped look).
-    Off,
-    /// Badge ● live / ○ latent ONLY when the rendered list mixes both, so
-    /// an all-live picker (the common case) is byte-identical to legacy.
-    /// The prescribed default — minimal impact, maximal clarity when mixed.
-    #[default]
-    Auto,
-    /// Always badge every row (● live / ○ latent), even an all-live list.
-    Always,
-}
+pub use tear_picker::BadgeMode;
 
 /// The continuously-refreshing task-suggestion stream the Ctrl-S picker shades
 /// in beneath the live + preset rows (see `crate::suggest`). Tiered: bare =

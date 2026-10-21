@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "774a8251016c3402c482fbf2e140ee695337eb506c94bb6d43b7f698d777b8dd",
+  "cargo_lock_sha256": "b4b62a47eccc2040a5a6aefac2e6b6484a00d21bd293e5d0751a466a384ee5f8",
   "manifest_sha256": {
-    "Cargo.toml": "ca12f17a72762113b03b5bfc8182521baebff10efd22f816b1a7c7e3c842cfe4"
+    "Cargo.toml": "ab56d77cf68940d7ec247f370ab03e7b99a5e5928e22942cd4e94b4c3ba07b01"
   },
   "target_resolves": {
     "base": {
@@ -8822,7 +8822,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "kukaku-0.1.46": {
+      "kukaku-0.1.47": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -12530,7 +12530,7 @@
           "std"
         ]
       },
-      "praca-0.1.46": {
+      "praca-0.1.47": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
@@ -12566,7 +12566,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.46",
+            "package_key": "tear-types-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21113,7 +21113,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.46",
+            "package_key": "tear-types-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21228,7 +21228,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.46",
+            "package_key": "tear-types-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21406,7 +21406,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.46",
+            "package_key": "tear-types-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21530,7 +21530,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.46",
+            "package_key": "praca-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21612,7 +21612,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.46",
+            "package_key": "tear-types-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21676,7 +21676,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.46",
+            "package_key": "tear-types-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21708,6 +21708,80 @@
         "build_dependencies": [],
         "features": [
           "default"
+        ]
+      },
+      "tear-picker-0.1.47": {
+        "runtime_dependencies": [
+          {
+            "name": "ishou_tokens",
+            "package_key": "ishou-tokens-0.1.20",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "praca",
+            "package_key": "praca-0.1.47",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "schemars",
+            "package_key": "schemars-1.2.3",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tear_types",
+            "package_key": "tear-types-0.1.47",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "schema",
+          "testing"
         ]
       },
       "tear-tamotsu-0.1.46": {
@@ -21805,7 +21879,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.46": {
+      "tear-types-0.1.47": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21859,7 +21933,7 @@
           },
           {
             "name": "kukaku",
-            "package_key": "kukaku-0.1.46",
+            "package_key": "kukaku-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -27419,7 +27493,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.46",
+                "package_key": "praca-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27605,8 +27679,20 @@
                 "tree": "target"
               },
               {
+                "name": "tear_picker",
+                "package_key": "tear-picker-0.1.47",
+                "kind": "normal",
+                "features": [
+                  "schema"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.46",
+                "package_key": "tear-types-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32438,7 +32524,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.46",
+                "package_key": "praca-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32624,8 +32710,20 @@
                 "tree": "target"
               },
               {
+                "name": "tear_picker",
+                "package_key": "tear-picker-0.1.47",
+                "kind": "normal",
+                "features": [
+                  "schema"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.46",
+                "package_key": "tear-types-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36584,7 +36682,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.46",
+                "package_key": "praca-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36770,8 +36868,20 @@
                 "tree": "target"
               },
               {
+                "name": "tear_picker",
+                "package_key": "tear-picker-0.1.47",
+                "kind": "normal",
+                "features": [
+                  "schema"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.46",
+                "package_key": "tear-types-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40923,7 +41033,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.46",
+                "package_key": "praca-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41109,8 +41219,20 @@
                 "tree": "target"
               },
               {
+                "name": "tear_picker",
+                "package_key": "tear-picker-0.1.47",
+                "kind": "normal",
+                "features": [
+                  "schema"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.46",
+                "package_key": "tear-types-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45959,7 +46081,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.46",
+                "package_key": "praca-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46145,8 +46267,20 @@
                 "tree": "target"
               },
               {
+                "name": "tear_picker",
+                "package_key": "tear-picker-0.1.47",
+                "kind": "normal",
+                "features": [
+                  "schema"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.46",
+                "package_key": "tear-types-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -50122,7 +50256,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.46",
+                "package_key": "praca-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50308,8 +50442,20 @@
                 "tree": "target"
               },
               {
+                "name": "tear_picker",
+                "package_key": "tear-picker-0.1.47",
+                "kind": "normal",
+                "features": [
+                  "schema"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.46",
+                "package_key": "tear-types-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -53885,7 +54031,7 @@
     "kube-runtime-0.99.0": {
       "edition": "2021"
     },
-    "kukaku-0.1.46": {
+    "kukaku-0.1.47": {
       "edition": "2024"
     },
     "lazy_static-1.5.1": {
@@ -54427,7 +54573,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.46": {
+    "praca-0.1.47": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -55033,6 +55179,9 @@
         "path": "src/lib.rs"
       }
     },
+    "tear-picker-0.1.47": {
+      "edition": "2024"
+    },
     "tear-tamotsu-0.1.46": {
       "edition": "2024",
       "lib_target": {
@@ -55046,7 +55195,7 @@
         }
       ]
     },
-    "tear-types-0.1.46": {
+    "tear-types-0.1.47": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {

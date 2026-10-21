@@ -119,6 +119,35 @@ pub(crate) enum OverlayKeyClass {
     Other,
 }
 
+impl OverlayKeyClass {
+    fn picker_class(self) -> tear_picker::PickerKeyClass {
+        use tear_picker::PickerKeyClass as P;
+        match self {
+            Self::Escape => P::Escape,
+            Self::Enter => P::Enter,
+            Self::Up => P::Up,
+            Self::Down => P::Down,
+            Self::Backspace => P::Backspace,
+            Self::CtrlN => P::CtrlN,
+            Self::CtrlP => P::CtrlP,
+            Self::CtrlE => P::CtrlE,
+            Self::CtrlD => P::CtrlD,
+            Self::CtrlR => P::CtrlR,
+            Self::Other => P::Other,
+        }
+    }
+}
+
+impl OverlayKey {
+    fn into_picker_key(self) -> tear_picker::PickerKey {
+        tear_picker::PickerKey {
+            class: self.key.picker_class(),
+            plain: self.plain,
+            text: self.text,
+        }
+    }
+}
+
 /// The mode-independent facts of one keystroke, lowered once in
 /// `on_key` and interpreted per-state by the machine.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -569,69 +598,59 @@ impl Overlay {
                         OverlayEffect::SessionPickerOpen,
                     ],
                 ),
-                OverlayEvent::Key(k) => match k.key {
-                    OverlayKeyClass::Escape => overlay_step(
-                        Overlay::None,
-                        Consumed,
-                        vec![OverlayEffect::SessionPickerClose],
-                    ),
-                    OverlayKeyClass::Enter => overlay_step(
-                        Overlay::None,
-                        Consumed,
-                        vec![OverlayEffect::SessionPickerAccept],
-                    ),
-                    OverlayKeyClass::Up | OverlayKeyClass::CtrlP => overlay_step(
-                        Overlay::SessionPicker,
-                        Consumed,
-                        vec![OverlayEffect::SessionPickerMoveUp],
-                    ),
-                    OverlayKeyClass::Down | OverlayKeyClass::CtrlN => overlay_step(
-                        Overlay::SessionPicker,
-                        Consumed,
-                        vec![OverlayEffect::SessionPickerMoveDown],
-                    ),
-                    OverlayKeyClass::Backspace => {
-                        if k.plain {
-                            overlay_step(
-                                Overlay::SessionPicker,
-                                Consumed,
-                                vec![OverlayEffect::SessionPickerBackspace],
-                            )
-                        } else {
+                OverlayEvent::Key(k) => {
+                    use tear_picker::PickerAction;
+                    match tear_picker::picker_action(&k.into_picker_key()) {
+                        PickerAction::Close => overlay_step(
+                            Overlay::None,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerClose],
+                        ),
+                        PickerAction::Accept => overlay_step(
+                            Overlay::None,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerAccept],
+                        ),
+                        PickerAction::MoveUp => overlay_step(
+                            Overlay::SessionPicker,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerMoveUp],
+                        ),
+                        PickerAction::MoveDown => overlay_step(
+                            Overlay::SessionPicker,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerMoveDown],
+                        ),
+                        PickerAction::Backspace => overlay_step(
+                            Overlay::SessionPicker,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerBackspace],
+                        ),
+                        PickerAction::RenameBegin => overlay_step(
+                            Overlay::SessionRename,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerRenameBegin],
+                        ),
+                        PickerAction::Delete => overlay_step(
+                            Overlay::SessionPicker,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerDelete],
+                        ),
+                        PickerAction::Reattach => overlay_step(
+                            Overlay::None,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerReattach],
+                        ),
+                        PickerAction::Push(t) => overlay_step(
+                            Overlay::SessionPicker,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerPush(t)],
+                        ),
+                        PickerAction::Ignore => {
                             overlay_step(Overlay::SessionPicker, Consumed, vec![])
                         }
                     }
-                    OverlayKeyClass::CtrlE => overlay_step(
-                        Overlay::SessionRename,
-                        Consumed,
-                        vec![OverlayEffect::SessionPickerRenameBegin],
-                    ),
-                    // Ctrl-D deletes the highlighted row and STAYS in the
-                    // picker: the operator is curating the list, so the board
-                    // re-lists in place rather than closing on them.
-                    OverlayKeyClass::CtrlD => overlay_step(
-                        Overlay::SessionPicker,
-                        Consumed,
-                        vec![OverlayEffect::SessionPickerDelete],
-                    ),
-                    OverlayKeyClass::CtrlR => overlay_step(
-                        Overlay::None,
-                        Consumed,
-                        vec![OverlayEffect::SessionPickerReattach],
-                    ),
-                    OverlayKeyClass::Other => {
-                        if k.plain
-                            && let Some(t) = k.text
-                        {
-                            return overlay_step(
-                                Overlay::SessionPicker,
-                                Consumed,
-                                vec![OverlayEffect::SessionPickerPush(t)],
-                            );
-                        }
-                        overlay_step(Overlay::SessionPicker, Consumed, vec![])
-                    }
-                },
+                }
             },
             // ── Inline session rename: the picker stays open underneath;
             // keystrokes edit a rename buffer, Enter commits (→ tear),
@@ -670,47 +689,34 @@ impl Overlay {
                         OverlayEffect::SessionPickerOpen,
                     ],
                 ),
-                OverlayEvent::Key(k) => match k.key {
-                    OverlayKeyClass::Escape => overlay_step(
-                        Overlay::SessionPicker,
-                        Consumed,
-                        vec![OverlayEffect::SessionPickerRenameCancel],
-                    ),
-                    OverlayKeyClass::Enter => overlay_step(
-                        Overlay::SessionPicker,
-                        Consumed,
-                        vec![OverlayEffect::SessionPickerRenameCommit],
-                    ),
-                    OverlayKeyClass::Backspace => overlay_step(
-                        Overlay::SessionRename,
-                        Consumed,
-                        vec![OverlayEffect::SessionPickerRenameBackspace],
-                    ),
-                    // Navigation is inert during rename — keep the target row
-                    // fixed. Ctrl-D is inert too: deleting the very row being
-                    // renamed would leave the commit aimed at a row that moved.
-                    OverlayKeyClass::Up
-                    | OverlayKeyClass::Down
-                    | OverlayKeyClass::CtrlN
-                    | OverlayKeyClass::CtrlP
-                    | OverlayKeyClass::CtrlE
-                    | OverlayKeyClass::CtrlD
-                    | OverlayKeyClass::CtrlR => {
-                        overlay_step(Overlay::SessionRename, Consumed, vec![])
-                    }
-                    OverlayKeyClass::Other => {
-                        if k.plain
-                            && let Some(t) = k.text
-                        {
-                            return overlay_step(
-                                Overlay::SessionRename,
-                                Consumed,
-                                vec![OverlayEffect::SessionPickerRenamePush(t)],
-                            );
+                OverlayEvent::Key(k) => {
+                    use tear_picker::RenameAction;
+                    match tear_picker::rename_action(&k.into_picker_key()) {
+                        RenameAction::Cancel => overlay_step(
+                            Overlay::SessionPicker,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerRenameCancel],
+                        ),
+                        RenameAction::Commit => overlay_step(
+                            Overlay::SessionPicker,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerRenameCommit],
+                        ),
+                        RenameAction::Backspace => overlay_step(
+                            Overlay::SessionRename,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerRenameBackspace],
+                        ),
+                        RenameAction::Push(t) => overlay_step(
+                            Overlay::SessionRename,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerRenamePush(t)],
+                        ),
+                        RenameAction::Ignore => {
+                            overlay_step(Overlay::SessionRename, Consumed, vec![])
                         }
-                        overlay_step(Overlay::SessionRename, Consumed, vec![])
                     }
-                },
+                }
             },
         }
     }
