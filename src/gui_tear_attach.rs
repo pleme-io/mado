@@ -579,6 +579,16 @@ fn displayed_pane_fate(
     }
 }
 
+fn resize_then_attach<S>(
+    window: (usize, usize),
+    resize: impl FnOnce(u16, u16),
+    attach: impl FnOnce() -> S,
+) -> S {
+    let clamp = |n: usize| u16::try_from(n).unwrap_or(u16::MAX).max(1);
+    resize(clamp(window.0), clamp(window.1));
+    attach()
+}
+
 fn leave_displayed_pane(
     control: &dyn tear_types::MultiplexerControl,
     cur: PaneId,
@@ -1175,25 +1185,14 @@ where
                         // 4. Build a fresh engate pump for the new pane
                         //    + replay its current grid into the cleared
                         //    terminal, then keep pumping it.
-                        match attach_stream(
-                            &producer_for,
-                            target,
-                            Arc::clone(&response_writer_for_switch),
-                        ) {
-                            Ok(stream) => {
-                                live_cell = Some(stream);
-                                // Size-sync the new pane to the
-                                // window's current grid so it
-                                // doesn't briefly hold tear's
-                                // 80×24 default (the reconciler
-                                // below also converges, but this
-                                // makes the first frame correct).
-                                let (c, r) = {
-                                    let t = terminal_for_switch.read();
-                                    (t.cols() as u16, t.rows() as u16)
-                                };
-                                if let Err(e) = control_for_switch
-                                    .pane_resize_absolute(target, c.max(1), r.max(1))
+                        let window_size = {
+                            let t = terminal_for_switch.read();
+                            (t.cols(), t.rows())
+                        };
+                        match resize_then_attach(
+                            window_size,
+                            |c, r| {
+                                if let Err(e) = control_for_switch.pane_resize_absolute(target, c, r)
                                 {
                                     crate::perf::tear_write_failed(
                                         crate::perf::TearWrite::Resize,
@@ -1202,6 +1201,17 @@ where
                                         &e,
                                     );
                                 }
+                            },
+                            || {
+                                attach_stream(
+                                    &producer_for,
+                                    target,
+                                    Arc::clone(&response_writer_for_switch),
+                                )
+                            },
+                        ) {
+                            Ok(stream) => {
+                                live_cell = Some(stream);
                                 tracing::info!(
                                     from = ?from,
                                     to = ?target,
@@ -2014,8 +2024,8 @@ fn run_against_pane(
 mod tests {
     use super::{
         CurrentPane, DisplayedPaneFate, adoptable_session, directory_session_name,
-        displayed_pane_fate, leave_displayed_pane, pump_displayed, resolve_boot_name,
-        tear_pty_sink, tear_resize_sink, with_title,
+        displayed_pane_fate, leave_displayed_pane, pump_displayed, resize_then_attach,
+        resolve_boot_name, tear_pty_sink, tear_resize_sink, with_title,
     };
     use crate::perf::{TEAR_WRITE_FAILURES, TearWrite};
     use madori::EventResponse;
@@ -2307,6 +2317,202 @@ mod tests {
             end,
             end_get_pane: calls.get(TearCall::GetPane) - before,
         }
+    }
+
+    const MARKS: [(&str, usize, usize); 3] = [
+        ("MARK-TOP", 2, 4),
+        ("MARK-MID", 11, 29),
+        ("MARK-LOW", 19, 9),
+    ];
+
+    fn mado_rows(terminal: &crate::render::SharedTerminal) -> Vec<String> {
+        let t = terminal.read();
+        (0..t.rows())
+            .map(|r| (0..t.cols()).map(|c| t.cell(r, c).ch).collect())
+            .collect()
+    }
+
+    fn tear_rows(control: &dyn tear_types::MultiplexerControl, pane: PaneId) -> Vec<String> {
+        let snap = control.pane_snapshot(pane).expect("snapshot");
+        snap.cells
+            .iter()
+            .map(|row| row.iter().map(|c| c.ch).collect())
+            .collect()
+    }
+
+    fn where_is(rows: &[String], needle: &str) -> Option<(usize, usize)> {
+        rows.iter()
+            .enumerate()
+            .find_map(|(r, line)| line.find(needle).map(|c| (r, c)))
+    }
+
+    fn painted_pane(inproc: &tear_core::InProcess, label: &str) -> (SessionId, PaneId) {
+        painted_pane_with_history(inproc, label, 0)
+    }
+
+    fn painted_pane_with_history(
+        inproc: &tear_core::InProcess,
+        label: &str,
+        history: usize,
+    ) -> (SessionId, PaneId) {
+        let (sid, pane) = live_session(inproc, label);
+        if history > 0 {
+            inproc
+                .send_keys(
+                    pane,
+                    format!("seq 1 {history}; echo HIST-DONE\n").as_bytes(),
+                )
+                .expect("history");
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+            while where_is(&tear_rows(inproc, pane), "HIST-DONE").is_none() {
+                assert!(std::time::Instant::now() < deadline, "history never ran");
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+        }
+        let draw = MARKS
+            .iter()
+            .map(|(m, r, c)| format!("\\033[{};{}H{label}-{m}", r + 1, c + 1))
+            .collect::<String>();
+        inproc
+            .send_keys(
+                pane,
+                format!("clear; printf '\\033[2J{draw}\\033[24;1H'\n").as_bytes(),
+            )
+            .expect("paint");
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        loop {
+            let rows = tear_rows(inproc, pane);
+            if MARKS
+                .iter()
+                .all(|(m, ..)| where_is(&rows, &format!("{label}-{m}")).is_some())
+            {
+                break;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "pane never painted: {rows:?}"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        (sid, pane)
+    }
+
+    struct SwitchRun {
+        mado: Vec<String>,
+        tear: Vec<String>,
+    }
+
+    fn switch_to(
+        inproc: &std::sync::Arc<tear_core::InProcess>,
+        pane: PaneId,
+        window: (usize, usize),
+    ) -> SwitchRun {
+        let calls: &'static crate::perf::TearCalls =
+            Box::leak(Box::new(kanshou::metrics::Family::new()));
+        let control = crate::perf::Counted::counting_into(std::sync::Arc::clone(inproc), calls);
+        let terminal: crate::render::SharedTerminal =
+            std::sync::Arc::new(parking_lot::RwLock::new(
+                crate::terminal::Terminal::with_scrollback(window.0, window.1, 100),
+            ));
+        terminal
+            .write()
+            .feed(b"STALE-FROM-THE-PRIOR-PANE\r\nmore stale\r\n");
+        terminal.write().reset();
+        let bell = std::task::Waker::noop().clone();
+        let mut stream = resize_then_attach(
+            window,
+            |c, r| control.pane_resize_absolute(pane, c, r).expect("resize"),
+            || {
+                crate::pane_stream::PaneStream::attach(
+                    |waker| control.producer(pane, waker),
+                    calls,
+                    std::sync::Arc::clone(&terminal),
+                    std::sync::Arc::new(|_: &[u8]| {}),
+                    &bell,
+                )
+                .expect("attach")
+            },
+        );
+        let _ui = crate::perf::UiThread::mark();
+        std::thread::sleep(std::time::Duration::from_millis(400));
+        let _ = stream.drain(crate::pane_stream::DRAIN_BUDGET);
+        SwitchRun {
+            mado: mado_rows(&terminal),
+            tear: tear_rows(&control, pane),
+        }
+    }
+
+    #[test]
+    fn a_switched_window_draws_every_mark_where_tear_holds_it_at_every_window_size() {
+        for history in [0usize, 200] {
+            for window in [
+                (60usize, 20usize),
+                (70, 24),
+                (75, 30),
+                (80, 24),
+                (100, 30),
+                (120, 40),
+                (200, 60),
+            ] {
+                let inproc = std::sync::Arc::new(tear_core::InProcess::new());
+                inproc.set_spawn_env(tear_types::SpawnEnv::none());
+                let (_s, pane) = painted_pane_with_history(&inproc, "P", history);
+                let run = switch_to(&inproc, pane, window);
+                for (m, ..) in MARKS {
+                    let needle = format!("P-{m}");
+                    assert_eq!(
+                        where_is(&run.mado, &needle),
+                        where_is(&run.tear, &needle),
+                        "{needle} with {history} history lines in a {}x{} window",
+                        window.0,
+                        window.1
+                    );
+                }
+                assert!(
+                    where_is(&run.mado, "STALE").is_none(),
+                    "the prior pane's cells do not bleed through at {window:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_window_larger_than_the_pane_keeps_each_mark_at_its_painted_cell() {
+        let inproc = std::sync::Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let (_s, pane) = painted_pane(&inproc, "B");
+        let run = switch_to(&inproc, pane, (120, 40));
+        for (m, r, c) in MARKS {
+            assert_eq!(
+                where_is(&run.mado, &format!("B-{m}")),
+                Some((r, c)),
+                "B-{m} stays at its painted cell"
+            );
+        }
+    }
+
+    #[test]
+    fn the_pane_is_sized_to_the_window_before_its_grid_is_replayed() {
+        let order = std::cell::RefCell::new(Vec::<String>::new());
+        let attached = resize_then_attach(
+            (60, 20),
+            |c, r| order.borrow_mut().push(format!("resize {c}x{r}")),
+            || {
+                order.borrow_mut().push("attach".into());
+                7
+            },
+        );
+        assert_eq!(attached, 7);
+        assert_eq!(*order.borrow(), vec!["resize 60x20", "attach"]);
+    }
+
+    #[test]
+    fn a_degenerate_window_size_is_clamped_into_a_valid_pane_size() {
+        let seen = std::cell::Cell::new((0u16, 0u16));
+        resize_then_attach((0, 0), |c, r| seen.set((c, r)), || ());
+        assert_eq!(seen.get(), (1, 1));
+        resize_then_attach((usize::MAX, 70_000), |c, r| seen.set((c, r)), || ());
+        assert_eq!(seen.get(), (u16::MAX, u16::MAX));
     }
 
     #[test]
