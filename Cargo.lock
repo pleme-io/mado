@@ -3382,7 +3382,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.203"
+version = "0.1.204"
 dependencies = [
  "anyhow",
  "awase",
@@ -7118,9 +7118,9 @@ dependencies = [
 
 [[package]]
 name = "tear-client"
-version = "0.1.46"
+version = "0.1.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b9686437404dac433f2a5a34a030e514f7b2a22cdce00fab88db387c3b50a4a"
+checksum = "b4438ce25d71fe1445a0da03ee70c9cdc493161d4b88124759006d80cd8fedac"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -7132,9 +7132,9 @@ dependencies = [
 
 [[package]]
 name = "tear-config"
-version = "0.1.46"
+version = "0.1.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd4a36c0847ba6963845a2418bf7e19446ac4a38bb402bf08516802af4b2a202"
+checksum = "6caff5c600fc60d609a126117424dc45d2b450c7032c1e8344199e99041e4b20"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -7152,9 +7152,9 @@ dependencies = [
 
 [[package]]
 name = "tear-core"
-version = "0.1.46"
+version = "0.1.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d424ca45b6aa6a0bb204841b4db4dc4452331d7056a682640863e7e04f094dd"
+checksum = "89c4c60d2343cad537a1d952dbfeb03306a5e56b5cefbddd045ae2464c49f66b"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7179,9 +7179,9 @@ dependencies = [
 
 [[package]]
 name = "tear-daemon"
-version = "0.1.46"
+version = "0.1.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "031c4e16607ef779fcc2c5ec3513d95495778bee1c30d049a3d1bf1d1a5d261e"
+checksum = "ca29d5ce2c3c07f3d363c864e3fd6bd1933aabe6a89dc0f0e8929b464892e11d"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7204,9 +7204,9 @@ dependencies = [
 
 [[package]]
 name = "tear-makimono"
-version = "0.1.46"
+version = "0.1.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a150e0d9d640cf9aa1f71314d8f47e6ee0a4b3bcd011678fc302fc7b932327da"
+checksum = "aa987603e8d7f6ea911c7befc0b5a0a43a6779b5f87e80b5767f5714648fee80"
 dependencies = [
  "serde",
  "serde_json",
@@ -7231,9 +7231,9 @@ dependencies = [
 
 [[package]]
 name = "tear-tamotsu"
-version = "0.1.46"
+version = "0.1.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7b6890791d85c78396dd912c630aecd556df06e8e99107ebd64ca16dd4cfa38"
+checksum = "11c692e53f2d8923366c21e349f151a15bfee6d51fcd7e297dd0706482a1853f"
 dependencies = [
  "anyhow",
  "ciborium",

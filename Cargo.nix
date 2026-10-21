@@ -9792,9 +9792,9 @@ rec {
       };
       "kukaku" = rec {
         crateName = "kukaku";
-        version = "0.1.46";
+        version = "0.1.47";
         edition = "2024";
-        sha256 = "1cb70i2hca1yvdiydzvqn94avrz4fn7iw2n84rhkycx9vmw8kgh3";
+        sha256 = "1a9axnw5nwm8rcyamklzlcymb4419l9mfh5j5kmrpg3jznc3dlmd";
         authors = [
           "pleme-io"
         ];
@@ -10331,7 +10331,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.203";
+        version = "0.1.204";
         edition = "2024";
         crateBin = [
           {
@@ -10619,6 +10619,11 @@ rec {
             features = [ "engate" ];
           }
           {
+            name = "tear-picker";
+            packageId = "tear-picker";
+            features = [ "schema" ];
+          }
+          {
             name = "tear-types";
             packageId = "tear-types";
             features = [ "engate" ];
@@ -10689,6 +10694,11 @@ rec {
           {
             name = "tear-daemon";
             packageId = "tear-daemon";
+          }
+          {
+            name = "tear-picker";
+            packageId = "tear-picker";
+            features = [ "schema" "testing" ];
           }
           {
             name = "tempfile";
@@ -17093,9 +17103,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.46";
+        version = "0.1.47";
         edition = "2024";
-        sha256 = "1frj7c2aac2r45i7d6kxq0y11niz0dzchcdcwp21l0i0c6gc6s63";
+        sha256 = "0njc8x5zd9lxxkmi4grksc2mqvhijyln4p9jq52ps11liqgf210b";
         authors = [
           "pleme-io"
         ];
@@ -25020,6 +25030,49 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
+      "tear-picker" = rec {
+        crateName = "tear-picker";
+        version = "0.1.47";
+        edition = "2024";
+        sha256 = "0k4d9kzd7yzgpln25kwhhma55334fwq1ywikl45cgmdp2abh4zy3";
+        libName = "tear_picker";
+        authors = [
+          "pleme-io"
+        ];
+        dependencies = [
+          {
+            name = "ishou-tokens";
+            packageId = "ishou-tokens";
+          }
+          {
+            name = "praca";
+            packageId = "praca";
+          }
+          {
+            name = "schemars";
+            packageId = "schemars 1.2.3";
+            optional = true;
+            features = [ "derive" ];
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "tear-types";
+            packageId = "tear-types";
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+        ];
+        features = {
+          "schema" = [ "dep:schemars" ];
+        };
+        resolvedDefaultFeatures = [ "default" "schema" "testing" ];
+      };
       "tear-tamotsu" = rec {
         crateName = "tear-tamotsu";
         version = "0.1.46";
@@ -25074,9 +25127,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.46";
+        version = "0.1.47";
         edition = "2024";
-        sha256 = "00xi1wwabxlmq15q8bxbl72arv6gmryfjnfkhrpy331c3gzwy7hs";
+        sha256 = "00gpvhlg2lbh8vsdcv60xk03ygffzv2jd6mknzcd9kn8qglc49mw";
         libName = "tear_types";
         authors = [
           "pleme-io"

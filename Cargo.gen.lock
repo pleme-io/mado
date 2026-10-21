@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "b4b62a47eccc2040a5a6aefac2e6b6484a00d21bd293e5d0751a466a384ee5f8",
+  "cargo_lock_sha256": "5eceeb09ec4681758b334921968ed5b9f6391104151fc78088faf6569768df62",
   "manifest_sha256": {
-    "Cargo.toml": "ab56d77cf68940d7ec247f370ab03e7b99a5e5928e22942cd4e94b4c3ba07b01"
+    "Cargo.toml": "9e4d062f7e401ebce11bb5180f83396887f77ad72b36996b2599032bb35f05f4"
   },
   "target_resolves": {
     "base": {
@@ -21059,7 +21059,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.46": {
+      "tear-client-0.1.47": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -21103,7 +21103,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.46",
+            "package_key": "tear-config-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21128,7 +21128,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.46": {
+      "tear-config-0.1.47": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21260,7 +21260,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.46": {
+      "tear-core-0.1.47": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21376,7 +21376,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.46",
+            "package_key": "tear-config-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21386,7 +21386,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.46",
+            "package_key": "tear-makimono-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21396,7 +21396,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.46",
+            "package_key": "tear-tamotsu-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21461,7 +21461,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.46": {
+      "tear-daemon-0.1.47": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21572,7 +21572,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.46",
+            "package_key": "tear-config-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21582,7 +21582,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.46",
+            "package_key": "tear-core-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21592,7 +21592,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.46",
+            "package_key": "tear-makimono-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21602,7 +21602,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.46",
+            "package_key": "tear-tamotsu-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21650,7 +21650,7 @@
           "default"
         ]
       },
-      "tear-makimono-0.1.46": {
+      "tear-makimono-0.1.47": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -21784,7 +21784,7 @@
           "testing"
         ]
       },
-      "tear-tamotsu-0.1.46": {
+      "tear-tamotsu-0.1.47": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21855,7 +21855,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.46",
+            "package_key": "tear-makimono-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26993,7 +26993,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.203": {
+          "mado-0.1.204": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27646,7 +27646,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.46",
+                "package_key": "tear-client-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27658,7 +27658,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.46",
+                "package_key": "tear-config-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27668,7 +27668,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.46",
+                "package_key": "tear-core-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32094,7 +32094,7 @@
               "system"
             ]
           },
-          "mado-0.1.203": {
+          "mado-0.1.204": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32677,7 +32677,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.46",
+                "package_key": "tear-client-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32689,7 +32689,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.46",
+                "package_key": "tear-config-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32699,7 +32699,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.46",
+                "package_key": "tear-core-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36252,7 +36252,7 @@
               "system"
             ]
           },
-          "mado-0.1.203": {
+          "mado-0.1.204": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36835,7 +36835,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.46",
+                "package_key": "tear-client-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36847,7 +36847,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.46",
+                "package_key": "tear-config-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36857,7 +36857,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.46",
+                "package_key": "tear-core-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40533,7 +40533,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.203": {
+          "mado-0.1.204": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -41186,7 +41186,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.46",
+                "package_key": "tear-client-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -41198,7 +41198,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.46",
+                "package_key": "tear-config-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41208,7 +41208,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.46",
+                "package_key": "tear-core-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45651,7 +45651,7 @@
               "system"
             ]
           },
-          "mado-0.1.203": {
+          "mado-0.1.204": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -46234,7 +46234,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.46",
+                "package_key": "tear-client-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -46246,7 +46246,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.46",
+                "package_key": "tear-config-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46256,7 +46256,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.46",
+                "package_key": "tear-core-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49826,7 +49826,7 @@
               "system"
             ]
           },
-          "mado-0.1.203": {
+          "mado-0.1.204": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -50409,7 +50409,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.46",
+                "package_key": "tear-client-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -50421,7 +50421,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.46",
+                "package_key": "tear-config-0.1.47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50431,7 +50431,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.46",
+                "package_key": "tear-core-0.1.47",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -54104,7 +54104,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.203": {
+    "mado-0.1.204": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -55160,19 +55160,19 @@
         }
       ]
     },
-    "tear-client-0.1.46": {
+    "tear-client-0.1.47": {
       "edition": "2024"
     },
-    "tear-config-0.1.46": {
+    "tear-config-0.1.47": {
       "edition": "2024"
     },
-    "tear-core-0.1.46": {
+    "tear-core-0.1.47": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.46": {
+    "tear-daemon-0.1.47": {
       "edition": "2024"
     },
-    "tear-makimono-0.1.46": {
+    "tear-makimono-0.1.47": {
       "edition": "2024",
       "lib_target": {
         "name": "makimono",
@@ -55182,7 +55182,7 @@
     "tear-picker-0.1.47": {
       "edition": "2024"
     },
-    "tear-tamotsu-0.1.46": {
+    "tear-tamotsu-0.1.47": {
       "edition": "2024",
       "lib_target": {
         "name": "tamotsu",
