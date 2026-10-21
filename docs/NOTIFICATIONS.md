@@ -264,9 +264,12 @@ bundled zsh and fish integrations emit no `B`) gets the "Command finished" /
 
 ## Focus back — shipped
 
-`notifications.focus` (prescribed on) opens a Unix socket,
+`notifications.focus` (prescribed on) opens one Unix socket per process,
 `notifications.focus.socket`, default `$XDG_RUNTIME_DIR/mado-focus.sock`, else
-`$TMPDIR/mado-focus.sock`, mode 0600. One client sends one JSON line:
+`$TMPDIR/mado-focus.sock`, mode 0600. Mado.app runs several windows in one
+process; the first window to start binds the socket and every window joins the
+same relay. A second mado process finds the socket live and does not take it.
+One client sends one JSON line:
 
 ```
 {"focus_pane":"<group>"}\n   ->   {"ok":true}\n
@@ -275,11 +278,38 @@ bundled zsh and fish integrations emit no `B`) gets the "Command finished" /
 `<group>` is the card's `group`. Other lines are refused with
 `{"ok":false,"error":"malformed|empty-pane|unsupported-action"}`; the wire is
 `tsuuchi::ActionMessage` (`{"action":"<id>"}` is its other shape, refused here).
-`ok:true` means queued. On the next event-loop tick mado raises the app and its
-window, clears the pane alert, and, when the group is another live pane and
-`tear.session_switching` is on, switches the window to it (the `switch_session`
-channel). A group that is neither displayed nor switchable is logged and
-ignored. One socket per path: a second mado finds it live and does not take it.
+`ok:true` means queued (at most 16 pending, one per pane).
+
+Every window reports the pane it shows on each tick and claims requests by
+pane:
+
+| Request for | Who serves it | When |
+|---|---|---|
+| the pane a window shows | that window only | at once: it raises itself (`platform::raise_window` with its own `NSWindow` number), clears its pane alert |
+| a pane no window shows | the most recently focused window | after `claim_after_ms`; it switches to the pane (`tear.session_switching`, `tear.switch_sizing` apply) and raises itself |
+| a pane no window shows, `unclaimed = ignore` | nobody | logged as `unclaimed-ignored` and dropped |
+| a pane no window shows, switching off or the group is not a pane id | nobody | logged as `switching-disabled` or `unknown-pane` and dropped |
+
+A window never acts on a request for a pane another window shows. A window
+learns its `NSWindow` number the first time it is focused; a click served
+before that only activates the app (logged). Closing a window removes it from
+the relay.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `notifications.focus.enabled` | `true` | open the socket and put `action_socket` on cards |
+| `notifications.focus.socket` | unset | socket path |
+| `notifications.focus.claim_after_ms` | `300` | grace before a pane no window shows is claimed |
+| `notifications.focus.unclaimed` | `switch_last_focused` | or `ignore` |
+
+## Where the pane comes from
+
+`NotificationCenter::notify_with` is the one exit for every banner. It stamps
+the window's pane into `group` and adds the `focus_pane` action (when
+`relevance.focus_action`), so command-finished cards, pane-alert banners
+(waiting, long command, idle, bell), OSC 9 / 777 / 99, the bell banner and the
+attention banner all carry the pane of the window that raised them. OSC 99
+`i=` no longer sets the group; the pane does.
 
 ## Milestones
 
@@ -299,10 +329,7 @@ ignored. One socket per path: a second mado finds it live and does not take it.
   foreground-presentation delegate · attachments delivery · MCP
   `notify_send` / `notifications_list` / mute.
 - **M1.5 (relevance and focus-back — shipped):** structured cards, rank by
-  config, `focus_pane` socket. **Open:** the card reaches shirase's click only
-  when the backend sends `action_socket`; that needs a tsuuchi release with
-  `ShiraseBackend::with_action_socket` (in tsuuchi's tree, not in 0.1.5), then
-  one call in `platform::notification_dispatcher` with
-  `focus_server::default_socket_path()`.
+  config, `focus_pane` socket, `action_socket` on every shirase card
+  (`platform::with_focus_action`), one process-wide relay with per-window claim.
 - **M2:** Linux `libnotify` backend parity; converge with `shirase` (the
   notification *center*/observe side) on one action model.

@@ -484,6 +484,9 @@ impl NotificationCenter {
     /// (a source that must always deliver — e.g. an explicit attention
     /// request — passes [`NotifyWhen::Always`]).
     pub fn notify_with(&mut self, n: &Notification, when: NotifyWhen, focused: bool) {
+        let addressed =
+            crate::notify_card::address(n, &self.pane_group, self.cfg.relevance.focus_action);
+        let n = &addressed;
         match self.gate.admit(n, when, focused, Instant::now()) {
             GateDecision::Deliver => {
                 if let Err(e) = self.dispatcher.send(n) {
@@ -970,5 +973,133 @@ mod tests {
         assert_eq!(n.category.as_deref(), Some("waiting-for-input"));
         assert_eq!(n.body, "⏳ Waiting for a password");
         assert_eq!(n.urgency, tsuuchi::Urgency::Normal);
+    }
+
+    fn assert_addressed(n: &Notification, pane: &str) {
+        assert_eq!(n.group.as_deref(), Some(pane), "group is the pane: {n:?}");
+        let focus: Vec<_> = n
+            .actions
+            .iter()
+            .filter(|a| a.id == crate::notify_card::FOCUS_ACTION_ID)
+            .collect();
+        assert_eq!(focus.len(), 1, "exactly one focus_pane action: {n:?}");
+    }
+
+    fn unfocused_center(mutate: impl FnOnce(&mut NotificationsConfig)) -> NotificationCenter {
+        let mut c = cfg();
+        c.pane_alerts.reasons.bell = crate::config::AlertDelivery::Notify;
+        c.pane_alerts.reasons.long_command = crate::config::AlertDelivery::Notify;
+        c.pane_alerts.reasons.waiting_for_input = crate::config::AlertDelivery::Notify;
+        mutate(&mut c);
+        let dispatcher = NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()));
+        let mut center = NotificationCenter::new(dispatcher, &c);
+        center.set_pane_group("pane-x");
+        center.pane_alert(
+            Instant::now(),
+            crate::pane_alert::Input::Focus(false),
+            None,
+            false,
+        );
+        center
+    }
+
+    #[test]
+    fn emit_site_command_finished_card_is_addressed() {
+        let mut center = unfocused_center(|_| {});
+        finish_command(&mut center, &completion(1, 40, "make"));
+        let delivered = center.recent(10);
+        assert_eq!(delivered.len(), 1);
+        assert_addressed(&delivered[0].notification, "pane-x");
+    }
+
+    #[test]
+    fn emit_site_command_finished_generic_banner_is_addressed() {
+        let mut center = unfocused_center(|c| c.relevance.enabled = false);
+        finish_command(&mut center, &completion(1, 40, "make"));
+        let delivered = center.recent(10);
+        assert_eq!(delivered.len(), 1);
+        assert_eq!(delivered[0].notification.title, "✗ Command failed");
+        assert_addressed(&delivered[0].notification, "pane-x");
+    }
+
+    #[test]
+    fn emit_site_command_completion_banner_is_addressed() {
+        let mut center = unfocused_center(|c| c.relevance.enabled = false);
+        let card = center.command_notice(&completion(1, 40, "make")).unwrap();
+        center.notify_with(&card, NotifyWhen::Always, false);
+        assert_addressed(&center.recent(1)[0].notification, "pane-x");
+    }
+
+    #[test]
+    fn emit_site_waiting_for_input_card_is_addressed() {
+        use crate::pane_alert::Input;
+        let mut center = unfocused_center(|_| {});
+        let t0 = Instant::now();
+        center.pane_alert(
+            t0,
+            Input::Output {
+                tail: Some("Password: "),
+            },
+            None,
+            false,
+        );
+        center.pane_alert(t0 + Duration::from_secs(2), Input::Tick, None, false);
+        let delivered = center.recent(10);
+        assert_eq!(delivered.len(), 1);
+        assert_eq!(delivered[0].notification.title, "Waiting for input");
+        assert_addressed(&delivered[0].notification, "pane-x");
+    }
+
+    #[test]
+    fn emit_site_waiting_for_input_generic_banner_is_addressed() {
+        use crate::pane_alert::Input;
+        let mut center = unfocused_center(|c| c.relevance.enabled = false);
+        let t0 = Instant::now();
+        center.pane_alert(
+            t0,
+            Input::Output {
+                tail: Some("Password: "),
+            },
+            None,
+            false,
+        );
+        center.pane_alert(t0 + Duration::from_secs(2), Input::Tick, None, false);
+        let delivered = center.recent(10);
+        assert_eq!(delivered.len(), 1);
+        assert_addressed(&delivered[0].notification, "pane-x");
+    }
+
+    #[test]
+    fn emit_site_bell_pane_alert_banner_is_addressed() {
+        let mut center = unfocused_center(|_| {});
+        center.pane_alert(Instant::now(), crate::pane_alert::Input::Bell, None, false);
+        let delivered = center.recent(10);
+        assert_eq!(delivered.len(), 1);
+        assert_eq!(delivered[0].notification.body, "Bell");
+        assert_addressed(&delivered[0].notification, "pane-x");
+    }
+
+    #[test]
+    fn emit_site_long_command_pane_alert_without_a_card_is_addressed() {
+        let mut center = unfocused_center(|_| {});
+        center.pane_alert_notice(
+            Instant::now(),
+            crate::pane_alert::Input::CommandFinished { qualifies: true },
+            Some("make · done"),
+            None,
+            false,
+        );
+        let delivered = center.recent(10);
+        assert_eq!(delivered.len(), 1);
+        assert_addressed(&delivered[0].notification, "pane-x");
+    }
+
+    #[test]
+    fn the_focus_action_stays_a_knob() {
+        let mut center = unfocused_center(|c| c.relevance.focus_action = false);
+        center.pane_alert(Instant::now(), crate::pane_alert::Input::Bell, None, false);
+        let n = &center.recent(1)[0].notification;
+        assert_eq!(n.group.as_deref(), Some("pane-x"));
+        assert!(n.actions.is_empty());
     }
 }

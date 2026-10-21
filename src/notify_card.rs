@@ -69,6 +69,17 @@ fn finish(
 }
 
 #[must_use]
+pub fn address(n: &Notification, group: &str, focus_action: bool) -> Notification {
+    let mut out = n.clone();
+    out.group = Some(group.to_owned());
+    if focus_action && !out.actions.iter().any(|a| a.id == FOCUS_ACTION_ID) {
+        out.actions
+            .push(NotificationAction::foreground(FOCUS_ACTION_ID, "Focus"));
+    }
+    out
+}
+
+#[must_use]
 pub fn command_card(
     cc: &CommandCompletion,
     rank: CommandRank,

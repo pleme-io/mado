@@ -662,8 +662,10 @@
     },
     "focus": {
       "default": {
+        "claim_after_ms": 300,
         "enabled": true,
-        "socket": null
+        "socket": null,
+        "unclaimed": "switch_last_focused"
       },
       "description": "",
       "type": "object"

@@ -1042,7 +1042,6 @@ fn main() -> anyhow::Result<()> {
         ),
         &config.notifications,
     );
-    let focus_relay = crate::focus_server::FocusRelay::start(&config.notifications.focus);
     let default_font_size = effective_font_size;
     // macOS window-chrome styling latch — owns the style extracted from
     // the shikumi config plus its applied state, so the `'static`
@@ -1166,6 +1165,10 @@ fn main() -> anyhow::Result<()> {
     // one would look done while changing nothing the operator runs.
     let window = madori::App::builder(renderer);
     crate::ring::WINDOW.connect(window.waker());
+    let focus_window = crate::focus_server::FocusRelay::process(&config.notifications.focus)
+        .join(Some(window.waker()));
+    let mut window_identity = crate::platform::WindowIdentityLatch::default();
+    let mut focus_wake: Option<std::time::Instant> = None;
     crate::perf::watch_window(window.visibility(), config.performance.pacing);
     let pacing = config.performance.frame_pacing();
     window
@@ -1354,13 +1357,26 @@ fn main() -> anyhow::Result<()> {
                     if let Some(at) = notify_center.pane_alert_deadline() {
                         demand = demand.with(madori::FrameDemand::At(at));
                     }
+                    if let Some(at) = focus_wake {
+                        demand = demand.with(madori::FrameDemand::At(at));
+                    }
                     renderer.set_loop_demand(demand);
                     // ONE typed drain + ONE shared consumer — the M4
                     // seam. Title change-edges come back typed; the
                     // adapter owns only the EventResponse translation.
                     let ws = &*pane_for_events;
                     if let Some(pane) = ws.focused_pane() {
-                        focus_relay.service(None, &mut notify_center);
+                        let window_id = window_identity.tick(renderer.focused());
+                        focus_wake = focus_window.drive(
+                            crate::focus_server::WindowState {
+                                pane: crate::notify_center::LOCAL_PANE_GROUP,
+                                focused: renderer.focused(),
+                                can_switch: false,
+                            },
+                            None,
+                            window_id,
+                            &mut notify_center,
+                        );
                         let effects = pane.terminal.write().drain_side_effects();
                         if let Some(title) = crate::ux::apply_side_effects(
                             effects,

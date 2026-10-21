@@ -191,28 +191,17 @@ pub fn apply_side_effects(
             crate::platform::ring_bell(notify.bell_sound_name());
         }
         if notify.bell_notify() {
-            notify.notify(
-                &tsuuchi::Notification::new("mado", "Bell")
-                    .urgency(Urgency::Normal)
-                    .group("bell"),
-                focused,
-            );
+            emit_bell(notify, focused);
         }
     }
     for pending in effects.notifications {
-        notify.notify(&pending.into_tsuuchi(), focused);
+        emit_pending(notify, pending, focused);
     }
     if effects.attention {
         // An explicit attention request always breaks through (it is the
         // program saying "I need the human"), so it bypasses the focus
         // gate via `NotifyWhen::Always`.
-        notify.notify_with(
-            &tsuuchi::Notification::new("mado", "Attention requested")
-                .urgency(Urgency::Critical)
-                .group("attention"),
-            crate::config::NotifyWhen::Always,
-            focused,
-        );
+        emit_attention(notify, focused);
         // Only bounce the dock when mado is NOT already the focused
         // window — bouncing to get attention you already have is noise.
         if !focused {
@@ -279,6 +268,33 @@ pub fn apply_side_effects(
         renderer.trigger_bell();
     }
     notify.pane_title(effects.title, alert_dirty)
+}
+
+pub(crate) fn emit_bell(notify: &mut crate::notify_center::NotificationCenter, focused: bool) {
+    notify.notify(
+        &tsuuchi::Notification::new("mado", "Bell")
+            .urgency(Urgency::Normal)
+            .group("bell"),
+        focused,
+    );
+}
+
+pub(crate) fn emit_pending(
+    notify: &mut crate::notify_center::NotificationCenter,
+    pending: PendingNotification,
+    focused: bool,
+) {
+    notify.notify(&pending.into_tsuuchi(), focused);
+}
+
+pub(crate) fn emit_attention(notify: &mut crate::notify_center::NotificationCenter, focused: bool) {
+    notify.notify_with(
+        &tsuuchi::Notification::new("mado", "Attention requested")
+            .urgency(Urgency::Critical)
+            .group("attention"),
+        crate::config::NotifyWhen::Always,
+        focused,
+    );
 }
 
 /// A clean command that ran at least this long (ms) still earns a success
@@ -406,5 +422,79 @@ mod completion_tests {
         assert_eq!(fail.body, "Exit 2 after 1m 30s");
         // Completions coalesce to the latest under one group.
         assert_eq!(fail.group.as_deref(), Some("command"));
+    }
+}
+
+#[cfg(test)]
+mod emit_site_tests {
+    use super::*;
+    use crate::notify_center::NotificationCenter;
+
+    fn center() -> NotificationCenter {
+        let cfg = crate::config::NotificationsConfig::prescribed();
+        let dispatcher = tsuuchi::NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()));
+        let mut c = NotificationCenter::new(dispatcher, &cfg);
+        c.set_pane_group("pane-y");
+        c
+    }
+
+    fn assert_addressed(n: &tsuuchi::Notification) {
+        assert_eq!(n.group.as_deref(), Some("pane-y"), "{n:?}");
+        assert_eq!(
+            n.actions
+                .iter()
+                .filter(|a| a.id == crate::notify_card::FOCUS_ACTION_ID)
+                .count(),
+            1,
+            "{n:?}"
+        );
+    }
+
+    fn drained(bytes: &[u8]) -> Vec<PendingNotification> {
+        let mut term = crate::terminal::Terminal::new(80, 24);
+        term.feed(bytes);
+        term.drain_notifications().collect()
+    }
+
+    fn delivered_from_osc(bytes: &[u8]) -> tsuuchi::Notification {
+        let mut c = center();
+        let pending = drained(bytes);
+        assert_eq!(pending.len(), 1, "one notification for {bytes:?}");
+        emit_pending(&mut c, pending.into_iter().next().unwrap(), false);
+        let recent = c.recent(10);
+        assert_eq!(recent.len(), 1);
+        recent[0].notification.clone()
+    }
+
+    #[test]
+    fn emit_site_osc_9_is_addressed() {
+        assert_addressed(&delivered_from_osc(b"\x1b]9;Build finished\x07"));
+    }
+
+    #[test]
+    fn emit_site_osc_777_from_frost_defnotify_is_addressed() {
+        let n = delivered_from_osc(b"\x1b]777;notify;frost;job done\x07");
+        assert_eq!(n.title, "frost");
+        assert_addressed(&n);
+    }
+
+    #[test]
+    fn emit_site_osc_99_with_an_id_is_addressed_to_the_pane_not_the_id() {
+        let n = delivered_from_osc(b"\x1b]99;i=ci:p=body;deploy done\x1b\\");
+        assert_addressed(&n);
+    }
+
+    #[test]
+    fn emit_site_bell_notification_is_addressed() {
+        let mut c = center();
+        emit_bell(&mut c, false);
+        assert_addressed(&c.recent(1)[0].notification);
+    }
+
+    #[test]
+    fn emit_site_attention_notification_is_addressed() {
+        let mut c = center();
+        emit_attention(&mut c, false);
+        assert_addressed(&c.recent(1)[0].notification);
     }
 }

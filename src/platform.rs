@@ -162,6 +162,83 @@ pub fn request_dock_attention() {
     tracing::debug!("dock attention requested — no platform surface on this OS");
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct WindowIdentity(i64);
+
+impl WindowIdentity {
+    #[must_use]
+    pub const fn from_number(number: i64) -> Self {
+        Self(number)
+    }
+
+    #[must_use]
+    pub const fn number(self) -> i64 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RaiseOutcome {
+    Raised,
+    ActivatedOnly,
+    WindowGone,
+    OffMainThread,
+    Unsupported,
+}
+
+#[derive(Debug, Default)]
+pub struct WindowIdentityLatch {
+    identity: Option<WindowIdentity>,
+}
+
+impl WindowIdentityLatch {
+    #[must_use]
+    pub fn identity(&self) -> Option<WindowIdentity> {
+        self.identity
+    }
+
+    pub fn tick_with(
+        &mut self,
+        focused: bool,
+        key_window: impl FnOnce() -> Option<WindowIdentity>,
+    ) -> Option<WindowIdentity> {
+        if self.identity.is_none() && focused {
+            self.identity = key_window();
+        }
+        self.identity
+    }
+
+    pub fn tick(&mut self, focused: bool) -> Option<WindowIdentity> {
+        self.tick_with(focused, key_window_identity)
+    }
+}
+
+#[must_use]
+pub fn key_window_identity() -> Option<WindowIdentity> {
+    #[cfg(target_os = "macos")]
+    {
+        macos::key_window_identity()
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        None
+    }
+}
+
+pub fn raise_window(identity: Option<WindowIdentity>) -> RaiseOutcome {
+    #[cfg(target_os = "macos")]
+    {
+        macos::raise_window(identity)
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        tracing::debug!(?identity, "raise_window — no platform surface on this OS");
+        RaiseOutcome::Unsupported
+    }
+}
+
 pub fn raise_app() {
     #[cfg(target_os = "macos")]
     macos::raise_app();
@@ -714,6 +791,7 @@ mod tests {
         let focus = crate::config::FocusServerConfig {
             enabled: true,
             socket: Some("/run/mado-focus.sock".into()),
+            ..crate::config::FocusServerConfig::bare()
         };
         assert_eq!(
             card_line_through(&focus)["action_socket"],
@@ -735,11 +813,43 @@ mod tests {
         let focus = crate::config::FocusServerConfig {
             enabled: false,
             socket: Some("/run/mado-focus.sock".into()),
+            ..crate::config::FocusServerConfig::bare()
         };
         assert_eq!(
             card_line_through(&focus)["action_socket"],
             serde_json::Value::Null
         );
+    }
+
+    #[test]
+    fn the_identity_latches_on_the_first_focused_tick_and_never_moves() {
+        let mut latch = WindowIdentityLatch::default();
+        assert_eq!(
+            latch.tick_with(false, || panic!("unfocused must not read")),
+            None
+        );
+        let first = WindowIdentity::from_number(7);
+        assert_eq!(latch.tick_with(true, || Some(first)), Some(first));
+        assert_eq!(
+            latch.tick_with(true, || Some(WindowIdentity::from_number(9))),
+            Some(first)
+        );
+        assert_eq!(latch.identity(), Some(first));
+    }
+
+    #[test]
+    fn a_focused_tick_without_a_key_window_stays_open() {
+        let mut latch = WindowIdentityLatch::default();
+        assert_eq!(latch.tick_with(true, || None), None);
+        let w = WindowIdentity::from_number(3);
+        assert_eq!(latch.tick_with(true, || Some(w)), Some(w));
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn raise_window_is_a_typed_no_op_off_macos() {
+        assert_eq!(raise_window(None), RaiseOutcome::Unsupported);
+        assert_eq!(key_window_identity(), None);
     }
 
     #[test]
@@ -1346,6 +1456,41 @@ mod macos {
             }
             window.makeKeyAndOrderFront(None);
         }
+    }
+
+    pub fn key_window_identity() -> Option<super::WindowIdentity> {
+        let mtm = MainThreadMarker::new()?;
+        let app = NSApplication::sharedApplication(mtm);
+        let window = app.keyWindow()?;
+        Some(super::WindowIdentity::from_number(
+            window.windowNumber() as i64
+        ))
+    }
+
+    pub fn raise_window(identity: Option<super::WindowIdentity>) -> super::RaiseOutcome {
+        use super::RaiseOutcome;
+        let Some(mtm) = MainThreadMarker::new() else {
+            tracing::debug!("raise_window off main thread — skipped");
+            return RaiseOutcome::OffMainThread;
+        };
+        let app = NSApplication::sharedApplication(mtm);
+        #[allow(deprecated)]
+        app.activateIgnoringOtherApps(true);
+        let Some(identity) = identity else {
+            return RaiseOutcome::ActivatedOnly;
+        };
+        let windows = app.windows();
+        let Some(window) = windows
+            .iter()
+            .find(|w| w.windowNumber() as i64 == identity.number())
+        else {
+            return RaiseOutcome::WindowGone;
+        };
+        if window.isMiniaturized() {
+            window.deminiaturize(None);
+        }
+        window.makeKeyAndOrderFront(None);
+        RaiseOutcome::Raised
     }
 
     /// Request attention at a typed level. `CriticalRequest` bounces the

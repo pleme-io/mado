@@ -1029,7 +1029,10 @@ where
         ),
         &config.notifications,
     );
-    let focus_relay = crate::focus_server::FocusRelay::start(&config.notifications.focus);
+    let focus_window = crate::focus_server::FocusRelay::process(&config.notifications.focus)
+        .join(Some(window.waker()));
+    let mut window_identity = crate::platform::WindowIdentityLatch::default();
+    let mut focus_wake: Option<std::time::Instant> = None;
     let current_pane_for_focus = current_pane.clone();
     let terminal_for_side_effects = Arc::clone(&terminal);
     let mut engine = crate::ux::InputEngine::attach_to_renderer(
@@ -1333,7 +1336,19 @@ where
             // rides along on an otherwise-untouched field).
             let drained_title = if woke {
                 notify_center.set_pane_group(&current_pane_for_focus.get().to_string());
-                focus_relay.service(switch_requests.as_ref(), &mut notify_center);
+                let window_id = window_identity.tick(renderer.focused());
+                focus_wake = focus_window.drive(
+                    crate::focus_server::WindowState {
+                        pane: &current_pane_for_focus.get().to_string(),
+                        focused: renderer.focused(),
+                        can_switch: switch_requests
+                            .as_ref()
+                            .is_some_and(SwitchRequests::sink_attached),
+                    },
+                    switch_requests.as_ref(),
+                    window_id,
+                    &mut notify_center,
+                );
                 let effects = terminal_for_side_effects.write().drain_side_effects();
                 crate::ux::apply_side_effects(
                     effects,
@@ -1407,6 +1422,9 @@ where
                     ));
                 }
                 if let Some(at) = notify_center.pane_alert_deadline() {
+                    demand = demand.with(madori::FrameDemand::At(at));
+                }
+                if let Some(at) = focus_wake {
                     demand = demand.with(madori::FrameDemand::At(at));
                 }
                 renderer.set_loop_demand(demand);

@@ -1816,17 +1816,37 @@ impl RelevanceConfig {
     }
 }
 
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, schemars::JsonSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum FocusUnclaimed {
+    #[default]
+    SwitchLastFocused,
+    Ignore,
+}
+
+pub const DEFAULT_FOCUS_CLAIM_AFTER_MS: u64 = 300;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct FocusServerConfig {
     #[schemars(
-        description = "Listen on a Unix socket for one JSON line {\"focus_pane\":\"<pane>\"} that raises mado and switches to that pane."
+        description = "Listen on one process-wide Unix socket for a JSON line {\"focus_pane\":\"<pane>\"}. The window showing that pane raises itself."
     )]
     pub enabled: bool,
     #[schemars(
         description = "Socket path. Unset: $XDG_RUNTIME_DIR/mado-focus.sock, else $TMPDIR."
     )]
     pub socket: Option<std::path::PathBuf>,
+    #[schemars(
+        description = "Milliseconds a request for a pane no window shows waits before the unclaimed policy applies."
+    )]
+    pub claim_after_ms: u64,
+    #[schemars(
+        description = "A request no window shows, after the grace: switch_last_focused (the most recently focused window switches to the pane and raises) or ignore (log a refusal and drop it)."
+    )]
+    pub unclaimed: FocusUnclaimed,
 }
 
 impl Default for FocusServerConfig {
@@ -1841,6 +1861,8 @@ impl FocusServerConfig {
         Self {
             enabled: false,
             socket: None,
+            claim_after_ms: DEFAULT_FOCUS_CLAIM_AFTER_MS,
+            unclaimed: FocusUnclaimed::default(),
         }
     }
 
@@ -1849,7 +1871,14 @@ impl FocusServerConfig {
         Self {
             enabled: true,
             socket: None,
+            claim_after_ms: DEFAULT_FOCUS_CLAIM_AFTER_MS,
+            unclaimed: FocusUnclaimed::default(),
         }
+    }
+
+    #[must_use]
+    pub fn claim_after(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.claim_after_ms)
     }
 }
 
@@ -7852,8 +7881,10 @@ mod coverage {
         "notifications.command_completion.only_when_unfocused",
         "notifications.command_completion.respect_alt_screen",
         "notifications.enabled",
+        "notifications.focus.claim_after_ms",
         "notifications.focus.enabled",
         "notifications.focus.socket",
+        "notifications.focus.unclaimed",
         "notifications.history_capacity",
         "notifications.pane_alerts.badge",
         "notifications.pane_alerts.cooldown_secs",
