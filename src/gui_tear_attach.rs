@@ -2561,6 +2561,33 @@ mod tests {
     }
 
     #[test]
+    fn tear_reports_the_window_size_for_a_switched_pane_in_every_view() {
+        for window in [(60usize, 20usize), (120, 40), (200, 60)] {
+            let inproc = std::sync::Arc::new(tear_core::InProcess::new());
+            inproc.set_spawn_env(tear_types::SpawnEnv::none());
+            let (sid, pane) = painted_pane(&inproc, "H");
+            let run = switch_to(
+                &inproc,
+                pane,
+                window,
+                crate::config::SwitchSizing::BeforeAttach,
+            );
+            let want = (window.0 as u16, window.1 as u16);
+            let snap = inproc.pane_snapshot(pane).unwrap();
+            assert_eq!((snap.cols as u16, snap.rows as u16), want, "snapshot");
+            assert_eq!(inproc.get_pane(pane).unwrap().size_cells, want, "get_pane");
+            let session = inproc.get_session(sid).unwrap();
+            assert_eq!(session.panes[&pane].size_cells, want, "session record");
+            assert_eq!(
+                run.mado.first().map(|r| r.chars().count()),
+                Some(window.0),
+                "mado grid width"
+            );
+            assert_eq!(run.mado.len(), window.1, "mado grid height");
+        }
+    }
+
+    #[test]
     fn a_degenerate_window_size_is_clamped_into_a_valid_pane_size() {
         let seen = std::cell::Cell::new((0u16, 0u16));
         resize_then_attach(

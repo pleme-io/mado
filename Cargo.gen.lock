@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "2c461c037f4c0e46bb8a1a81cbfc32a0ddbd01ea3b1bf91884c034a2b13af75d",
+  "cargo_lock_sha256": "8081e67173a0590f1034cf86d30132b443dd9c4118f4d6915a2b6889a0ffc146",
   "manifest_sha256": {
-    "Cargo.toml": "fc2a97303792030eac52d74f518ccdb70ab8e0e34fe4adec40d400c68ed57594"
+    "Cargo.toml": "22eb8ff33ba4254c9f677e168bd2e30f9d841bab116bb920a84d5b0fc64e9777"
   },
   "target_resolves": {
     "base": {
@@ -8822,7 +8822,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "kukaku-0.1.45": {
+      "kukaku-0.1.46": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -12530,7 +12530,7 @@
           "std"
         ]
       },
-      "praca-0.1.45": {
+      "praca-0.1.46": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
@@ -12566,7 +12566,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.45",
+            "package_key": "tear-types-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21059,7 +21059,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.45": {
+      "tear-client-0.1.46": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -21103,7 +21103,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.45",
+            "package_key": "tear-config-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21113,7 +21113,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.45",
+            "package_key": "tear-types-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21128,7 +21128,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.45": {
+      "tear-config-0.1.46": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21228,7 +21228,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.45",
+            "package_key": "tear-types-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21260,7 +21260,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.45": {
+      "tear-core-0.1.46": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21376,7 +21376,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.45",
+            "package_key": "tear-config-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21386,7 +21386,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.45",
+            "package_key": "tear-makimono-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21396,7 +21396,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.45",
+            "package_key": "tear-tamotsu-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21406,7 +21406,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.45",
+            "package_key": "tear-types-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21461,7 +21461,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.45": {
+      "tear-daemon-0.1.46": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21530,7 +21530,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.45",
+            "package_key": "praca-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21572,7 +21572,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.45",
+            "package_key": "tear-config-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21582,7 +21582,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.45",
+            "package_key": "tear-core-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21592,7 +21592,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.45",
+            "package_key": "tear-makimono-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21602,7 +21602,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.45",
+            "package_key": "tear-tamotsu-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21612,7 +21612,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.45",
+            "package_key": "tear-types-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21650,7 +21650,7 @@
           "default"
         ]
       },
-      "tear-makimono-0.1.45": {
+      "tear-makimono-0.1.46": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -21676,7 +21676,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.45",
+            "package_key": "tear-types-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21710,7 +21710,7 @@
           "default"
         ]
       },
-      "tear-tamotsu-0.1.45": {
+      "tear-tamotsu-0.1.46": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21781,7 +21781,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.45",
+            "package_key": "tear-makimono-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21805,7 +21805,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.45": {
+      "tear-types-0.1.46": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21859,7 +21859,7 @@
           },
           {
             "name": "kukaku",
-            "package_key": "kukaku-0.1.45",
+            "package_key": "kukaku-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21940,7 +21940,7 @@
           },
           {
             "name": "getrandom",
-            "package_key": "getrandom-0.4.3",
+            "package_key": "getrandom-0.3.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -27419,7 +27419,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.45",
+                "package_key": "praca-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27572,7 +27572,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.45",
+                "package_key": "tear-client-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27584,7 +27584,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.45",
+                "package_key": "tear-config-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27594,7 +27594,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.45",
+                "package_key": "tear-core-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27606,7 +27606,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.45",
+                "package_key": "tear-types-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27668,7 +27668,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
+                "package_key": "tsuuchi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30151,7 +30151,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
+          "tsuuchi-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "block2",
@@ -32438,7 +32438,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.45",
+                "package_key": "praca-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32591,7 +32591,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.45",
+                "package_key": "tear-client-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32603,7 +32603,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.45",
+                "package_key": "tear-config-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32613,7 +32613,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.45",
+                "package_key": "tear-core-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32625,7 +32625,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.45",
+                "package_key": "tear-types-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32687,7 +32687,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
+                "package_key": "tsuuchi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33649,7 +33649,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
+          "tsuuchi-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -36584,7 +36584,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.45",
+                "package_key": "praca-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36737,7 +36737,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.45",
+                "package_key": "tear-client-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36749,7 +36749,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.45",
+                "package_key": "tear-config-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36759,7 +36759,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.45",
+                "package_key": "tear-core-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36771,7 +36771,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.45",
+                "package_key": "tear-types-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36833,7 +36833,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
+                "package_key": "tsuuchi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37795,7 +37795,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
+          "tsuuchi-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -40923,7 +40923,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.45",
+                "package_key": "praca-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41076,7 +41076,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.45",
+                "package_key": "tear-client-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -41088,7 +41088,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.45",
+                "package_key": "tear-config-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41098,7 +41098,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.45",
+                "package_key": "tear-core-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -41110,7 +41110,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.45",
+                "package_key": "tear-types-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -41172,7 +41172,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
+                "package_key": "tsuuchi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43654,7 +43654,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
+          "tsuuchi-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "block2",
@@ -45959,7 +45959,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.45",
+                "package_key": "praca-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46112,7 +46112,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.45",
+                "package_key": "tear-client-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -46124,7 +46124,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.45",
+                "package_key": "tear-config-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46134,7 +46134,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.45",
+                "package_key": "tear-core-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -46146,7 +46146,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.45",
+                "package_key": "tear-types-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -46208,7 +46208,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
+                "package_key": "tsuuchi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47169,7 +47169,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
+          "tsuuchi-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -50122,7 +50122,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.45",
+                "package_key": "praca-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50275,7 +50275,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.45",
+                "package_key": "tear-client-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -50287,7 +50287,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.45",
+                "package_key": "tear-config-0.1.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50297,7 +50297,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.45",
+                "package_key": "tear-core-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -50309,7 +50309,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.45",
+                "package_key": "tear-types-0.1.46",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -50371,7 +50371,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
+                "package_key": "tsuuchi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51332,7 +51332,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
+          "tsuuchi-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -53885,7 +53885,7 @@
     "kube-runtime-0.99.0": {
       "edition": "2021"
     },
-    "kukaku-0.1.45": {
+    "kukaku-0.1.46": {
       "edition": "2024"
     },
     "lazy_static-1.5.1": {
@@ -54427,7 +54427,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.45": {
+    "praca-0.1.46": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -55014,26 +55014,26 @@
         }
       ]
     },
-    "tear-client-0.1.45": {
+    "tear-client-0.1.46": {
       "edition": "2024"
     },
-    "tear-config-0.1.45": {
+    "tear-config-0.1.46": {
       "edition": "2024"
     },
-    "tear-core-0.1.45": {
+    "tear-core-0.1.46": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.45": {
+    "tear-daemon-0.1.46": {
       "edition": "2024"
     },
-    "tear-makimono-0.1.45": {
+    "tear-makimono-0.1.46": {
       "edition": "2024",
       "lib_target": {
         "name": "makimono",
         "path": "src/lib.rs"
       }
     },
-    "tear-tamotsu-0.1.45": {
+    "tear-tamotsu-0.1.46": {
       "edition": "2024",
       "lib_target": {
         "name": "tamotsu",
@@ -55046,7 +55046,7 @@
         }
       ]
     },
-    "tear-types-0.1.45": {
+    "tear-types-0.1.46": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
@@ -55188,7 +55188,7 @@
     "try-lock-0.2.5": {
       "edition": "2015"
     },
-    "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
+    "tsuuchi-0.1.6": {
       "edition": "2024"
     },
     "ttf-parser-0.20.0": {
@@ -55563,8 +55563,6 @@
       "edition": "2021"
     }
   },
-  "git_nar_sha256": {
-    "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": "sha256-HCH89m68XMv9rvOoGXgj1sH1LDu/rCLnCpwDnE0dQYI="
-  },
+  "git_nar_sha256": {},
   "flake_metadata": {}
 }
