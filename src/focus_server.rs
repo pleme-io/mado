@@ -111,6 +111,12 @@ pub fn default_socket_path() -> PathBuf {
         .join("mado-focus.sock")
 }
 
+#[must_use]
+pub fn configured_socket(cfg: &FocusServerConfig) -> Option<PathBuf> {
+    cfg.enabled
+        .then(|| cfg.socket.clone().unwrap_or_else(default_socket_path))
+}
+
 pub struct FocusServer {
     path: PathBuf,
 }
@@ -178,8 +184,7 @@ impl FocusRelay {
     #[must_use]
     pub fn start(cfg: &FocusServerConfig) -> Self {
         let requests = FocusRequests::default();
-        let server = cfg.enabled.then(|| {
-            let path = cfg.socket.clone().unwrap_or_else(default_socket_path);
+        let server = configured_socket(cfg).map(|path| {
             match spawn_server(&path, requests.clone()) {
                 Ok(s) => {
                     tracing::info!(socket = %path.display(), "focus socket listening");
@@ -280,6 +285,36 @@ mod tests {
             plan("not-a-pane", "cur", true),
             FocusPlan::Reject("unknown-pane")
         );
+    }
+
+    #[test]
+    fn a_client_that_closes_before_the_reply_does_not_stop_the_server() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("focus.sock");
+        let requests = FocusRequests::default();
+        let _server = spawn_server(&path, requests.clone()).unwrap();
+        for pane in ["a", "b"] {
+            let mut c = UnixStream::connect(&path).unwrap();
+            c.write_all(format!("{{\"focus_pane\":\"{pane}\"}}\n").as_bytes())
+                .unwrap();
+            drop(c);
+        }
+        let mut c = UnixStream::connect(&path).unwrap();
+        c.write_all(b"{\"focus_pane\":\"z\"}\n").unwrap();
+        let mut reply = String::new();
+        BufReader::new(&c).read_line(&mut reply).unwrap();
+        assert_eq!(reply, "{\"ok\":true}\n");
+        assert_eq!(requests.take().as_deref(), Some("z"));
+    }
+
+    #[test]
+    fn the_configured_socket_follows_the_enabled_knob() {
+        let on = FocusServerConfig {
+            enabled: true,
+            socket: Some("/x.sock".into()),
+        };
+        assert_eq!(configured_socket(&on), Some(PathBuf::from("/x.sock")));
+        assert_eq!(configured_socket(&FocusServerConfig::bare()), None);
     }
 
     #[test]

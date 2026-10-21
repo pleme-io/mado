@@ -579,3 +579,4 @@ gpu_tests = ["dep:pollster"]
 # crates.io, so cargo unifies them by semver and the rev-pin's whole failure
 # mode (a divergent rev = the documented E0463 split-crate break) is
 # unrepresentable rather than merely avoided.
+tsuuchi = { git = "https://github.com/pleme-io/tsuuchi", rev = "f6412d498c6f15fa597b9b3f0d69f059b99206df" }

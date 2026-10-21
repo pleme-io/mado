@@ -83,8 +83,8 @@ mod tests {
 
     #[test]
     fn second_acquire_on_the_same_dir_loses() {
-        let dir = std::env::temp_dir().join("mado-writer-election-test");
-        let _ = std::fs::remove_dir_all(&dir);
+        let scratch = tempfile::tempdir().unwrap();
+        let dir = scratch.path().join("writer");
         // flock is per open-file-description, so two opens in ONE process
         // still contend — the test needs no second process.
         let first = try_acquire(&dir);
@@ -99,6 +99,5 @@ mod tests {
             try_acquire(&dir).is_some(),
             "the lock releases on drop (and on process exit)"
         );
-        let _ = std::fs::remove_dir_all(&dir);
     }
 }

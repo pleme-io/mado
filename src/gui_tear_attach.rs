@@ -973,7 +973,10 @@ where
     // coalescing, rate-limiting orchestrator over the chosen backend. See
     // docs/NOTIFICATIONS.md.
     let mut notify_center = crate::notify_center::NotificationCenter::new(
-        crate::platform::notification_dispatcher(config.notifications.backend),
+        crate::platform::notification_dispatcher(
+            config.notifications.backend,
+            &config.notifications.focus,
+        ),
         &config.notifications,
     );
     let focus_relay = crate::focus_server::FocusRelay::start(&config.notifications.focus);

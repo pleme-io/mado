@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "2cf24607dbdd7d4f48062018030b4ca90614f685064e340016758596db4c5561",
+  "cargo_lock_sha256": "618b401244b301dd7ff9a6dd87bf70a4b3b46ad955d5f8dec99162b0cc085048",
   "manifest_sha256": {
-    "Cargo.toml": "114199be83049e00c513ea944457e34014f23d3fc0e189236c92111a622b0b67"
+    "Cargo.toml": "00b71fa88a9f85b8e573eb45919b90658ab036b03d6276f93505a9dc1be965d2"
   },
   "target_resolves": {
     "base": {
@@ -27668,7 +27668,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.6",
+                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30151,7 +30151,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "tsuuchi-0.1.6": {
+          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
             "runtime_dependencies": [
               {
                 "name": "block2",
@@ -32687,7 +32687,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.6",
+                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33649,7 +33649,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.6": {
+          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -36833,7 +36833,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.6",
+                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37795,7 +37795,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.6": {
+          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -41172,7 +41172,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.6",
+                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43654,7 +43654,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "tsuuchi-0.1.6": {
+          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
             "runtime_dependencies": [
               {
                 "name": "block2",
@@ -46208,7 +46208,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.6",
+                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47169,7 +47169,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.6": {
+          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -50371,7 +50371,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.6",
+                "package_key": "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51332,7 +51332,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.6": {
+          "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -55188,7 +55188,7 @@
     "try-lock-0.2.5": {
       "edition": "2015"
     },
-    "tsuuchi-0.1.6": {
+    "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": {
       "edition": "2024"
     },
     "ttf-parser-0.20.0": {
@@ -55563,6 +55563,8 @@
       "edition": "2021"
     }
   },
-  "git_nar_sha256": {},
+  "git_nar_sha256": {
+    "tsuuchi-0.1.5-f6412d498c6f15fa597b9b3f0d69f059b99206df": "sha256-HCH89m68XMv9rvOoGXgj1sH1LDu/rCLnCpwDnE0dQYI="
+  },
   "flake_metadata": {}
 }

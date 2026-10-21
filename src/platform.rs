@@ -192,6 +192,21 @@ pub fn ring_bell(sound: Option<&str>) {
     let _ = sound;
 }
 
+#[must_use]
+pub fn with_focus_action(
+    backend: tsuuchi::ShiraseBackend,
+    focus: &crate::config::FocusServerConfig,
+) -> tsuuchi::ShiraseBackend {
+    match crate::focus_server::configured_socket(focus) {
+        Some(socket) => backend.with_action_socket(socket),
+        None => backend,
+    }
+}
+
+fn shirase_backend(focus: &crate::config::FocusServerConfig) -> Option<tsuuchi::ShiraseBackend> {
+    tsuuchi::ShiraseBackend::try_default("mado").map(|sh| with_focus_action(sh, focus))
+}
+
 /// Construct the boot-time notification dispatcher for the GUI event
 /// loops. Defaults ([`NotifyBackend::Auto`](crate::config::NotifyBackend))
 /// to the native `UNUserNotificationCenter` backend when mado runs
@@ -202,6 +217,7 @@ pub fn ring_bell(sound: Option<&str>) {
 #[must_use]
 pub fn notification_dispatcher(
     choice: crate::config::NotifyBackend,
+    focus: &crate::config::FocusServerConfig,
 ) -> tsuuchi::NotificationDispatcher {
     use crate::config::NotifyBackend;
     #[cfg(target_os = "macos")]
@@ -216,7 +232,7 @@ pub fn notification_dispatcher(
             }
             NotifyBackend::Log => D::new(Box::new(tsuuchi::LogBackend::new())),
             NotifyBackend::Shirase => {
-                if let Some(sh) = tsuuchi::ShiraseBackend::try_default("mado") {
+                if let Some(sh) = shirase_backend(focus) {
                     tracing::info!("notifications: shirase backend (fleet plane)");
                     D::new(Box::new(sh))
                 } else {
@@ -234,7 +250,7 @@ pub fn notification_dispatcher(
                 // Auto prefers the fleet plane; Native is the explicit
                 // "use Apple's" escape and skips it.
                 if choice == NotifyBackend::Auto
-                    && let Some(sh) = tsuuchi::ShiraseBackend::try_default("mado")
+                    && let Some(sh) = shirase_backend(focus)
                 {
                     tracing::info!("notifications: shirase backend (fleet plane)");
                     D::new(Box::new(sh))
@@ -260,7 +276,7 @@ pub fn notification_dispatcher(
         use tsuuchi::NotificationDispatcher as D;
         match choice {
             NotifyBackend::Log => D::new(Box::new(tsuuchi::LogBackend::new())),
-            _ => match tsuuchi::ShiraseBackend::try_default("mado") {
+            _ => match shirase_backend(focus) {
                 Some(sh) => {
                     tracing::info!("notifications: shirase backend (fleet plane)");
                     D::new(Box::new(sh))
@@ -674,6 +690,57 @@ impl QuickTerminal {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn card_line_through(focus: &crate::config::FocusServerConfig) -> serde_json::Value {
+        use std::io::{BufRead, BufReader, Write};
+        use tsuuchi::NotificationBackend;
+        let dir = tempfile::tempdir().unwrap();
+        let sock = dir.path().join("shirase.sock");
+        let listener = std::os::unix::net::UnixListener::bind(&sock).unwrap();
+        let reader = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut line = String::new();
+            BufReader::new(&stream).read_line(&mut line).unwrap();
+            stream.write_all(b"{\"status\":\"ok\"}\n").unwrap();
+            line
+        });
+        let backend = with_focus_action(tsuuchi::ShiraseBackend::new(&sock, "mado"), focus);
+        backend.send(&tsuuchi::Notification::new("t", "b")).unwrap();
+        serde_json::from_str(&reader.join().unwrap()).unwrap()
+    }
+
+    #[test]
+    fn the_card_carries_the_focus_socket_when_the_server_is_enabled() {
+        let focus = crate::config::FocusServerConfig {
+            enabled: true,
+            socket: Some("/run/mado-focus.sock".into()),
+        };
+        assert_eq!(
+            card_line_through(&focus)["action_socket"],
+            "/run/mado-focus.sock"
+        );
+    }
+
+    #[test]
+    fn the_card_carries_the_default_socket_when_none_is_configured() {
+        let focus = crate::config::FocusServerConfig::prescribed();
+        assert_eq!(
+            card_line_through(&focus)["action_socket"],
+            crate::focus_server::default_socket_path().to_str().unwrap()
+        );
+    }
+
+    #[test]
+    fn the_card_carries_no_socket_when_the_server_is_disabled() {
+        let focus = crate::config::FocusServerConfig {
+            enabled: false,
+            socket: Some("/run/mado-focus.sock".into()),
+        };
+        assert_eq!(
+            card_line_through(&focus)["action_socket"],
+            serde_json::Value::Null
+        );
+    }
 
     #[test]
     fn is_dark_mode_returns_bool() {

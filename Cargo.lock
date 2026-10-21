@@ -7725,9 +7725,8 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "tsuuchi"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5101934b782b6f5b20f2a3a7a1bc68163bfe6f4a32d65ba0650dd8b13b91618b"
+version = "0.1.5"
+source = "git+https://github.com/pleme-io/tsuuchi?rev=f6412d498c6f15fa597b9b3f0d69f059b99206df#f6412d498c6f15fa597b9b3f0d69f059b99206df"
 dependencies = [
  "block2 0.6.2",
  "objc2 0.6.5",
