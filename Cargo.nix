@@ -668,7 +668,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_DataExchange" "Win32_System_Memory" "Win32_System_Ole" "Win32_UI_Shell" ];
           }
@@ -3994,7 +3994,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.59.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_UI_Shell" "Win32_Foundation" "Win32_Globalization" "Win32_System_Com" ];
           }
@@ -4431,9 +4431,9 @@ rec {
       };
       "engate-types" = rec {
         crateName = "engate-types";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2024";
-        sha256 = "1hvmp0pj4a8fxx5j0gf7vax4knaj248qam3k476a8z1ad6g3k42m";
+        sha256 = "0qzk9i06kamwfdk873dcn6nqn245qm1a9pd31vpy4nkvizk5gizc";
         libName = "engate_types";
         authors = [
           "pleme-io <ops@pleme.io>"
@@ -4596,7 +4596,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Diagnostics_Debug" ];
           }
@@ -7571,7 +7571,7 @@ rec {
           }
           {
             name = "windows-core";
-            packageId = "windows-core 0.58.0";
+            packageId = "windows-core 0.62.2";
             target = { target, features }: ("windows" == target."os" or null);
           }
         ];
@@ -8383,7 +8383,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" ];
           }
@@ -9792,9 +9792,9 @@ rec {
       };
       "kukaku" = rec {
         crateName = "kukaku";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "0g4kbdrvdjhvfyd01hyi06pxx4szqfmrvwfr6bhcmlpmyvdplss1";
+        sha256 = "1qwr1c829g6x9b4ax81h3acc624h33ii7zrsc24dgf5zh5xrzmnc";
         authors = [
           "pleme-io"
         ];
@@ -10331,7 +10331,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.208";
+        version = "0.1.209";
         edition = "2024";
         crateBin = [
           {
@@ -11772,7 +11772,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.59.0";
+            packageId = "windows-sys 0.61.2";
             rename = "windows";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Console" "Win32_Storage_FileSystem" "Win32_Security" ];
@@ -17103,9 +17103,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "1r081f0cn0cffm4knfc9zsmdlgvj9p4r46szfc6p4pk5kic19m5x";
+        sha256 = "19ig6xhikhxh6cqj0zp8937vhrbrgm8azhnjhgyf52ly3j1k2lcb";
         authors = [
           "pleme-io"
         ];
@@ -17844,7 +17844,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_IO" "Win32_Networking_WinSock" ];
           }
@@ -19672,7 +19672,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Networking_WinSock" ];
           }
@@ -24698,9 +24698,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "06wrzvg2d276l7pqhlmz2klg2m8fnw5v3wk35wqxds87zwyl9pfb";
+        sha256 = "1ji3s63y6fm044k7yk4yckrrxhhyccxkan4fzdxrksjvj6i8gf99";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -24741,9 +24741,9 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "097gip00fq7r0ckvc69yl41w1dn8332nap4yqmva7x1hz5i357yj";
+        sha256 = "1fx3b88805wa2vfs5xqxqk6iz802n2hx1szaxxcczbvx0c5mh2v4";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -24806,9 +24806,9 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "185a2gvgv2lv9rwkmgp2dgliz4awaldr2zhgd7222jdi3rzsskmr";
+        sha256 = "0fcrmmg4i6sdfkypi915fpc96as6jb9cmfa1i7cp0ph5m1r1s19n";
         libName = "tear_core";
         authors = [
           "pleme-io"
@@ -24904,9 +24904,9 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "0xnf4s2fglmzg9darybmxrgzlbnidd9d31disa7f1l29yqhmkfxl";
+        sha256 = "1mw3m2m2bccs4w8ficsy3ankqyfdcc1ighxkqnbjwcawryqcln8c";
         libName = "tear_daemon";
         authors = [
           "pleme-io"
@@ -24995,9 +24995,9 @@ rec {
       };
       "tear-makimono" = rec {
         crateName = "tear-makimono";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "06axyjiri0ld2xxh625f4zmswrba1lvc38krir9zkz2fz8lfdsab";
+        sha256 = "19b0ijidnhr8x8l09lj4dwa5qvlyld3nhg618wcyv880dv2v2mws";
         libName = "makimono";
         authors = [
           "pleme-io"
@@ -25032,9 +25032,9 @@ rec {
       };
       "tear-picker" = rec {
         crateName = "tear-picker";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "1hdqdnav2nq3liqi7ifin9ba7qq05lsmi6vvh8ak75nhcbqqfiz6";
+        sha256 = "05a7dv1ljc8j0pw6973lp3pr4jg2cc4jdr0c420f2m76wfjpq5k6";
         libName = "tear_picker";
         authors = [
           "pleme-io"
@@ -25075,10 +25075,10 @@ rec {
       };
       "tear-tamotsu" = rec {
         crateName = "tear-tamotsu";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
         crateBin = [];
-        sha256 = "01ml4k31g7nysya7nnz30hjbxa54icackgcddyf9yzzrhapd8yx3";
+        sha256 = "0bgwfx9xcv6wy3495j406prc3fi967d6lbzb4va1vc3jvir23jz7";
         libName = "tamotsu";
         authors = [
           "pleme-io"
@@ -25127,9 +25127,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "1h5xq27sqbmzzvrzsvs3mxbk5k18rwqva81z0n9ig0djbf9miik9";
+        sha256 = "0x9l6gwf976rgwdgsjqhj77sr6lyw3dgym1w0m9dawk66za7vc7s";
         libName = "tear_types";
         authors = [
           "pleme-io"
@@ -25205,7 +25205,7 @@ rec {
           }
           {
             name = "getrandom";
-            packageId = "getrandom 0.3.4";
+            packageId = "getrandom 0.4.3";
             optional = true;
             usesDefaultFeatures = false;
             target = { target, features }: ((target."unix" or false) || (target."windows" or false) || ("wasi" == target."os" or null));
@@ -25224,7 +25224,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Storage_FileSystem" "Win32_Foundation" ];
           }
@@ -30021,7 +30021,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.48.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -31543,7 +31543,7 @@ rec {
           "default" = [ "std" ];
           "std" = [ "windows-result/std" "windows-strings/std" ];
         };
-        resolvedDefaultFeatures = [ "std" ];
+        resolvedDefaultFeatures = [ "default" "std" ];
       };
       "windows-future" = rec {
         crateName = "windows-future";
@@ -32118,7 +32118,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_SystemInformation" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_System" "Win32_System_Com" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.52.0" = rec {
         crateName = "windows-sys";
@@ -32366,7 +32366,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Devices" "Win32_Devices_HumanInterfaceDevice" "Win32_Foundation" "Win32_Globalization" "Win32_Graphics" "Win32_Graphics_Dwm" "Win32_Graphics_Gdi" "Win32_Media" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Com_StructuredStorage" "Win32_System_Console" "Win32_System_DataExchange" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Accessibility" "Win32_UI_Controls" "Win32_UI_HiDpi" "Win32_UI_Input" "Win32_UI_Input_Ime" "Win32_UI_Input_KeyboardAndMouse" "Win32_UI_Input_Pointer" "Win32_UI_Input_Touch" "Win32_UI_Shell" "Win32_UI_TextServices" "Win32_UI_WindowsAndMessaging" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Devices" "Win32_Devices_HumanInterfaceDevice" "Win32_Foundation" "Win32_Globalization" "Win32_Graphics" "Win32_Graphics_Dwm" "Win32_Graphics_Gdi" "Win32_Media" "Win32_Security" "Win32_System" "Win32_System_Com" "Win32_System_Com_StructuredStorage" "Win32_System_LibraryLoader" "Win32_System_Ole" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Accessibility" "Win32_UI_Controls" "Win32_UI_HiDpi" "Win32_UI_Input" "Win32_UI_Input_Ime" "Win32_UI_Input_KeyboardAndMouse" "Win32_UI_Input_Pointer" "Win32_UI_Input_Touch" "Win32_UI_Shell" "Win32_UI_TextServices" "Win32_UI_WindowsAndMessaging" "default" ];
       };
       "windows-sys 0.59.0" = rec {
         crateName = "windows-sys";
@@ -32625,7 +32625,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_Threading" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_System" "Win32_System_Threading" "default" ];
       };
       "windows-sys 0.60.2" = rec {
         crateName = "windows-sys";
@@ -33152,7 +33152,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_NetworkManagement_Ndis" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Security_Authentication" "Win32_Security_Authentication_Identity" "Win32_Security_Credentials" "Win32_Security_Cryptography" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Memory" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_Globalization" "Win32_Graphics" "Win32_Graphics_Gdi" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_NetworkManagement_Ndis" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Security_Authentication" "Win32_Security_Authentication_Identity" "Win32_Security_Credentials" "Win32_Security_Cryptography" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_DataExchange" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-targets 0.48.5" = rec {
         crateName = "windows-targets";

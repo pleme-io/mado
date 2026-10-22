@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "4390645a44a3406381d4b03ff87106043858dd9a7c9834b8917bf62ff41f5058",
+  "cargo_lock_sha256": "7301881357900ac52ba4c458229e4837f1c0e3ca6c5467a89a7fc735f776fe61",
   "manifest_sha256": {
-    "Cargo.toml": "2e9424759582b0bc4433ba35c2bfe8cc7c684b07a734f1014ba08f6d790ce0d3"
+    "Cargo.toml": "f3d9537ac2675672aa174850521b4360d69e485fe8ad13a0c809d5479c63fbdd"
   },
   "target_resolves": {
     "base": {
@@ -889,6 +889,564 @@
           {
             "name": "generic_array",
             "package_key": "generic-array-0.14.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "blue-lang-bidama-0.0.85": {
+        "runtime_dependencies": [
+          {
+            "name": "blue_lang_waku",
+            "package_key": "blue-lang-waku-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "blue-lang-check-0.0.85": {
+        "runtime_dependencies": [
+          {
+            "name": "blue_lang_syntax",
+            "package_key": "blue-lang-syntax-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.4.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "blue-lang-fmt-0.0.85": {
+        "runtime_dependencies": [
+          {
+            "name": "blue_lang_syntax",
+            "package_key": "blue-lang-syntax-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.4.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.21",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "blue-lang-host-0.0.85": {
+        "runtime_dependencies": [
+          {
+            "name": "blue_lang_host_macros",
+            "package_key": "blue-lang-host-macros-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "blue_lang_pkg",
+            "package_key": "blue-lang-pkg-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_runtime",
+            "package_key": "blue-lang-runtime-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_waku",
+            "package_key": "blue-lang-waku-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.4.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp_eval",
+            "package_key": "tatara-lisp-eval-0.4.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.21",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "packages"
+        ]
+      },
+      "blue-lang-host-macros-0.0.85": {
+        "runtime_dependencies": [
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.107",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.47",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [
+              "full"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "blue-lang-pkg-0.0.85": {
+        "runtime_dependencies": [
+          {
+            "name": "blue_lang_bidama",
+            "package_key": "blue-lang-bidama-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_check",
+            "package_key": "blue-lang-check-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_fmt",
+            "package_key": "blue-lang-fmt-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_runtime",
+            "package_key": "blue-lang-runtime-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_syntax",
+            "package_key": "blue-lang-syntax-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_waku",
+            "package_key": "blue-lang-waku-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.154",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.4.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp_eval",
+            "package_key": "tatara-lisp-eval-0.4.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.21",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "embedded"
+        ]
+      },
+      "blue-lang-proc-0.0.85": {
+        "runtime_dependencies": [
+          {
+            "name": "blue_lang_waku",
+            "package_key": "blue-lang-waku-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.154",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.4.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp_eval",
+            "package_key": "tatara-lisp-eval-0.4.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "blue-lang-runtime-0.0.85": {
+        "runtime_dependencies": [
+          {
+            "name": "blake3",
+            "package_key": "blake3-1.8.7",
+            "kind": "normal",
+            "features": [
+              "pure",
+              "std"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_check",
+            "package_key": "blue-lang-check-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_fmt",
+            "package_key": "blue-lang-fmt-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_proc",
+            "package_key": "blue-lang-proc-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_syntax",
+            "package_key": "blue-lang-syntax-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blue_lang_waku",
+            "package_key": "blue-lang-waku-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "ed25519_dalek",
+            "package_key": "ed25519-dalek-2.2.0",
+            "kind": "normal",
+            "features": [
+              "fast",
+              "std",
+              "zeroize"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rnix",
+            "package_key": "rnix-0.14.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rowan",
+            "package_key": "rowan-0.16.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.154",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "sha2",
+            "package_key": "sha2-0.10.9",
+            "kind": "normal",
+            "features": [
+              "std"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.4.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp_eval",
+            "package_key": "tatara-lisp-eval-0.4.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.21",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "blue-lang-syntax-0.0.85": {
+        "runtime_dependencies": [
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.4.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "blue-lang-waku-0.0.85": {
+        "runtime_dependencies": [
+          {
+            "name": "blue_lang_syntax",
+            "package_key": "blue-lang-syntax-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.4.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1989,6 +2547,11 @@
           "swash",
           "sys-locale"
         ]
+      },
+      "countme-3.0.1": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
       },
       "crc-3.4.0": {
         "runtime_dependencies": [
@@ -3138,6 +3701,88 @@
         "build_dependencies": [],
         "features": []
       },
+      "ed25519-2.2.3": {
+        "runtime_dependencies": [
+          {
+            "name": "signature",
+            "package_key": "signature-2.2.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "alloc",
+          "std"
+        ]
+      },
+      "ed25519-dalek-2.2.0": {
+        "runtime_dependencies": [
+          {
+            "name": "curve25519_dalek",
+            "package_key": "curve25519-dalek-4.1.3",
+            "kind": "normal",
+            "features": [
+              "digest"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "ed25519",
+            "package_key": "ed25519-2.2.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "sha2",
+            "package_key": "sha2-0.10.9",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "subtle",
+            "package_key": "subtle-2.6.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "zeroize",
+            "package_key": "zeroize-1.9.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "alloc",
+          "fast",
+          "std",
+          "zeroize"
+        ]
+      },
       "educe-0.6.0": {
         "runtime_dependencies": [
           {
@@ -3323,7 +3968,7 @@
           "use_std"
         ]
       },
-      "engate-attach-0.1.5": {
+      "engate-attach-0.1.6": {
         "runtime_dependencies": [
           {
             "name": "drop_bomb",
@@ -9713,7 +10358,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "monosashi-0.4.7": {
+      "monosashi-0.4.8": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -14629,6 +15274,70 @@
         "build_dependencies": [],
         "features": []
       },
+      "rnix-0.14.0": {
+        "runtime_dependencies": [
+          {
+            "name": "rowan",
+            "package_key": "rowan-0.16.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "rowan-0.16.1": {
+        "runtime_dependencies": [
+          {
+            "name": "countme",
+            "package_key": "countme-3.0.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hashbrown",
+            "package_key": "hashbrown-0.14.5",
+            "kind": "normal",
+            "features": [
+              "inline-more"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rustc_hash",
+            "package_key": "rustc-hash-1.1.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "text_size",
+            "package_key": "text-size-1.1.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "rsa-0.9.10": {
         "runtime_dependencies": [
           {
@@ -14896,7 +15605,10 @@
       "rustc-hash-1.1.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
-        "features": []
+        "features": [
+          "default",
+          "std"
+        ]
       },
       "rustc-hash-2.1.3": {
         "runtime_dependencies": [],
@@ -20067,11 +20779,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.4.7": {
+      "tatara-closed-set-0.4.8": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.4.7",
+            "package_key": "tatara-closed-set-derive-0.4.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20121,7 +20833,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.4.7": {
+      "tatara-closed-set-derive-0.4.8": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20515,7 +21227,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.4.7": {
+      "tatara-lisp-0.4.8": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20551,7 +21263,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.7",
+            "package_key": "tatara-closed-set-0.4.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20561,7 +21273,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.4.7",
+            "package_key": "tatara-lisp-derive-0.4.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20623,7 +21335,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.4.7": {
+      "tatara-lisp-derive-0.4.8": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20707,7 +21419,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.4.7": {
+      "tatara-lisp-eval-0.4.8": {
         "runtime_dependencies": [
           {
             "name": "imbl",
@@ -20721,7 +21433,7 @@
           },
           {
             "name": "monosashi",
-            "package_key": "monosashi-0.4.7",
+            "package_key": "monosashi-0.4.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20741,7 +21453,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.7",
+            "package_key": "tatara-closed-set-0.4.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20751,7 +21463,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.7",
+            "package_key": "tatara-lisp-0.4.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21063,7 +21775,7 @@
         "runtime_dependencies": [
           {
             "name": "engate_attach",
-            "package_key": "engate-attach-0.1.5",
+            "package_key": "engate-attach-0.1.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21284,7 +21996,7 @@
           },
           {
             "name": "engate_attach",
-            "package_key": "engate-attach-0.1.5",
+            "package_key": "engate-attach-0.1.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22090,6 +22802,11 @@
         "features": []
       },
       "termcolor-1.4.1": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
+      "text-size-1.1.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -24330,7 +25047,7 @@
         "runtime_dependencies": [
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.9",
+            "package_key": "vigy-eval-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24350,7 +25067,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.9",
+            "package_key": "vigy-runtime-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24360,7 +25077,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.9",
+            "package_key": "vigy-store-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24370,7 +25087,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.9",
+            "package_key": "vigy-types-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24384,7 +25101,7 @@
           "mcp"
         ]
       },
-      "vigy-eval-0.1.9": {
+      "vigy-eval-0.1.10": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24405,6 +25122,16 @@
             "optional": false,
             "target": null,
             "tree": "host"
+          },
+          {
+            "name": "blue_lang_host",
+            "package_key": "blue-lang-host-0.0.85",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
           },
           {
             "name": "serde",
@@ -24430,7 +25157,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.7",
+            "package_key": "tatara-lisp-0.4.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24440,7 +25167,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.7",
+            "package_key": "tatara-lisp-eval-0.4.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24504,7 +25231,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.9",
+            "package_key": "vigy-types-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24581,7 +25308,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.9",
+            "package_key": "vigy-runtime-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24591,7 +25318,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.9",
+            "package_key": "vigy-types-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24603,7 +25330,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-runtime-0.1.9": {
+      "vigy-runtime-0.1.10": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24701,7 +25428,7 @@
           },
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.9",
+            "package_key": "vigy-eval-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24711,7 +25438,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.9",
+            "package_key": "vigy-store-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24721,7 +25448,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.9",
+            "package_key": "vigy-types-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24733,7 +25460,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-store-0.1.9": {
+      "vigy-store-0.1.10": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24885,7 +25612,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.9",
+            "package_key": "vigy-types-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24897,7 +25624,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-types-0.1.9": {
+      "vigy-types-0.1.10": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -26093,6 +26820,7 @@
             ],
             "features": [
               "default",
+              "pure",
               "std"
             ]
           },
@@ -26409,6 +27137,68 @@
             "build_dependencies": [],
             "features": [
               "termination"
+            ]
+          },
+          "curve25519-dalek-4.1.3": {
+            "runtime_dependencies": [
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.5",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "digest",
+                "package_key": "digest-0.10.7",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "subtle",
+                "package_key": "subtle-2.6.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "zeroize",
+                "package_key": "zeroize-1.9.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "rustc_version",
+                "package_key": "rustc_version-0.4.1",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "alloc",
+              "digest",
+              "precomputed-tables",
+              "zeroize"
             ]
           },
           "dispatch-0.2.0": {
@@ -26993,7 +27783,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.208": {
+          "mado-0.1.209": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27104,7 +27894,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.5",
+                "package_key": "engate-attach-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31347,6 +32137,7 @@
             ],
             "features": [
               "default",
+              "pure",
               "std"
             ]
           },
@@ -31561,6 +32352,68 @@
             "build_dependencies": [],
             "features": [
               "termination"
+            ]
+          },
+          "curve25519-dalek-4.1.3": {
+            "runtime_dependencies": [
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.5",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "digest",
+                "package_key": "digest-0.10.7",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "subtle",
+                "package_key": "subtle-2.6.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "zeroize",
+                "package_key": "zeroize-1.9.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "rustc_version",
+                "package_key": "rustc_version-0.4.1",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "alloc",
+              "digest",
+              "precomputed-tables",
+              "zeroize"
             ]
           },
           "dlib-0.5.3": {
@@ -32094,7 +32947,7 @@
               "system"
             ]
           },
-          "mado-0.1.208": {
+          "mado-0.1.209": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32195,7 +33048,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.5",
+                "package_key": "engate-attach-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35505,6 +36358,7 @@
             ],
             "features": [
               "default",
+              "pure",
               "std"
             ]
           },
@@ -35719,6 +36573,68 @@
             "build_dependencies": [],
             "features": [
               "termination"
+            ]
+          },
+          "curve25519-dalek-4.1.3": {
+            "runtime_dependencies": [
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.5",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "digest",
+                "package_key": "digest-0.10.7",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "subtle",
+                "package_key": "subtle-2.6.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "zeroize",
+                "package_key": "zeroize-1.9.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "rustc_version",
+                "package_key": "rustc_version-0.4.1",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "alloc",
+              "digest",
+              "precomputed-tables",
+              "zeroize"
             ]
           },
           "dlib-0.5.3": {
@@ -36252,7 +37168,7 @@
               "system"
             ]
           },
-          "mado-0.1.208": {
+          "mado-0.1.209": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36353,7 +37269,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.5",
+                "package_key": "engate-attach-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39649,6 +40565,7 @@
             ],
             "features": [
               "default",
+              "pure",
               "std"
             ]
           },
@@ -39940,6 +40857,126 @@
             "features": [
               "termination"
             ]
+          },
+          "curve25519-dalek-4.1.3": {
+            "runtime_dependencies": [
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.5",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cpufeatures",
+                "package_key": "cpufeatures-0.2.17",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_arch = \"x86_64\")",
+                "tree": "target"
+              },
+              {
+                "name": "curve25519_dalek_derive",
+                "package_key": "curve25519-dalek-derive-0.1.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(all(not(curve25519_dalek_backend = \"fiat\"), not(curve25519_dalek_backend = \"serial\"), target_arch = \"x86_64\"))",
+                "tree": "host"
+              },
+              {
+                "name": "digest",
+                "package_key": "digest-0.10.7",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "subtle",
+                "package_key": "subtle-2.6.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "zeroize",
+                "package_key": "zeroize-1.9.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "rustc_version",
+                "package_key": "rustc_version-0.4.1",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "alloc",
+              "digest",
+              "precomputed-tables",
+              "zeroize"
+            ]
+          },
+          "curve25519-dalek-derive-0.1.1": {
+            "runtime_dependencies": [
+              {
+                "name": "proc_macro2",
+                "package_key": "proc-macro2-1.0.107",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "quote",
+                "package_key": "quote-1.0.47",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "syn",
+                "package_key": "syn-2.0.119",
+                "kind": "normal",
+                "features": [
+                  "full"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "dispatch-0.2.0": {
             "runtime_dependencies": [],
@@ -40533,7 +41570,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.208": {
+          "mado-0.1.209": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40644,7 +41681,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.5",
+                "package_key": "engate-attach-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44920,6 +45957,7 @@
             ],
             "features": [
               "default",
+              "pure",
               "std"
             ]
           },
@@ -45109,6 +46147,126 @@
             "features": [
               "termination"
             ]
+          },
+          "curve25519-dalek-4.1.3": {
+            "runtime_dependencies": [
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.5",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cpufeatures",
+                "package_key": "cpufeatures-0.2.17",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_arch = \"x86_64\")",
+                "tree": "target"
+              },
+              {
+                "name": "curve25519_dalek_derive",
+                "package_key": "curve25519-dalek-derive-0.1.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(all(not(curve25519_dalek_backend = \"fiat\"), not(curve25519_dalek_backend = \"serial\"), target_arch = \"x86_64\"))",
+                "tree": "host"
+              },
+              {
+                "name": "digest",
+                "package_key": "digest-0.10.7",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "subtle",
+                "package_key": "subtle-2.6.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "zeroize",
+                "package_key": "zeroize-1.9.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "rustc_version",
+                "package_key": "rustc_version-0.4.1",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "alloc",
+              "digest",
+              "precomputed-tables",
+              "zeroize"
+            ]
+          },
+          "curve25519-dalek-derive-0.1.1": {
+            "runtime_dependencies": [
+              {
+                "name": "proc_macro2",
+                "package_key": "proc-macro2-1.0.107",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "quote",
+                "package_key": "quote-1.0.47",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "syn",
+                "package_key": "syn-2.0.119",
+                "kind": "normal",
+                "features": [
+                  "full"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "dlib-0.5.3": {
             "runtime_dependencies": [
@@ -45651,7 +46809,7 @@
               "system"
             ]
           },
-          "mado-0.1.208": {
+          "mado-0.1.209": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45752,7 +46910,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.5",
+                "package_key": "engate-attach-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49095,6 +50253,7 @@
             ],
             "features": [
               "default",
+              "pure",
               "std"
             ]
           },
@@ -49284,6 +50443,126 @@
             "features": [
               "termination"
             ]
+          },
+          "curve25519-dalek-4.1.3": {
+            "runtime_dependencies": [
+              {
+                "name": "cfg_if",
+                "package_key": "cfg-if-1.0.5",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "cpufeatures",
+                "package_key": "cpufeatures-0.2.17",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_arch = \"x86_64\")",
+                "tree": "target"
+              },
+              {
+                "name": "curve25519_dalek_derive",
+                "package_key": "curve25519-dalek-derive-0.1.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(all(not(curve25519_dalek_backend = \"fiat\"), not(curve25519_dalek_backend = \"serial\"), target_arch = \"x86_64\"))",
+                "tree": "host"
+              },
+              {
+                "name": "digest",
+                "package_key": "digest-0.10.7",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "subtle",
+                "package_key": "subtle-2.6.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "zeroize",
+                "package_key": "zeroize-1.9.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [
+              {
+                "name": "rustc_version",
+                "package_key": "rustc_version-0.4.1",
+                "kind": "build",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              }
+            ],
+            "features": [
+              "alloc",
+              "digest",
+              "precomputed-tables",
+              "zeroize"
+            ]
+          },
+          "curve25519-dalek-derive-0.1.1": {
+            "runtime_dependencies": [
+              {
+                "name": "proc_macro2",
+                "package_key": "proc-macro2-1.0.107",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "quote",
+                "package_key": "quote-1.0.47",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "syn",
+                "package_key": "syn-2.0.119",
+                "kind": "normal",
+                "features": [
+                  "full"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "dlib-0.5.3": {
             "runtime_dependencies": [
@@ -49826,7 +51105,7 @@
               "system"
             ]
           },
-          "mado-0.1.208": {
+          "mado-0.1.209": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49927,7 +51206,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.5",
+                "package_key": "engate-attach-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53235,6 +54514,38 @@
     "block2-0.6.2": {
       "edition": "2021"
     },
+    "blue-lang-bidama-0.0.85": {
+      "edition": "2021"
+    },
+    "blue-lang-check-0.0.85": {
+      "edition": "2021"
+    },
+    "blue-lang-fmt-0.0.85": {
+      "edition": "2021"
+    },
+    "blue-lang-host-0.0.85": {
+      "edition": "2021"
+    },
+    "blue-lang-host-macros-0.0.85": {
+      "edition": "2021",
+      "proc_macro": true
+    },
+    "blue-lang-pkg-0.0.85": {
+      "edition": "2021",
+      "build_script": "build.rs"
+    },
+    "blue-lang-proc-0.0.85": {
+      "edition": "2021"
+    },
+    "blue-lang-runtime-0.0.85": {
+      "edition": "2021"
+    },
+    "blue-lang-syntax-0.0.85": {
+      "edition": "2021"
+    },
+    "blue-lang-waku-0.0.85": {
+      "edition": "2021"
+    },
     "borsh-1.8.1": {
       "edition": "2018",
       "build_script": "build.rs",
@@ -53403,6 +54714,9 @@
     "cosmic-text-0.14.2": {
       "edition": "2021"
     },
+    "countme-3.0.1": {
+      "edition": "2018"
+    },
     "cpufeatures-0.2.17": {
       "edition": "2018"
     },
@@ -53458,6 +54772,14 @@
     },
     "cursor-icon-1.2.0": {
       "edition": "2021"
+    },
+    "curve25519-dalek-4.1.3": {
+      "edition": "2021",
+      "build_script": "build.rs"
+    },
+    "curve25519-dalek-derive-0.1.1": {
+      "edition": "2021",
+      "proc_macro": true
     },
     "darling-0.20.11": {
       "edition": "2021"
@@ -53565,6 +54887,12 @@
     "dyn-clone-1.0.20": {
       "edition": "2018"
     },
+    "ed25519-2.2.3": {
+      "edition": "2021"
+    },
+    "ed25519-dalek-2.2.0": {
+      "edition": "2021"
+    },
     "educe-0.6.0": {
       "edition": "2021",
       "proc_macro": true
@@ -53579,7 +54907,7 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "engate-attach-0.1.5": {
+    "engate-attach-0.1.6": {
       "edition": "2024"
     },
     "engate-types-0.1.6": {
@@ -54104,7 +55432,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.208": {
+    "mado-0.1.209": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54182,7 +55510,7 @@
     "monosashi-0.3.64": {
       "edition": "2021"
     },
-    "monosashi-0.4.7": {
+    "monosashi-0.4.8": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -54724,6 +56052,12 @@
       "edition": "2024",
       "proc_macro": true
     },
+    "rnix-0.14.0": {
+      "edition": "2021"
+    },
+    "rowan-0.16.1": {
+      "edition": "2021"
+    },
     "roxmltree-0.20.0": {
       "edition": "2021"
     },
@@ -55108,14 +56442,14 @@
     "tatara-closed-set-0.3.64": {
       "edition": "2021"
     },
-    "tatara-closed-set-0.4.7": {
+    "tatara-closed-set-0.4.8": {
       "edition": "2021"
     },
     "tatara-closed-set-derive-0.3.64": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-closed-set-derive-0.4.7": {
+    "tatara-closed-set-derive-0.4.8": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -55131,21 +56465,21 @@
     "tatara-lisp-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-0.4.7": {
+    "tatara-lisp-0.4.8": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.3.52": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.4.7": {
+    "tatara-lisp-derive-0.4.8": {
       "edition": "2021",
       "proc_macro": true
     },
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-eval-0.4.7": {
+    "tatara-lisp-eval-0.4.8": {
       "edition": "2021"
     },
     "tatara-nix-0.2.568": {
@@ -55205,6 +56539,9 @@
       "edition": "2015"
     },
     "termcolor-1.4.1": {
+      "edition": "2018"
+    },
+    "text-size-1.1.1": {
       "edition": "2018"
     },
     "thiserror-1.0.69": {
@@ -55459,19 +56796,19 @@
     "vigy-0.1.9": {
       "edition": "2021"
     },
-    "vigy-eval-0.1.9": {
+    "vigy-eval-0.1.10": {
       "edition": "2021"
     },
     "vigy-mcp-0.1.9": {
       "edition": "2021"
     },
-    "vigy-runtime-0.1.9": {
+    "vigy-runtime-0.1.10": {
       "edition": "2021"
     },
-    "vigy-store-0.1.9": {
+    "vigy-store-0.1.10": {
       "edition": "2021"
     },
-    "vigy-types-0.1.9": {
+    "vigy-types-0.1.10": {
       "edition": "2021"
     },
     "vte-0.15.0": {
