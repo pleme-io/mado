@@ -604,10 +604,12 @@ mod tests {
         let old = DaemonIdentity::from_hello(DaemonHello {
             daemon_version: "0.1.37".into(),
             capabilities: vec!["spawn-args".into()],
+            pid: None,
         });
         let new = DaemonIdentity::from_hello(DaemonHello {
             daemon_version: "0.1.38".into(),
             capabilities: vec!["replay-modes".into()],
+            pid: None,
         });
         assert_eq!(
             CursorKeysSource::Mirror.resolve(&new),

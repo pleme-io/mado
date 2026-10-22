@@ -3219,6 +3219,45 @@ mod tests {
     }
 
     #[test]
+    fn a_switch_refused_as_too_large_for_one_frame_is_a_snapshot_too_large_fault() {
+        let inproc = Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let (a_sid, a) = live_session(&inproc, "a");
+        let (b_sid, b) = live_session(&inproc, "b");
+        let terminal: crate::render::SharedTerminal = Arc::new(parking_lot::RwLock::new(
+            crate::terminal::Terminal::with_scrollback(80, 24, 100),
+        ));
+        let current = CurrentPane::Shared(Arc::new(parking_lot::RwLock::new(a)));
+        let rebuilt = rebuild_displayed(
+            b,
+            a,
+            true,
+            &terminal,
+            Some(&current),
+            |pane| {
+                if pane == b {
+                    Err(engate_types::AttachError::StateExceedsFrame(format!(
+                        "{}: PaneSnapshot is at least 16777217 B",
+                        tear_types::wire::RESPONSE_TOO_LARGE
+                    )))
+                } else {
+                    Ok(())
+                }
+            },
+            |site| site.located(&*inproc),
+        );
+        assert_eq!(rebuilt.showing, a);
+        let fault = rebuilt.fault.expect("the refused switch is a fault");
+        assert_eq!(fault.kind(), PaneFaultKind::SnapshotTooLarge);
+        assert_eq!(fault.site().pane, b);
+        assert_eq!(fault.site().session, Some(b_sid));
+        assert_eq!(fault.site().previous, Some(a));
+        for sid in [a_sid, b_sid] {
+            inproc.kill_session(sid).ok();
+        }
+    }
+
+    #[test]
     fn with_recovery_off_a_failed_switch_keeps_the_old_behaviour() {
         let inproc = Arc::new(tear_core::InProcess::new());
         inproc.set_spawn_env(tear_types::SpawnEnv::none());

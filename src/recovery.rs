@@ -157,6 +157,10 @@ impl PaneFault {
                 site,
                 detail: error.to_string(),
             },
+            AttachError::StateExceedsFrame(_) => Self::SnapshotTooLarge {
+                site,
+                detail: error.to_string(),
+            },
         }
     }
 }
@@ -414,6 +418,10 @@ mod tests {
             (
                 AttachError::Transport("x".into()),
                 PaneFaultKind::DaemonUnreachable,
+            ),
+            (
+                AttachError::StateExceedsFrame("x".into()),
+                PaneFaultKind::SnapshotTooLarge,
             ),
         ] {
             assert_eq!(PaneFault::from_attach(site(), &error).kind(), want);
