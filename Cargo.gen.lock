@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "5eceeb09ec4681758b334921968ed5b9f6391104151fc78088faf6569768df62",
+  "cargo_lock_sha256": "c26f4bc63be939cdee373624a2973ee5eac179aa7a2ff1742fbba7d446a32ea4",
   "manifest_sha256": {
-    "Cargo.toml": "9e4d062f7e401ebce11bb5180f83396887f77ad72b36996b2599032bb35f05f4"
+    "Cargo.toml": "f74affec978f71b6ba8c6c513b548ebac079667d1b9c20d2b5fc53d6d368b111"
   },
   "target_resolves": {
     "base": {
@@ -420,7 +420,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -635,7 +635,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5298,7 +5298,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "io-util"
@@ -5412,7 +5412,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "rt",
@@ -6093,7 +6093,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "sync"
@@ -6212,7 +6212,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "io-std",
@@ -6318,7 +6318,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6408,7 +6408,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6430,7 +6430,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "icu_collections-2.3.0": {
+      "icu_collections-2.4.0": {
         "runtime_dependencies": [
           {
             "name": "displaydoc",
@@ -6466,7 +6466,7 @@
           },
           {
             "name": "yoke",
-            "package_key": "yoke-0.8.3",
+            "package_key": "yoke-0.8.4",
             "kind": "normal",
             "features": [
               "derive"
@@ -6490,7 +6490,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.8",
+            "package_key": "zerovec-0.11.9",
             "kind": "normal",
             "features": [
               "derive",
@@ -6505,7 +6505,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "icu_locale_core-2.3.0": {
+      "icu_locale_core-2.4.0": {
         "runtime_dependencies": [
           {
             "name": "displaydoc",
@@ -6529,7 +6529,7 @@
           },
           {
             "name": "tinystr",
-            "package_key": "tinystr-0.8.4",
+            "package_key": "tinystr-0.8.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6549,7 +6549,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.8",
+            "package_key": "zerovec-0.11.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6563,11 +6563,11 @@
           "zerovec"
         ]
       },
-      "icu_normalizer-2.3.0": {
+      "icu_normalizer-2.4.0": {
         "runtime_dependencies": [
           {
             "name": "icu_collections",
-            "package_key": "icu_collections-2.3.0",
+            "package_key": "icu_collections-2.4.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6577,7 +6577,7 @@
           },
           {
             "name": "icu_normalizer_data",
-            "package_key": "icu_normalizer_data-2.3.0",
+            "package_key": "icu_normalizer_data-2.4.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6587,7 +6587,7 @@
           },
           {
             "name": "icu_provider",
-            "package_key": "icu_provider-2.3.1",
+            "package_key": "icu_provider-2.4.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6607,7 +6607,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.8",
+            "package_key": "zerovec-0.11.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6621,12 +6621,12 @@
           "compiled_data"
         ]
       },
-      "icu_normalizer_data-2.3.0": {
+      "icu_normalizer_data-2.4.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
       },
-      "icu_properties-2.3.0": {
+      "icu_properties-2.4.0": {
         "runtime_dependencies": [
           {
             "name": "displaydoc",
@@ -6640,7 +6640,7 @@
           },
           {
             "name": "icu_collections",
-            "package_key": "icu_collections-2.3.0",
+            "package_key": "icu_collections-2.4.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6650,7 +6650,7 @@
           },
           {
             "name": "icu_locale_core",
-            "package_key": "icu_locale_core-2.3.0",
+            "package_key": "icu_locale_core-2.4.0",
             "kind": "normal",
             "features": [
               "zerovec"
@@ -6662,7 +6662,7 @@
           },
           {
             "name": "icu_properties_data",
-            "package_key": "icu_properties_data-2.3.0",
+            "package_key": "icu_properties_data-2.4.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6672,7 +6672,7 @@
           },
           {
             "name": "icu_provider",
-            "package_key": "icu_provider-2.3.1",
+            "package_key": "icu_provider-2.4.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6695,7 +6695,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.8",
+            "package_key": "zerovec-0.11.9",
             "kind": "normal",
             "features": [
               "derive",
@@ -6712,12 +6712,12 @@
           "compiled_data"
         ]
       },
-      "icu_properties_data-2.3.0": {
+      "icu_properties_data-2.4.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
       },
-      "icu_provider-2.3.1": {
+      "icu_provider-2.4.0": {
         "runtime_dependencies": [
           {
             "name": "displaydoc",
@@ -6731,7 +6731,7 @@
           },
           {
             "name": "icu_locale_core",
-            "package_key": "icu_locale_core-2.3.0",
+            "package_key": "icu_locale_core-2.4.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6751,7 +6751,7 @@
           },
           {
             "name": "yoke",
-            "package_key": "yoke-0.8.3",
+            "package_key": "yoke-0.8.4",
             "kind": "normal",
             "features": [
               "derive"
@@ -6785,7 +6785,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.8",
+            "package_key": "zerovec-0.11.9",
             "kind": "normal",
             "features": [
               "derive"
@@ -6881,7 +6881,7 @@
         "runtime_dependencies": [
           {
             "name": "icu_normalizer",
-            "package_key": "icu_normalizer-2.3.0",
+            "package_key": "icu_normalizer-2.4.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6891,7 +6891,7 @@
           },
           {
             "name": "icu_properties",
-            "package_key": "icu_properties-2.3.0",
+            "package_key": "icu_properties-2.4.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -7451,7 +7451,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "macros",
@@ -7849,7 +7849,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "io-util",
@@ -8320,7 +8320,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "signal",
@@ -8786,7 +8786,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "time"
@@ -9559,7 +9559,7 @@
           "std"
         ]
       },
-      "memmap2-0.9.11": {
+      "memmap2-0.9.12": {
         "runtime_dependencies": [
           {
             "name": "libc",
@@ -10569,7 +10569,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "io-util",
@@ -12490,7 +12490,7 @@
         "runtime_dependencies": [
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.8",
+            "package_key": "zerovec-0.11.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -12731,7 +12731,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "io-util",
@@ -13199,7 +13199,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "sync"
@@ -14268,7 +14268,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "net",
@@ -14515,7 +14515,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "macros",
@@ -15293,7 +15293,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "macros",
@@ -15924,7 +15924,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "macros",
@@ -17253,7 +17253,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "rt-multi-thread"
@@ -18046,7 +18046,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "fs",
@@ -18360,7 +18360,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "fs",
@@ -21622,7 +21622,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "macros",
@@ -22398,7 +22398,7 @@
           "serde"
         ]
       },
-      "tinystr-0.8.4": {
+      "tinystr-0.8.5": {
         "runtime_dependencies": [
           {
             "name": "displaydoc",
@@ -22412,7 +22412,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.8",
+            "package_key": "zerovec-0.11.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -22536,7 +22536,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "net",
@@ -22574,7 +22574,7 @@
           "default"
         ]
       },
-      "tokio-1.54.0": {
+      "tokio-1.54.1": {
         "runtime_dependencies": [
           {
             "name": "bytes",
@@ -22760,7 +22760,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22800,7 +22800,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "sync"
@@ -22882,7 +22882,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "sync"
@@ -23185,7 +23185,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23368,7 +23368,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -24475,7 +24475,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "fs",
@@ -24552,7 +24552,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "fs",
@@ -24662,7 +24662,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "fs",
@@ -24843,7 +24843,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.54.0",
+            "package_key": "tokio-1.54.1",
             "kind": "normal",
             "features": [
               "fs",
@@ -25517,7 +25517,7 @@
           "std"
         ]
       },
-      "yoke-0.8.3": {
+      "yoke-0.8.4": {
         "runtime_dependencies": [
           {
             "name": "stable_deref_trait",
@@ -25770,7 +25770,7 @@
           },
           {
             "name": "yoke",
-            "package_key": "yoke-0.8.3",
+            "package_key": "yoke-0.8.4",
             "kind": "normal",
             "features": [
               "derive"
@@ -25797,11 +25797,11 @@
           "zerofrom"
         ]
       },
-      "zerovec-0.11.8": {
+      "zerovec-0.11.9": {
         "runtime_dependencies": [
           {
             "name": "yoke",
-            "package_key": "yoke-0.8.3",
+            "package_key": "yoke-0.8.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -25821,7 +25821,7 @@
           },
           {
             "name": "zerovec_derive",
-            "package_key": "zerovec-derive-0.11.6",
+            "package_key": "zerovec-derive-0.11.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -25836,7 +25836,7 @@
           "yoke"
         ]
       },
-      "zerovec-derive-0.11.6": {
+      "zerovec-derive-0.11.7": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -26552,7 +26552,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26845,7 +26845,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -26993,7 +26993,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.204": {
+          "mado-0.1.205": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27399,7 +27399,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.4",
+                "package_key": "open-5.4.5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27726,7 +27726,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -29894,7 +29894,7 @@
               "std"
             ]
           },
-          "open-5.4.4": {
+          "open-5.4.5": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -31682,7 +31682,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31893,7 +31893,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -32094,7 +32094,7 @@
               "system"
             ]
           },
-          "mado-0.1.204": {
+          "mado-0.1.205": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32430,7 +32430,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.4",
+                "package_key": "open-5.4.5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32757,7 +32757,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -32944,7 +32944,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.4": {
+          "open-5.4.5": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -33406,7 +33406,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33508,7 +33508,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34882,7 +34882,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35840,7 +35840,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36051,7 +36051,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -36252,7 +36252,7 @@
               "system"
             ]
           },
-          "mado-0.1.204": {
+          "mado-0.1.205": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36588,7 +36588,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.4",
+                "package_key": "open-5.4.5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36915,7 +36915,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -37102,7 +37102,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.4": {
+          "open-5.4.5": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -37564,7 +37564,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37666,7 +37666,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39040,7 +39040,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40092,7 +40092,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40385,7 +40385,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -40533,7 +40533,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.204": {
+          "mado-0.1.205": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40939,7 +40939,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.4",
+                "package_key": "open-5.4.5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41266,7 +41266,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -43434,7 +43434,7 @@
               "std"
             ]
           },
-          "open-5.4.4": {
+          "open-5.4.5": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -45239,7 +45239,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45450,7 +45450,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -45651,7 +45651,7 @@
               "system"
             ]
           },
-          "mado-0.1.204": {
+          "mado-0.1.205": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45987,7 +45987,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.4",
+                "package_key": "open-5.4.5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46314,7 +46314,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -46501,7 +46501,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.4": {
+          "open-5.4.5": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -46962,7 +46962,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47064,7 +47064,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48462,7 +48462,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49414,7 +49414,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49625,7 +49625,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -49826,7 +49826,7 @@
               "system"
             ]
           },
-          "mado-0.1.204": {
+          "mado-0.1.205": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -50162,7 +50162,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.4",
+                "package_key": "open-5.4.5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50489,7 +50489,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.54.0",
+                "package_key": "tokio-1.54.1",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -50676,7 +50676,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.4": {
+          "open-5.4.5": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -51137,7 +51137,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51239,7 +51239,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52637,7 +52637,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.11",
+                "package_key": "memmap2-0.9.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53875,27 +53875,27 @@
     "iana-time-zone-0.1.65": {
       "edition": "2021"
     },
-    "icu_collections-2.3.0": {
+    "icu_collections-2.4.0": {
       "edition": "2024"
     },
-    "icu_locale_core-2.3.0": {
+    "icu_locale_core-2.4.0": {
       "edition": "2024"
     },
-    "icu_normalizer-2.3.0": {
+    "icu_normalizer-2.4.0": {
       "edition": "2024"
     },
-    "icu_normalizer_data-2.3.0": {
+    "icu_normalizer_data-2.4.0": {
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "icu_properties-2.3.0": {
+    "icu_properties-2.4.0": {
       "edition": "2024"
     },
-    "icu_properties_data-2.3.0": {
+    "icu_properties_data-2.4.0": {
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "icu_provider-2.3.1": {
+    "icu_provider-2.4.0": {
       "edition": "2024"
     },
     "icy_sixel-0.5.1": {
@@ -54104,7 +54104,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.204": {
+    "mado-0.1.205": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54154,7 +54154,7 @@
     "memchr-2.8.3": {
       "edition": "2021"
     },
-    "memmap2-0.9.11": {
+    "memmap2-0.9.12": {
       "edition": "2021"
     },
     "memoffset-0.9.1": {
@@ -54335,7 +54335,7 @@
     "oorandom-11.1.5": {
       "edition": "2018"
     },
-    "open-5.4.4": {
+    "open-5.4.5": {
       "edition": "2018",
       "binaries": [
         {
@@ -55245,7 +55245,7 @@
     "tiny-skia-path-0.11.4": {
       "edition": "2018"
     },
-    "tinystr-0.8.4": {
+    "tinystr-0.8.5": {
       "edition": "2021"
     },
     "tinytemplate-1.2.1": {
@@ -55263,7 +55263,7 @@
         }
       ]
     },
-    "tokio-1.54.0": {
+    "tokio-1.54.1": {
       "edition": "2021"
     },
     "tokio-macros-2.7.2": {
@@ -55660,7 +55660,7 @@
     "yazi-0.2.1": {
       "edition": "2021"
     },
-    "yoke-0.8.3": {
+    "yoke-0.8.4": {
       "edition": "2021"
     },
     "yoke-derive-0.8.4": {
@@ -55691,10 +55691,10 @@
     "zerotrie-0.2.5": {
       "edition": "2021"
     },
-    "zerovec-0.11.8": {
+    "zerovec-0.11.9": {
       "edition": "2021"
     },
-    "zerovec-derive-0.11.6": {
+    "zerovec-derive-0.11.7": {
       "edition": "2021",
       "proc_macro": true
     },
