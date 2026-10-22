@@ -29,11 +29,12 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use parking_lot::RwLock;
 use tear_types::{MultiplexerControl, PaneId, SessionSource};
 
 use crate::config::{MadoConfig, MadoTearConfig, TearMode, TearRuntime};
+use crate::recovery::{FaultSite, PaneFault, RecoveryAction};
 use crate::render::{SharedTerminal, TerminalRenderer};
 use crate::session_switch::SwitchRequests;
 use crate::tear_discovery::{DiscoveryOutcome, discover};
@@ -518,7 +519,7 @@ fn stream_lost_but_pane_runs(control: &dyn tear_types::MultiplexerControl, cur: 
 }
 
 /// What an idle tick must do about the pane the window is showing.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum DisplayedPaneFate {
     /// Still running — or the backend could not be read, which is BLIND and
     /// never "gone": a daemon RPC that fails for a moment must not close the
@@ -532,6 +533,7 @@ enum DisplayedPaneFate {
         reap: Option<tear_types::SessionId>,
         next: Option<PaneId>,
     },
+    Blind(String),
 }
 
 /// Decide [`DisplayedPaneFate`] for the displayed pane `cur`.
@@ -556,11 +558,18 @@ fn displayed_pane_fate(
     let exited = match control.get_pane(cur) {
         Ok(p) if matches!(p.state, tear_types::PaneState::Exited { .. }) => true,
         Err(tear_types::ControlError::NoSuchPane(_)) => false,
+        Err(e @ tear_types::ControlError::Transport(_)) => {
+            return DisplayedPaneFate::Blind(e.to_string());
+        }
         // Running, or blind.
         Ok(_) | Err(_) => return DisplayedPaneFate::Keep,
     };
-    let Ok(sessions) = control.list_sessions() else {
-        return DisplayedPaneFate::Keep;
+    let sessions = match control.list_sessions() {
+        Ok(sessions) => sessions,
+        Err(e @ tear_types::ControlError::Transport(_)) => {
+            return DisplayedPaneFate::Blind(e.to_string());
+        }
+        Err(_) => return DisplayedPaneFate::Keep,
     };
     let owner = session_of_pane(&sessions, cur);
     let reap = if exited {
@@ -629,6 +638,157 @@ fn leave_displayed_pane(
     }
 }
 
+fn initial_pane_size(
+    control: &dyn tear_types::MultiplexerControl,
+    pane: PaneId,
+    recovery: bool,
+) -> Result<(usize, usize, Option<PaneFault>)> {
+    match control.pane_snapshot(pane) {
+        Ok(snapshot) => Ok((snapshot.cols, snapshot.rows, None)),
+        Err(e) if recovery => {
+            let (cols, rows) = control.get_pane(pane).map_or((80, 24), |p| p.size_cells);
+            let fault = PaneFault::from_control(FaultSite::new(pane).located(control), &e);
+            tracing::warn!(pane = %pane, error = %e, "pane snapshot refused; opening the window on the recovery overlay");
+            Ok((usize::from(cols), usize::from(rows), Some(fault)))
+        }
+        Err(e) => Err(anyhow::Error::new(e).context(format!("pane_snapshot({pane})"))),
+    }
+}
+
+struct Rebuilt<S> {
+    stream: Option<S>,
+    fault: Option<PaneFault>,
+    showing: PaneId,
+}
+
+fn rebuild_displayed<S>(
+    target: PaneId,
+    from: PaneId,
+    recovery: bool,
+    terminal: &SharedTerminal,
+    current: Option<&CurrentPane>,
+    mut attach: impl FnMut(PaneId) -> std::result::Result<S, engate_types::AttachError>,
+    locate: impl Fn(FaultSite) -> FaultSite,
+) -> Rebuilt<S> {
+    let point = |pane: PaneId| {
+        terminal.write().reset();
+        if let Some(cp) = current {
+            cp.set(pane);
+        }
+    };
+    point(target);
+    let error = match attach(target) {
+        Ok(stream) => {
+            return Rebuilt {
+                stream: Some(stream),
+                fault: None,
+                showing: target,
+            };
+        }
+        Err(e) => e,
+    };
+    tracing::warn!(
+        error = %error,
+        to = ?target,
+        "session switch: rebuild attach failed; staying on prior pane state"
+    );
+    if !recovery {
+        return Rebuilt {
+            stream: None,
+            fault: None,
+            showing: target,
+        };
+    }
+    let fault = PaneFault::from_attach(
+        locate(FaultSite::new(target).with_previous(Some(from))),
+        &error,
+    );
+    if from == target {
+        return Rebuilt {
+            stream: None,
+            fault: Some(fault),
+            showing: target,
+        };
+    }
+    point(from);
+    let stream = match attach(from) {
+        Ok(stream) => Some(stream),
+        Err(e) => {
+            tracing::warn!(error = %e, pane = ?from, "session switch: returning to the previous pane failed too");
+            None
+        }
+    };
+    Rebuilt {
+        stream,
+        fault: Some(fault),
+        showing: from,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RecoveryStep {
+    Reattach(PaneId),
+    Refeed(PaneId),
+    Killed { displayed: bool },
+    Nothing,
+}
+
+fn recovery_step(
+    action: RecoveryAction,
+    fault: &PaneFault,
+    control: &dyn tear_types::MultiplexerControl,
+    displayed: PaneId,
+    switchable: bool,
+) -> RecoveryStep {
+    let site = fault.site();
+    match action {
+        RecoveryAction::Retry if switchable => RecoveryStep::Reattach(site.pane),
+        RecoveryAction::Retry => RecoveryStep::Refeed(displayed),
+        RecoveryAction::SwitchToPrevious => match site.previous {
+            Some(previous) if switchable => RecoveryStep::Reattach(previous),
+            Some(_) | None => RecoveryStep::Nothing,
+        },
+        RecoveryAction::KillSession => match site.session {
+            Some(session) => match control.kill_session(session) {
+                Ok(()) => {
+                    tracing::info!(session = %session, pane = %site.pane, "recovery: killed the faulted session");
+                    RecoveryStep::Killed {
+                        displayed: site.pane == displayed,
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, session = %session, "recovery: kill_session failed");
+                    RecoveryStep::Nothing
+                }
+            },
+            None => RecoveryStep::Nothing,
+        },
+        RecoveryAction::OpenSessionPicker | RecoveryAction::Dismiss => RecoveryStep::Nothing,
+    }
+}
+
+fn report_fault(engine: &mut crate::ux::InputEngine, recovery: bool, fault: PaneFault) {
+    if !recovery {
+        tracing::warn!(fault = %fault, "pane fault");
+        return;
+    }
+    let line = fault.to_string();
+    if engine.record_fault(fault) {
+        tracing::warn!(fault = %line, "pane fault: recovery overlay shown");
+    }
+}
+
+fn feeder_fault(pane: PaneId, error: &anyhow::Error) -> PaneFault {
+    let site = FaultSite::new(pane);
+    match error.downcast_ref::<engate_types::AttachError>() {
+        Some(attach) => PaneFault::from_attach(site, attach),
+        None => PaneFault::AttachFailed {
+            site,
+            detail: error.to_string(),
+        },
+    }
+}
+
 fn pump_displayed<P>(
     stream: &mut crate::pane_stream::PaneStream<P>,
     fate: &mut crate::pane_stream::FateWatch,
@@ -653,6 +813,7 @@ fn run_against_pane_unified<P, C>(
     pane_id: PaneId,
     snapshot_cols: usize,
     snapshot_rows: usize,
+    initial_fault: Option<PaneFault>,
     config: MadoConfig,
     owned_session_id: Option<tear_types::SessionId>,
     title_kind: &str,
@@ -691,6 +852,8 @@ where
 
     let cols = snapshot_cols.max(1);
     let rows = snapshot_rows.max(1);
+    let recovery_enabled = config.tear.recovery_menu.enabled;
+    let mut pending_fault = initial_fault;
 
     // The pane the per-pane closures target. `Fixed` on the legacy
     // path (one binding for the window's lifetime, a Copy read);
@@ -863,7 +1026,10 @@ where
     let attach_stream = move |producer_for: &ProducerFor<P>,
                               pane: PaneId,
                               response_writer: crate::engate_consumer::ResponseWriter|
-          -> Result<crate::pane_stream::PaneStream<P>> {
+          -> std::result::Result<
+        crate::pane_stream::PaneStream<P>,
+        engate_types::AttachError,
+    > {
         resolve_cursor_keys_for_attach();
         crate::pane_stream::PaneStream::attach(
             |waker| producer_for(pane, waker),
@@ -872,7 +1038,6 @@ where
             response_writer,
             &bell_for_attach,
         )
-        .context("engate attach")
     };
 
     // Shell-exit detection: when the engate Producer's bytes channel
@@ -894,23 +1059,34 @@ where
     //     old pane's subscriber (dropping the cell unsubscribes; it does
     //     not EOF the PTY).
     let mut live_cell: Option<crate::pane_stream::PaneStream<P>> = None;
+    let feeder_name = format!("mado-engate-live-{title_kind}");
     if switch.is_none() {
         resolve_cursor_keys();
-        crate::pane_stream::spawn_feeder(
+        match crate::pane_stream::spawn_feeder(
             producer_for(pane_id, std::task::Waker::noop().clone()),
             &crate::perf::UI_TEAR_CALLS,
             Arc::clone(&terminal),
             Arc::clone(&response_writer),
             bell.clone(),
             Arc::clone(&child_exited),
-            format!("mado-engate-live-{title_kind}"),
-        )?;
+            feeder_name.clone(),
+        ) {
+            Ok(()) => {}
+            Err(e) if recovery_enabled => {
+                let fault = feeder_fault(pane_id, &e);
+                pending_fault.get_or_insert(fault);
+            }
+            Err(e) => return Err(e),
+        }
     } else {
-        live_cell = Some(attach_stream(
-            &producer_for,
-            pane_id,
-            Arc::clone(&response_writer),
-        )?);
+        match attach_stream(&producer_for, pane_id, Arc::clone(&response_writer)) {
+            Ok(stream) => live_cell = Some(stream),
+            Err(e) if recovery_enabled => {
+                let fault = PaneFault::from_attach(FaultSite::new(pane_id).located(&*control), &e);
+                pending_fault.get_or_insert(fault);
+            }
+            Err(e) => return Err(anyhow::Error::new(e).context("engate attach")),
+        }
     }
     crate::perf::log_phase("pane_subscribed");
     let mut fate = crate::pane_stream::FateWatch::new(
@@ -991,6 +1167,7 @@ where
         inj.attach_sink();
     }
     let child_exited_for_events = Arc::clone(&child_exited);
+    let bell_for_refeed = bell.clone();
     // macOS window-chrome styling latch (window.macos.* +
     // appearance.background) — same shape as the local-PTY path in
     // main.rs. Without this the tear-attach window never ran
@@ -1079,6 +1256,9 @@ where
             suggest_attention: config.suggestions.attention_on_critical,
         },
     );
+    if let Some(fault) = pending_fault.take() {
+        report_fault(&mut engine, recovery_enabled, fault);
+    }
 
     // ── Switchable-attach loop state ──────────────────────────────
     // Destructure the switch driver into the pieces the event loop
@@ -1173,6 +1353,48 @@ where
                     }
                 }
             }
+            if woke && let Some((action, fault)) = engine.take_recovery_request() {
+                let displayed = current_pane_for_focus.get();
+                match recovery_step(
+                    action,
+                    &fault,
+                    &*control_for_switch,
+                    displayed,
+                    switch_requests.is_some(),
+                ) {
+                    RecoveryStep::Reattach(pane) => {
+                        if let Some(reqs) = switch_requests.as_ref() {
+                            reqs.post_reattach(pane);
+                        }
+                    }
+                    RecoveryStep::Refeed(pane) => {
+                        terminal_for_switch.write().reset();
+                        child_exited_for_events.store(false, Ordering::Release);
+                        match crate::pane_stream::spawn_feeder(
+                            producer_for(pane, std::task::Waker::noop().clone()),
+                            &crate::perf::UI_TEAR_CALLS,
+                            Arc::clone(&terminal_for_switch),
+                            Arc::clone(&response_writer_for_switch),
+                            bell_for_refeed.clone(),
+                            Arc::clone(&child_exited_for_events),
+                            feeder_name.clone(),
+                        ) {
+                            Ok(()) => engine.resolve_fault(pane),
+                            Err(e) => {
+                                report_fault(&mut engine, recovery_enabled, feeder_fault(pane, &e));
+                            }
+                        }
+                    }
+                    RecoveryStep::Killed { displayed: true } if switch_requests.is_none() => {
+                        return EventResponse {
+                            consumed: true,
+                            exit: true,
+                            ..Default::default()
+                        };
+                    }
+                    RecoveryStep::Killed { .. } | RecoveryStep::Nothing => {}
+                }
+            }
             // ── Runtime session switch (tear.session_switching) ──
             // Service the switch channel + drain the switchable attach.
             // The whole block is gated on `switch_requests.is_some()`
@@ -1190,6 +1412,7 @@ where
                     current_pane_for_switch
                         .as_ref()
                         .map(CurrentPane::get)
+                        .filter(|cur| !(recovery_enabled && engine.holds_back_reattach(*cur)))
                         .filter(|cur| stream_lost_but_pane_runs(&*control_for_switch, *cur))
                 } else {
                     None
@@ -1204,68 +1427,54 @@ where
                         .map(CurrentPane::get)
                         .unwrap_or(target);
                     if target != from || forced {
-                        // 1. Drop the old attach — unsubscribes the old
-                        //    pane's byte channel WITHOUT EOF-ing its PTY
-                        //    (the pane stays alive for a later switch
-                        //    back). Done by replacing the cell below.
-                        // 2. Clear the renderer-visible terminal so the
-                        //    old pane's grid doesn't bleed under the new
-                        //    pane's replay (same reset() the RIS path +
-                        //    config hot-reload use).
-                        terminal_for_switch.write().reset();
-                        // 3. Re-point every per-pane closure at the new
-                        //    pane (one cell write).
-                        if let Some(cp) = current_pane_for_switch.as_ref() {
-                            cp.set(target);
-                        }
-                        // 4. Build a fresh engate pump for the new pane
-                        //    + replay its current grid into the cleared
-                        //    terminal, then keep pumping it.
-                        let window_size = {
-                            let t = terminal_for_switch.read();
-                            (t.cols(), t.rows())
-                        };
-                        match resize_then_attach(
-                            switch_sizing,
-                            window_size,
-                            |c, r| {
-                                if let Err(e) = control_for_switch.pane_resize_absolute(target, c, r)
-                                {
-                                    crate::perf::tear_write_failed(
-                                        crate::perf::TearWrite::Resize,
-                                        target,
-                                        0,
-                                        &e,
-                                    );
-                                }
-                            },
-                            || {
-                                attach_stream(
-                                    &producer_for,
-                                    target,
-                                    Arc::clone(&response_writer_for_switch),
+                        let rebuilt = rebuild_displayed(
+                            target,
+                            from,
+                            recovery_enabled,
+                            &terminal_for_switch,
+                            current_pane_for_switch.as_ref(),
+                            |pane| {
+                                let window_size = {
+                                    let t = terminal_for_switch.read();
+                                    (t.cols(), t.rows())
+                                };
+                                resize_then_attach(
+                                    switch_sizing,
+                                    window_size,
+                                    |c, r| {
+                                        if let Err(e) =
+                                            control_for_switch.pane_resize_absolute(pane, c, r)
+                                        {
+                                            crate::perf::tear_write_failed(
+                                                crate::perf::TearWrite::Resize,
+                                                pane,
+                                                0,
+                                                &e,
+                                            );
+                                        }
+                                    },
+                                    || {
+                                        attach_stream(
+                                            &producer_for,
+                                            pane,
+                                            Arc::clone(&response_writer_for_switch),
+                                        )
+                                    },
                                 )
                             },
-                        ) {
-                            Ok(stream) => {
-                                live_cell = Some(stream);
-                                tracing::info!(
-                                    from = ?from,
-                                    to = ?target,
-                                    "session switch: re-attached displayed pane"
-                                );
-                            }
-                            Err(e) => {
-                                tracing::warn!(
-                                    error = %e,
-                                    to = ?target,
-                                    "session switch: rebuild attach failed; staying on prior pane state"
-                                );
-                                // The cell is emptied; closures already
-                                // re-pointed — input still reaches the
-                                // target pane, just no live render pump.
-                                live_cell = None;
-                            }
+                            |site| site.located(&*control_for_switch),
+                        );
+                        live_cell = rebuilt.stream;
+                        if live_cell.is_some() && rebuilt.showing == target {
+                            tracing::info!(
+                                from = ?from,
+                                to = ?target,
+                                "session switch: re-attached displayed pane"
+                            );
+                            engine.resolve_fault(target);
+                        }
+                        if let Some(fault) = rebuilt.fault {
+                            report_fault(&mut engine, recovery_enabled, fault);
                         }
                     }
                 }
@@ -1289,6 +1498,18 @@ where
                     } else {
                         DisplayedPaneFate::Keep
                     };
+                    if let DisplayedPaneFate::Blind(detail) = &verdict
+                        && recovery_enabled
+                    {
+                        report_fault(
+                            &mut engine,
+                            recovery_enabled,
+                            PaneFault::DaemonUnreachable {
+                                site: FaultSite::new(cur),
+                                detail: detail.clone(),
+                            },
+                        );
+                    }
                     if let DisplayedPaneFate::Leave { reap, next } = verdict
                         && leave_displayed_pane(&*control_for_switch, cur, reap, next, reqs)
                     {
@@ -1386,16 +1607,35 @@ where
             // window-loop exit on that wake. Reap the owned tear session
             // too so we don't leak the multiplexer entry.
             if woke && child_exited_for_events.load(Ordering::Acquire) {
-                if let Ok(mut slot) = session_reap.lock() {
-                    if let Some(sid) = slot.take() {
-                        let _ = control_for_reap.kill_session(sid);
-                    }
-                }
-                return EventResponse {
-                    consumed: true,
-                    exit: true,
-                    ..Default::default()
+                let displayed = current_pane_for_focus.get();
+                let blind = match recovery_enabled
+                    .then(|| displayed_pane_fate(&*control_for_reap, displayed))
+                {
+                    Some(DisplayedPaneFate::Blind(detail)) => Some(detail),
+                    _ => None,
                 };
+                if let Some(detail) = blind {
+                    child_exited_for_events.store(false, Ordering::Release);
+                    report_fault(
+                        &mut engine,
+                        recovery_enabled,
+                        PaneFault::DaemonUnreachable {
+                            site: FaultSite::new(displayed),
+                            detail,
+                        },
+                    );
+                } else {
+                    if let Ok(mut slot) = session_reap.lock() {
+                        if let Some(sid) = slot.take() {
+                            let _ = control_for_reap.kill_session(sid);
+                        }
+                    }
+                    return EventResponse {
+                        consumed: true,
+                        exit: true,
+                        ..Default::default()
+                    };
+                }
             }
 
             // ── kanshou-injected actions (`simulate_chord`) ──────
@@ -1908,9 +2148,8 @@ fn run_against_embedded_pane(
     session_picker_bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
     ui: &crate::perf::UiThread,
 ) -> Result<()> {
-    let snapshot = tear
-        .pane_snapshot(pane_id)
-        .with_context(|| format!("inproc.pane_snapshot({pane_id})"))?;
+    let (cols, rows, initial_fault) =
+        initial_pane_size(&tear, pane_id, config.tear.recovery_menu.enabled)?;
     let tear_for_factory = tear.clone();
     let producer_for: ProducerFor<tear_core::engate_producer::PaneProducer> =
         Box::new(move |pane, waker| tear_for_factory.producer(pane, waker));
@@ -1922,8 +2161,9 @@ fn run_against_embedded_pane(
         producer_for,
         Arc::new(tear),
         pane_id,
-        snapshot.cols,
-        snapshot.rows,
+        cols,
+        rows,
+        initial_fault,
         config,
         None, // embedded session dies with mado; no reap needed
         "tear[embedded]",
@@ -2036,9 +2276,8 @@ fn run_against_pane(
     session_picker_bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
     ui: &crate::perf::UiThread,
 ) -> Result<()> {
-    let snapshot = tear
-        .pane_snapshot(pane_id)
-        .with_context(|| format!("pane_snapshot({pane_id})"))?;
+    let (cols, rows, initial_fault) =
+        initial_pane_size(&tear, pane_id, config.tear.recovery_menu.enabled)?;
     let tear_for_factory = tear.clone();
     let producer_for: ProducerFor<tear_client::engate_producer::PaneProducer> =
         Box::new(move |pane, waker| tear_for_factory.producer(pane, waker));
@@ -2053,8 +2292,9 @@ fn run_against_pane(
         producer_for,
         Arc::new(tear),
         pane_id,
-        snapshot.cols,
-        snapshot.rows,
+        cols,
+        rows,
+        initial_fault,
         config,
         owned_session_id,
         "tear",
@@ -2075,11 +2315,13 @@ fn run_against_pane(
 #[cfg(test)]
 mod tests {
     use super::{
-        CurrentPane, DisplayedPaneFate, adoptable_session, directory_session_name,
-        displayed_pane_fate, leave_displayed_pane, pump_displayed, resize_then_attach,
-        resolve_boot_name, tear_pty_sink, tear_resize_sink, with_title,
+        CurrentPane, DisplayedPaneFate, RecoveryStep, adoptable_session, directory_session_name,
+        displayed_pane_fate, initial_pane_size, leave_displayed_pane, pump_displayed,
+        rebuild_displayed, recovery_step, resize_then_attach, resolve_boot_name, tear_pty_sink,
+        tear_resize_sink, with_title,
     };
     use crate::perf::{TEAR_WRITE_FAILURES, TearWrite};
+    use crate::recovery::{FaultSite, PaneFault, PaneFaultKind, RecoveryAction};
     use madori::EventResponse;
     use std::sync::Arc;
     use tear_types::{MultiplexerControl, PaneId, SessionId, SessionSource};
@@ -2680,13 +2922,347 @@ mod tests {
         );
     }
 
-    /// A backend that cannot be read is BLIND: the window keeps its pane. A
-    /// daemon RPC failing for a moment must never close the operator's window.
     #[test]
-    fn an_unreadable_backend_keeps_the_displayed_pane() {
+    fn an_unreadable_backend_is_blind_and_never_closes_the_window() {
         assert_eq!(
             displayed_pane_fate(&tear_picker::testing::Unreachable, PaneId::from_seed("p")),
-            DisplayedPaneFate::Keep
+            DisplayedPaneFate::Blind("backend transport error: daemon unreachable".into())
+        );
+    }
+
+    struct TooLarge(Arc<tear_core::InProcess>);
+
+    impl MultiplexerControl for TooLarge {
+        fn list_sessions(&self) -> tear_types::ControlResult<Vec<tear_types::TearSession>> {
+            self.0.list_sessions()
+        }
+        fn get_session(&self, id: SessionId) -> tear_types::ControlResult<tear_types::TearSession> {
+            self.0.get_session(id)
+        }
+        fn get_window(
+            &self,
+            id: tear_types::WindowId,
+        ) -> tear_types::ControlResult<(SessionId, tear_types::TearWindow)> {
+            self.0.get_window(id)
+        }
+        fn get_pane(&self, id: PaneId) -> tear_types::ControlResult<tear_types::TearPane> {
+            self.0.get_pane(id)
+        }
+        fn new_session_with_source_and_size(
+            &self,
+            name: &str,
+            shell: &str,
+            args: &[String],
+            source: SessionSource,
+            size: (u16, u16),
+        ) -> tear_types::ControlResult<SessionId> {
+            self.0
+                .new_session_with_source_and_size(name, shell, args, source, size)
+        }
+        fn rename_session(&self, id: SessionId, name: &str) -> tear_types::ControlResult<()> {
+            self.0.rename_session(id, name)
+        }
+        fn kill_session(&self, id: SessionId) -> tear_types::ControlResult<()> {
+            self.0.kill_session(id)
+        }
+        fn new_window(
+            &self,
+            session: SessionId,
+            name: &str,
+            shell: &str,
+            args: &[String],
+        ) -> tear_types::ControlResult<tear_types::WindowId> {
+            self.0.new_window(session, name, shell, args)
+        }
+        fn kill_window(&self, id: tear_types::WindowId) -> tear_types::ControlResult<()> {
+            self.0.kill_window(id)
+        }
+        fn select_window(&self, id: tear_types::WindowId) -> tear_types::ControlResult<()> {
+            self.0.select_window(id)
+        }
+        fn split_pane(
+            &self,
+            origin: PaneId,
+            direction: tear_types::Direction,
+            shell: &str,
+            args: &[String],
+        ) -> tear_types::ControlResult<PaneId> {
+            self.0.split_pane(origin, direction, shell, args)
+        }
+        fn kill_pane(&self, id: PaneId) -> tear_types::ControlResult<()> {
+            self.0.kill_pane(id)
+        }
+        fn select_pane(&self, id: PaneId) -> tear_types::ControlResult<()> {
+            self.0.select_pane(id)
+        }
+        fn resize_pane(
+            &self,
+            id: PaneId,
+            direction: tear_types::Direction,
+            delta: i16,
+        ) -> tear_types::ControlResult<()> {
+            self.0.resize_pane(id, direction, delta)
+        }
+        fn apply_layout(
+            &self,
+            window: tear_types::WindowId,
+            kind: tear_types::LayoutKind,
+        ) -> tear_types::ControlResult<()> {
+            self.0.apply_layout(window, kind)
+        }
+        fn send_keys(&self, id: PaneId, bytes: &[u8]) -> tear_types::ControlResult<()> {
+            self.0.send_keys(id, bytes)
+        }
+        fn pane_subscriber_count(&self, id: PaneId) -> tear_types::ControlResult<u32> {
+            self.0.pane_subscriber_count(id)
+        }
+        fn set_input_policy(
+            &self,
+            id: PaneId,
+            policy: tear_types::InputPolicy,
+        ) -> tear_types::ControlResult<()> {
+            self.0.set_input_policy(id, policy)
+        }
+        fn pane_snapshot(
+            &self,
+            _id: PaneId,
+        ) -> tear_types::ControlResult<tear_types::pane_snapshot::PaneSnapshot> {
+            Err(tear_types::ControlError::Rejected(format!(
+                "{}: pane snapshot is 18874368 B, over the 16777216 B frame cap; nothing was sent",
+                tear_types::wire::RESPONSE_TOO_LARGE
+            )))
+        }
+    }
+
+    #[test]
+    fn a_refused_first_snapshot_opens_the_window_on_the_recovery_fault() {
+        let inproc = Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let (sid, pane) = live_session(&inproc, "bluelang-development");
+        let refusing = TooLarge(Arc::clone(&inproc));
+
+        let (cols, rows, fault) =
+            initial_pane_size(&refusing, pane, true).expect("the window opens");
+        assert_eq!((cols, rows), (80, 24), "sized from the pane record");
+        let fault = fault.expect("the refusal is a typed fault");
+        assert_eq!(fault.kind(), PaneFaultKind::SnapshotTooLarge);
+        assert_eq!(fault.site().pane, pane);
+        assert_eq!(fault.site().session, Some(sid), "kill knows its session");
+        assert!(crate::recovery::actions_for(&fault).contains(&RecoveryAction::KillSession));
+
+        assert!(
+            initial_pane_size(&refusing, pane, false).is_err(),
+            "recovery_menu.enabled = false keeps the old fatal path"
+        );
+        let (_, _, none) = initial_pane_size(&*inproc, pane, true).expect("snapshot");
+        assert_eq!(none, None, "a snapshot that fits records nothing");
+        inproc.kill_session(sid).ok();
+    }
+
+    fn rows_of(terminal: &crate::render::SharedTerminal) -> String {
+        mado_rows(terminal).join("\n")
+    }
+
+    #[test]
+    fn a_switch_whose_attach_is_refused_returns_to_the_previous_pane_and_retry_recovers() {
+        let inproc = Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let (a_sid, a) = painted_pane(&inproc, "A");
+        let (b_sid, b) = painted_pane(&inproc, "B");
+        let calls: &'static crate::perf::TearCalls =
+            Box::leak(Box::new(kanshou::metrics::Family::new()));
+        let control = crate::perf::Counted::counting_into(Arc::clone(&inproc), calls);
+        let terminal: crate::render::SharedTerminal = Arc::new(parking_lot::RwLock::new(
+            crate::terminal::Terminal::with_scrollback(80, 24, 100),
+        ));
+        let current = CurrentPane::Shared(Arc::new(parking_lot::RwLock::new(a)));
+        let refuse_b = std::cell::Cell::new(true);
+        let bell = std::task::Waker::noop().clone();
+        let mut attach = |pane: PaneId| {
+            if pane == b && refuse_b.get() {
+                return Err(engate_types::AttachError::SnapshotFailed(format!(
+                    "{}: pane snapshot over the frame cap",
+                    tear_types::wire::RESPONSE_TOO_LARGE
+                )));
+            }
+            crate::pane_stream::PaneStream::attach(
+                |waker| control.producer(pane, waker),
+                calls,
+                Arc::clone(&terminal),
+                Arc::new(|_: &[u8]| {}),
+                &bell,
+            )
+        };
+        let _ui = crate::perf::UiThread::mark();
+        let settle = |stream: &mut Option<crate::pane_stream::PaneStream<_>>| {
+            std::thread::sleep(std::time::Duration::from_millis(400));
+            if let Some(s) = stream.as_mut() {
+                let _ = s.drain(crate::pane_stream::DRAIN_BUDGET);
+            }
+        };
+
+        let mut live = Some(attach(a).expect("attach A"));
+        settle(&mut live);
+        assert!(rows_of(&terminal).contains("A-MARK-TOP"));
+
+        let rebuilt =
+            rebuild_displayed(b, a, true, &terminal, Some(&current), &mut attach, |site| {
+                site.located(&control)
+            });
+        live = rebuilt.stream;
+        settle(&mut live);
+        assert_eq!(
+            rebuilt.showing, a,
+            "the window goes back to the pane it showed"
+        );
+        assert_eq!(current.get(), a, "input goes back to the pane that renders");
+        assert!(live.is_some(), "the previous pane is live again");
+        let shown = rows_of(&terminal);
+        assert!(
+            shown.contains("A-MARK-TOP") && !shown.contains("B-MARK"),
+            "the previous pane is on screen, not a blank window: {shown}"
+        );
+        let fault = rebuilt.fault.expect("the refused switch is a fault");
+        assert_eq!(fault.kind(), PaneFaultKind::AttachFailed);
+        assert_eq!(
+            fault.site(),
+            &FaultSite {
+                pane: b,
+                session: Some(b_sid),
+                previous: Some(a),
+            }
+        );
+
+        let (_renderer, mut engine) = crate::ux::InputEngine::headless(Arc::new(
+            parking_lot::RwLock::new(crate::terminal::Terminal::new(80, 24)),
+        ));
+        assert!(engine.record_fault(fault.clone()));
+        assert_eq!(engine.overlay(), crate::ux::modes::Overlay::Recovery);
+        assert_eq!(
+            engine.recovery_menu().lock().unwrap().results,
+            crate::recovery::actions_for(&fault)
+        );
+
+        engine.overlay_key(crate::ux::modes::OverlayKeyClass::Down);
+        engine.overlay_key(crate::ux::modes::OverlayKeyClass::Enter);
+        let (action, chosen) = engine.take_recovery_request().expect("previous chosen");
+        assert_eq!(action, RecoveryAction::SwitchToPrevious);
+        assert_eq!(
+            recovery_step(action, &chosen, &control, current.get(), true),
+            RecoveryStep::Reattach(a)
+        );
+
+        assert!(engine.record_fault(fault.clone()));
+        engine.overlay_key(crate::ux::modes::OverlayKeyClass::Enter);
+        let (action, chosen) = engine.take_recovery_request().expect("retry chosen");
+        assert_eq!(action, RecoveryAction::Retry);
+        let RecoveryStep::Reattach(target) =
+            recovery_step(action, &chosen, &control, current.get(), true)
+        else {
+            panic!("retry re-attaches the faulted pane");
+        };
+        assert_eq!(target, b);
+
+        refuse_b.set(false);
+        let rebuilt = rebuild_displayed(
+            target,
+            current.get(),
+            true,
+            &terminal,
+            Some(&current),
+            &mut attach,
+            |site| site.located(&control),
+        );
+        assert_eq!(rebuilt.fault, None);
+        assert_eq!(rebuilt.showing, b);
+        live = rebuilt.stream;
+        settle(&mut live);
+        engine.resolve_fault(b);
+        assert_eq!(engine.recovery_fault(), None);
+        assert_eq!(engine.overlay(), crate::ux::modes::Overlay::None);
+        let shown = rows_of(&terminal);
+        assert!(
+            shown.contains("B-MARK-TOP") && !shown.contains("A-MARK"),
+            "the retried pane renders: {shown}"
+        );
+        assert_eq!(current.get(), b);
+        drop(live);
+        for sid in [a_sid, b_sid] {
+            inproc.kill_session(sid).ok();
+        }
+    }
+
+    #[test]
+    fn with_recovery_off_a_failed_switch_keeps_the_old_behaviour() {
+        let inproc = Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let (a_sid, a) = live_session(&inproc, "a");
+        let b = PaneId::from_seed("never-attaches");
+        let terminal: crate::render::SharedTerminal = Arc::new(parking_lot::RwLock::new(
+            crate::terminal::Terminal::with_scrollback(80, 24, 100),
+        ));
+        let current = CurrentPane::Shared(Arc::new(parking_lot::RwLock::new(a)));
+        let rebuilt = rebuild_displayed(
+            b,
+            a,
+            false,
+            &terminal,
+            Some(&current),
+            |_| Err::<(), _>(engate_types::AttachError::SnapshotFailed("x".into())),
+            |site| site,
+        );
+        assert!(rebuilt.stream.is_none());
+        assert_eq!(rebuilt.fault, None);
+        assert_eq!(current.get(), b);
+        inproc.kill_session(a_sid).ok();
+    }
+
+    #[test]
+    fn recovery_steps_route_each_action_through_an_existing_path() {
+        let inproc = tear_core::InProcess::new();
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let (sid, pane) = live_session(&inproc, "doomed");
+        let shown = PaneId::from_seed("shown");
+        let fault = PaneFault::AttachFailed {
+            site: FaultSite::new(pane)
+                .with_previous(Some(shown))
+                .located(&inproc),
+            detail: "x".into(),
+        };
+        assert_eq!(
+            recovery_step(RecoveryAction::Retry, &fault, &inproc, shown, false),
+            RecoveryStep::Refeed(shown),
+            "without switching, retry re-feeds the displayed pane"
+        );
+        assert_eq!(
+            recovery_step(
+                RecoveryAction::SwitchToPrevious,
+                &fault,
+                &inproc,
+                shown,
+                false
+            ),
+            RecoveryStep::Nothing
+        );
+        for action in [RecoveryAction::OpenSessionPicker, RecoveryAction::Dismiss] {
+            assert_eq!(
+                recovery_step(action, &fault, &inproc, shown, true),
+                RecoveryStep::Nothing,
+                "{action:?} is the engine's own"
+            );
+        }
+        assert_eq!(
+            recovery_step(RecoveryAction::KillSession, &fault, &inproc, shown, true),
+            RecoveryStep::Killed { displayed: false }
+        );
+        assert!(
+            inproc.get_session(sid).is_err(),
+            "the faulted session is gone"
+        );
+        assert_eq!(
+            recovery_step(RecoveryAction::KillSession, &fault, &inproc, pane, true),
+            RecoveryStep::Nothing,
+            "a session that is already gone kills nothing"
         );
     }
 

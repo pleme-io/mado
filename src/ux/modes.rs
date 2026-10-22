@@ -78,6 +78,7 @@ pub(crate) enum Overlay {
     /// [`Overlay::SessionPicker`]. Navigation is inert here so the rename
     /// target stays fixed on the row Ctrl-E was pressed on.
     SessionRename,
+    Recovery,
 }
 
 /// Search-nav chords resolved from the keybind atlas (`search_close`
@@ -229,6 +230,7 @@ pub(crate) enum OverlayEvent {
     OpenDirPicker,
     /// `Action::SessionPickerOpen` dispatched (Ctrl-S).
     OpenSessionPicker,
+    OpenRecovery,
     /// A keystroke routed while the machine decides ownership.
     Key(OverlayKey),
 }
@@ -283,6 +285,12 @@ pub(crate) enum OverlayEffect {
     /// on the row that slid into the deleted one's place.
     SessionPickerDelete,
     SessionPickerReattach,
+    RecoveryOpen,
+    RecoveryClose,
+    RecoveryMoveUp,
+    RecoveryMoveDown,
+    RecoveryAccept,
+    RecoveryDismiss,
 }
 
 /// Whether the keystroke was consumed by the overlay or continues
@@ -375,6 +383,7 @@ impl Overlay {
                     vec![
                         OverlayEffect::DirPickerClose,
                         OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::SearchOpen,
                     ],
                 ),
@@ -384,6 +393,7 @@ impl Overlay {
                     vec![
                         OverlayEffect::SearchClose,
                         OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::DirPickerOpen,
                     ],
                 ),
@@ -393,7 +403,18 @@ impl Overlay {
                     vec![
                         OverlayEffect::SearchClose,
                         OverlayEffect::DirPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::SessionPickerOpen,
+                    ],
+                ),
+                OverlayEvent::OpenRecovery => overlay_step(
+                    Overlay::Recovery,
+                    Consumed,
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryOpen,
                     ],
                 ),
                 OverlayEvent::Key(_) => overlay_step(Overlay::None, FallThrough, vec![]),
@@ -410,6 +431,7 @@ impl Overlay {
                     vec![
                         OverlayEffect::DirPickerClose,
                         OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::SearchOpen,
                     ],
                 ),
@@ -426,6 +448,7 @@ impl Overlay {
                     vec![
                         OverlayEffect::SearchClose,
                         OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::DirPickerOpen,
                     ],
                 ),
@@ -435,7 +458,18 @@ impl Overlay {
                     vec![
                         OverlayEffect::SearchClose,
                         OverlayEffect::DirPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::SessionPickerOpen,
+                    ],
+                ),
+                OverlayEvent::OpenRecovery => overlay_step(
+                    Overlay::Recovery,
+                    Consumed,
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryOpen,
                     ],
                 ),
                 OverlayEvent::Key(k) => match k.nav {
@@ -488,6 +522,7 @@ impl Overlay {
                     vec![
                         OverlayEffect::DirPickerClose,
                         OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::SearchOpen,
                     ],
                 ),
@@ -497,6 +532,7 @@ impl Overlay {
                     vec![
                         OverlayEffect::SearchClose,
                         OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::DirPickerOpen,
                     ],
                 ),
@@ -506,7 +542,18 @@ impl Overlay {
                     vec![
                         OverlayEffect::SearchClose,
                         OverlayEffect::DirPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::SessionPickerOpen,
+                    ],
+                ),
+                OverlayEvent::OpenRecovery => overlay_step(
+                    Overlay::Recovery,
+                    Consumed,
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryOpen,
                     ],
                 ),
                 OverlayEvent::Key(k) => match k.key {
@@ -577,6 +624,7 @@ impl Overlay {
                     vec![
                         OverlayEffect::DirPickerClose,
                         OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::SearchOpen,
                     ],
                 ),
@@ -586,6 +634,7 @@ impl Overlay {
                     vec![
                         OverlayEffect::SearchClose,
                         OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::DirPickerOpen,
                     ],
                 ),
@@ -595,7 +644,18 @@ impl Overlay {
                     vec![
                         OverlayEffect::SearchClose,
                         OverlayEffect::DirPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::SessionPickerOpen,
+                    ],
+                ),
+                OverlayEvent::OpenRecovery => overlay_step(
+                    Overlay::Recovery,
+                    Consumed,
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryOpen,
                     ],
                 ),
                 OverlayEvent::Key(k) => {
@@ -666,6 +726,7 @@ impl Overlay {
                         OverlayEffect::SessionPickerRenameCancel,
                         OverlayEffect::DirPickerClose,
                         OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::SearchOpen,
                     ],
                 ),
@@ -676,6 +737,7 @@ impl Overlay {
                         OverlayEffect::SessionPickerRenameCancel,
                         OverlayEffect::SearchClose,
                         OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::DirPickerOpen,
                     ],
                 ),
@@ -686,7 +748,19 @@ impl Overlay {
                         OverlayEffect::SessionPickerRenameCancel,
                         OverlayEffect::SearchClose,
                         OverlayEffect::DirPickerClose,
+                        OverlayEffect::RecoveryClose,
                         OverlayEffect::SessionPickerOpen,
+                    ],
+                ),
+                OverlayEvent::OpenRecovery => overlay_step(
+                    Overlay::Recovery,
+                    Consumed,
+                    vec![
+                        OverlayEffect::SessionPickerRenameCancel,
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryOpen,
                     ],
                 ),
                 OverlayEvent::Key(k) => {
@@ -715,6 +789,79 @@ impl Overlay {
                         RenameAction::Ignore => {
                             overlay_step(Overlay::SessionRename, Consumed, vec![])
                         }
+                    }
+                }
+            },
+            Overlay::Recovery => match event {
+                OverlayEvent::OpenSearch => overlay_step(
+                    Overlay::Search,
+                    Consumed,
+                    vec![
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
+                        OverlayEffect::SearchOpen,
+                    ],
+                ),
+                OverlayEvent::OpenDirPicker => overlay_step(
+                    Overlay::DirPicker,
+                    Consumed,
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryClose,
+                        OverlayEffect::DirPickerOpen,
+                    ],
+                ),
+                OverlayEvent::OpenSessionPicker => overlay_step(
+                    Overlay::SessionPicker,
+                    Consumed,
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::RecoveryClose,
+                        OverlayEffect::SessionPickerOpen,
+                    ],
+                ),
+                OverlayEvent::OpenRecovery => overlay_step(
+                    Overlay::Recovery,
+                    Consumed,
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::RecoveryOpen,
+                    ],
+                ),
+                OverlayEvent::Key(k) => {
+                    use tear_picker::PickerAction;
+                    match tear_picker::picker_action(&k.into_picker_key()) {
+                        PickerAction::Close => overlay_step(
+                            Overlay::None,
+                            Consumed,
+                            vec![OverlayEffect::RecoveryDismiss],
+                        ),
+                        PickerAction::Accept => overlay_step(
+                            Overlay::None,
+                            Consumed,
+                            vec![OverlayEffect::RecoveryAccept],
+                        ),
+                        PickerAction::MoveUp => overlay_step(
+                            Overlay::Recovery,
+                            Consumed,
+                            vec![OverlayEffect::RecoveryMoveUp],
+                        ),
+                        PickerAction::MoveDown => overlay_step(
+                            Overlay::Recovery,
+                            Consumed,
+                            vec![OverlayEffect::RecoveryMoveDown],
+                        ),
+                        PickerAction::Backspace
+                        | PickerAction::Push(_)
+                        | PickerAction::RenameBegin
+                        | PickerAction::Delete
+                        | PickerAction::Reattach
+                        | PickerAction::Ignore => overlay_step(Overlay::Recovery, Consumed, vec![]),
                     }
                 }
             },
@@ -1239,6 +1386,7 @@ pub(crate) enum OverlayEventClass {
     OpenSearch,
     OpenDirPicker,
     OpenSessionPicker,
+    OpenRecovery,
     Key,
 }
 
@@ -1255,6 +1403,7 @@ impl OverlayEvent {
             OverlayEvent::OpenSearch => OverlayEventClass::OpenSearch,
             OverlayEvent::OpenDirPicker => OverlayEventClass::OpenDirPicker,
             OverlayEvent::OpenSessionPicker => OverlayEventClass::OpenSessionPicker,
+            OverlayEvent::OpenRecovery => OverlayEventClass::OpenRecovery,
             OverlayEvent::Key(_) => OverlayEventClass::Key,
         }
     }
@@ -1523,7 +1672,10 @@ mod tests {
                     );
                     assert!(!deletes);
                 }
-                Overlay::Search | Overlay::DirPicker | Overlay::SessionRename => {
+                Overlay::Search
+                | Overlay::DirPicker
+                | Overlay::SessionRename
+                | Overlay::Recovery => {
                     assert_eq!(step.routing, OverlayRouting::Consumed, "{state:?}");
                     assert!(step.effects.is_empty(), "{state:?}: Ctrl-D must be inert");
                     assert_eq!(step.state, state, "{state:?}: Ctrl-D must not move the FSM");
@@ -1532,11 +1684,58 @@ mod tests {
         }
     }
 
+    #[test]
+    fn the_recovery_overlay_owns_the_keyboard_until_an_action_or_escape() {
+        use OverlayKeyClass as K;
+        for state in all_overlay_states() {
+            let step = state.on_event(OverlayEvent::OpenRecovery);
+            assert_eq!(step.state, Overlay::Recovery, "{state:?}");
+            assert_eq!(step.effects.last(), Some(&OverlayEffect::RecoveryOpen));
+        }
+        let open = |class, text: Option<&str>, plain| {
+            Overlay::Recovery.on_event(OverlayEvent::Key(key(None, class, text, plain)))
+        };
+        let down = open(K::Down, None, true);
+        assert_eq!(
+            (down.state, down.effects),
+            (Overlay::Recovery, vec![OverlayEffect::RecoveryMoveDown])
+        );
+        let up = open(K::CtrlP, None, false);
+        assert_eq!(
+            (up.state, up.effects),
+            (Overlay::Recovery, vec![OverlayEffect::RecoveryMoveUp])
+        );
+        let enter = open(K::Enter, None, true);
+        assert_eq!(
+            (enter.state, enter.effects),
+            (Overlay::None, vec![OverlayEffect::RecoveryAccept])
+        );
+        let escape = open(K::Escape, None, true);
+        assert_eq!(
+            (escape.state, escape.effects),
+            (Overlay::None, vec![OverlayEffect::RecoveryDismiss])
+        );
+        for (class, text, plain) in [
+            (K::Other, Some("x"), true),
+            (K::Backspace, None, true),
+            (K::CtrlD, None, false),
+            (K::CtrlE, None, false),
+            (K::CtrlR, None, false),
+            (K::Other, None, false),
+        ] {
+            let step = open(class, text, plain);
+            assert_eq!(step.state, Overlay::Recovery, "{class:?}");
+            assert_eq!(step.routing, OverlayRouting::Consumed, "{class:?}");
+            assert!(step.effects.is_empty(), "{class:?} must be inert");
+        }
+    }
+
     fn all_overlay_events() -> Vec<OverlayEvent> {
         vec![
             OverlayEvent::OpenSearch,
             OverlayEvent::OpenDirPicker,
             OverlayEvent::OpenSessionPicker,
+            OverlayEvent::OpenRecovery,
             OverlayEvent::Key(key(
                 Some(SearchNav::Close),
                 OverlayKeyClass::Escape,
@@ -1832,6 +2031,20 @@ mod tests {
                         "{ctx}: session-picker mutation outside Overlay::SessionPicker"
                     ));
                 }
+                let recovery_mutates = step.effects.iter().any(|e| {
+                    matches!(
+                        e,
+                        OverlayEffect::RecoveryMoveUp
+                            | OverlayEffect::RecoveryMoveDown
+                            | OverlayEffect::RecoveryAccept
+                            | OverlayEffect::RecoveryDismiss
+                    )
+                });
+                if recovery_mutates && state != Overlay::Recovery {
+                    failures.push(format!(
+                        "{ctx}: recovery mutation outside Overlay::Recovery"
+                    ));
+                }
 
                 match &event {
                     OverlayEvent::OpenSearch => {
@@ -1849,6 +2062,11 @@ mod tests {
                             failures.push(format!(
                                 "{ctx}: OpenSessionPicker must land in SessionPicker"
                             ));
+                        }
+                    }
+                    OverlayEvent::OpenRecovery => {
+                        if step.state != Overlay::Recovery {
+                            failures.push(format!("{ctx}: OpenRecovery must land in Recovery"));
                         }
                     }
                     OverlayEvent::Key(_) => match state {
@@ -1871,7 +2089,8 @@ mod tests {
                         Overlay::Search
                         | Overlay::DirPicker
                         | Overlay::SessionPicker
-                        | Overlay::SessionRename => {
+                        | Overlay::SessionRename
+                        | Overlay::Recovery => {
                             if step.routing != OverlayRouting::Consumed {
                                 failures.push(format!("{ctx}: open overlay leaked a key"));
                             }
@@ -1902,27 +2121,42 @@ mod tests {
     fn opening_an_overlay_closes_both_sibling_mirrors() {
         // (open event, the overlay it opens, the two sibling close
         // effects that MUST appear before the open effect).
-        let cases = [
+        let cases: [(OverlayEvent, OverlayEffect, Vec<OverlayEffect>); 4] = [
             (
                 OverlayEvent::OpenSearch,
                 OverlayEffect::SearchOpen,
-                [
+                vec![
                     OverlayEffect::DirPickerClose,
                     OverlayEffect::SessionPickerClose,
+                    OverlayEffect::RecoveryClose,
                 ],
             ),
             (
                 OverlayEvent::OpenDirPicker,
                 OverlayEffect::DirPickerOpen,
-                [
+                vec![
                     OverlayEffect::SearchClose,
                     OverlayEffect::SessionPickerClose,
+                    OverlayEffect::RecoveryClose,
                 ],
             ),
             (
                 OverlayEvent::OpenSessionPicker,
                 OverlayEffect::SessionPickerOpen,
-                [OverlayEffect::SearchClose, OverlayEffect::DirPickerClose],
+                vec![
+                    OverlayEffect::SearchClose,
+                    OverlayEffect::DirPickerClose,
+                    OverlayEffect::RecoveryClose,
+                ],
+            ),
+            (
+                OverlayEvent::OpenRecovery,
+                OverlayEffect::RecoveryOpen,
+                vec![
+                    OverlayEffect::SearchClose,
+                    OverlayEffect::DirPickerClose,
+                    OverlayEffect::SessionPickerClose,
+                ],
             ),
         ];
         let mut failures: Vec<String> = Vec::new();

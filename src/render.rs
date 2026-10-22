@@ -99,6 +99,7 @@ pub(crate) struct OverlaySnapshot {
     session: crate::session_picker::SessionPickerState,
     /// The Ctrl-T directory picker's full drawn state.
     dir: crate::dir_picker::DirPickerState,
+    recovery: crate::recovery::RecoveryMenuState,
 }
 
 use bytemuck::{Pod, Zeroable};
@@ -458,6 +459,29 @@ fn card_text_bounds(px: f32, py: f32, pw: f32, ph: f32) -> glyphon::TextBounds {
 /// edge on each side) would overflow the live window `width`. Pure/testable
 /// so the invariant it seals — a rendered overlay line's width is always
 /// `<= this` — has a unit test independent of GPU text shaping.
+fn recovery_spec(
+    menu: &crate::recovery::RecoveryMenuState,
+) -> crate::picker::component::OverlaySpec {
+    use crate::picker::component::{LineRole, OverlayLine, OverlaySpec};
+    let mut lines = Vec::with_capacity(menu.results.len() + 2);
+    let mut title = String::from("\u{26a0} ");
+    title.push_str(menu.notice.as_deref().unwrap_or("pane fault"));
+    lines.push(OverlayLine::new(title, LineRole::Title));
+    for (i, action) in menu.results.iter().enumerate() {
+        let (marker, role) = if i == menu.selected {
+            ("\u{203a} ", LineRole::Selected)
+        } else {
+            ("  ", LineRole::Row)
+        };
+        lines.push(OverlayLine::new(format!("{marker}{action}"), role).with_row(i));
+    }
+    lines.push(OverlayLine::new(
+        "  enter: choose  esc: dismiss",
+        LineRole::Hint,
+    ));
+    OverlaySpec::new(crate::config::PickerAnchor::Center, lines)
+}
+
 fn max_overlay_content_w(width: u32, pad: f32, pad_x: f32) -> f32 {
     (width as f32 - 2.0 * pad - 2.0 * pad_x).max(pad_x * 4.0)
 }
@@ -1504,6 +1528,7 @@ pub struct TerminalRenderer {
     /// bools above are read only for their *content*, never as the gate.
     overlay_focus: Arc<Mutex<crate::ux::modes::Overlay>>,
     overlay_hits: Arc<Mutex<crate::picker::pointer::OverlayHits>>,
+    recovery: Arc<Mutex<crate::recovery::RecoveryMenuState>>,
     /// Floating browser panels to composite this frame (engine-written mirror,
     /// in z draw-order). Empty ⇒ the float pass is skipped entirely.
     float_panels: Arc<Mutex<Vec<FloatPanel>>>,
@@ -2416,6 +2441,7 @@ impl TerminalRenderer {
             // `set_overlay_focus` in `attach_to_renderer`.
             overlay_focus: Arc::new(Mutex::new(crate::ux::modes::Overlay::None)),
             overlay_hits: Arc::new(Mutex::new(crate::picker::pointer::OverlayHits::default())),
+            recovery: Arc::new(Mutex::new(crate::recovery::RecoveryMenuState::new())),
             float_panels: Arc::new(Mutex::new(Vec::new())),
             hover_link: Arc::new(Mutex::new(None)),
             last_hover_link: None,
@@ -2969,6 +2995,10 @@ impl TerminalRenderer {
         self.overlay_focus = overlay_focus;
     }
 
+    pub fn set_recovery(&mut self, recovery: Arc<Mutex<crate::recovery::RecoveryMenuState>>) {
+        self.recovery = recovery;
+    }
+
     pub fn set_overlay_hits(&mut self, hits: Arc<Mutex<crate::picker::pointer::OverlayHits>>) {
         self.overlay_hits = hits;
     }
@@ -3229,6 +3259,7 @@ impl TerminalRenderer {
                 .lock()
                 .map(|g| g.clone())
                 .unwrap_or_default(),
+            recovery: self.recovery.lock().map(|g| g.clone()).unwrap_or_default(),
         }
     }
 
@@ -3647,6 +3678,28 @@ impl TerminalRenderer {
         // The dir picker keeps the legacy top-drop anchor.
         self.draw_overlay(
             &OverlaySpec::new(crate::config::PickerAnchor::Top, lines),
+            frame,
+            gpu,
+            surface_view,
+            width,
+            height,
+            encoder,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn draw_recovery(
+        &self,
+        menu: &crate::recovery::RecoveryMenuState,
+        frame: &mut garasu::Frame<'_>,
+        gpu: &garasu::GpuContext,
+        surface_view: &wgpu::TextureView,
+        width: u32,
+        height: u32,
+        encoder: &mut wgpu::CommandEncoder,
+    ) {
+        self.draw_overlay(
+            &recovery_spec(menu),
             frame,
             gpu,
             surface_view,
@@ -7835,6 +7888,18 @@ impl RenderCallback for TerminalRenderer {
                     &q,
                     &results,
                     sel,
+                    &mut frame,
+                    ctx.gpu,
+                    ctx.surface_view,
+                    ctx.width,
+                    ctx.height,
+                    &mut overlay_encoder,
+                );
+            }
+            Overlay::Recovery => {
+                let menu = self.recovery.lock().unwrap().clone();
+                self.draw_recovery(
+                    &menu,
                     &mut frame,
                     ctx.gpu,
                     ctx.surface_view,

@@ -1214,6 +1214,13 @@
       "description": "Milliseconds between attempts to re-attach a window whose pane stream ended or failed to attach. Values under 50 are raised to 50.",
       "type": "int"
     },
+    "recovery_menu": {
+      "default": {
+        "enabled": true
+      },
+      "description": "",
+      "type": "object"
+    },
     "resident_adopt": {
       "default": true,
       "description": "",

@@ -855,6 +855,23 @@ pub struct MadoTearConfig {
         description = "Milliseconds between attempts to re-attach a window whose pane stream ended or failed to attach. Values under 50 are raised to 50."
     )]
     pub reattach_backoff_ms: u64,
+    #[serde(default)]
+    pub recovery_menu: RecoveryMenuConfig,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct RecoveryMenuConfig {
+    #[schemars(
+        description = "Open the recovery overlay when a tear session or pane fault would leave the window blank or dead: a refused snapshot, a failed attach or switch, an unreachable daemon. The overlay names the fault and offers actions (retry, return to the previous pane, the session picker, kill the session, dismiss). false keeps the old behaviour: the fault is only logged, and a failed first attach ends mado."
+    )]
+    pub enabled: bool,
+}
+
+impl Default for RecoveryMenuConfig {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
 }
 
 #[derive(
@@ -2476,6 +2493,7 @@ impl Default for MadoTearConfig {
             fate_backstop_secs: default_fate_backstop_secs(),
             switch_sizing: SwitchSizing::default(),
             reattach_backoff_ms: default_reattach_backoff_ms(),
+            recovery_menu: RecoveryMenuConfig::default(),
         }
     }
 }
@@ -4053,6 +4071,7 @@ impl MadoConfig {
                 fate_backstop_secs: default_fate_backstop_secs(),
                 switch_sizing: SwitchSizing::default(),
                 reattach_backoff_ms: default_reattach_backoff_ms(),
+                recovery_menu: RecoveryMenuConfig { enabled: false },
             },
             // ── Effects ──────────────────────────────────────────
             // All effects disabled in bare. Snow params stay at
@@ -7973,6 +7992,7 @@ mod coverage {
         "tear.mode",
         "tear.pane_fate",
         "tear.reattach_backoff_ms",
+        "tear.recovery_menu.enabled",
         "tear.resident_adopt",
         "tear.runtime",
         "tear.session_name",

@@ -43,6 +43,7 @@ mod kanshou_state;
 mod keybind;
 mod kuse;
 mod pane_stream;
+mod recovery;
 mod ring;
 // L1 integration-test brick (docs/INTEGRATION-TESTING.md §L1): real
 // shell + real TerminalSink + probe counters, headless. Unit-test

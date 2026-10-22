@@ -300,6 +300,10 @@ pub struct InputEngine {
     /// observation only populates the latch (a warm restart must not bounce
     /// the dock for old news).
     criticals_seeded: bool,
+    recovery: Arc<Mutex<crate::recovery::RecoveryMenuState>>,
+    recovery_fault: Option<crate::recovery::PaneFault>,
+    recovery_dismissed: Option<crate::recovery::PaneFault>,
+    recovery_request: Option<(crate::recovery::RecoveryAction, crate::recovery::PaneFault)>,
 }
 
 impl InputEngine {
@@ -321,6 +325,8 @@ impl InputEngine {
         renderer.set_overlay_focus(Arc::clone(&overlay_focus));
         let overlay_hits = Arc::new(Mutex::new(crate::picker::pointer::OverlayHits::default()));
         renderer.set_overlay_hits(Arc::clone(&overlay_hits));
+        let recovery = Arc::new(Mutex::new(crate::recovery::RecoveryMenuState::new()));
+        renderer.set_recovery(Arc::clone(&recovery));
         let float_panels = Arc::new(Mutex::new(Vec::new()));
         renderer.set_float_panels(Arc::clone(&float_panels));
         let hover_link = Arc::new(Mutex::new(None));
@@ -399,6 +405,10 @@ impl InputEngine {
             suggest_attention: params.suggest_attention,
             seen_criticals: std::collections::HashSet::new(),
             criticals_seeded: false,
+            recovery,
+            recovery_fault: None,
+            recovery_dismissed: None,
+            recovery_request: None,
         }
     }
 
@@ -1045,6 +1055,193 @@ impl InputEngine {
                 OverlayEffect::SessionPickerRenameCancel => self.session_picker_rename_cancel(),
                 OverlayEffect::SessionPickerDelete => self.session_picker_delete(),
                 OverlayEffect::SessionPickerReattach => self.session_picker_reattach(),
+                OverlayEffect::RecoveryOpen => self.recovery_open(),
+                OverlayEffect::RecoveryClose => self.recovery.lock().unwrap().close(),
+                OverlayEffect::RecoveryMoveUp => self.recovery.lock().unwrap().move_up(),
+                OverlayEffect::RecoveryMoveDown => self.recovery.lock().unwrap().move_down(),
+                OverlayEffect::RecoveryAccept => self.recovery_accept(),
+                OverlayEffect::RecoveryDismiss => self.recovery_dismiss(),
+            }
+        }
+    }
+
+    pub(crate) fn record_fault(&mut self, fault: crate::recovery::PaneFault) -> bool {
+        if !fault.blocking() {
+            if let Ok(mut pill) = self.attach_pill.lock() {
+                pill.notify(fault.to_string(), Instant::now());
+            }
+            crate::ring::WINDOW.ring();
+            return true;
+        }
+        let showing = self.overlay == Overlay::Recovery
+            && self
+                .recovery_fault
+                .as_ref()
+                .is_some_and(|shown| shown.same_as(&fault));
+        let dismissed = self
+            .recovery_dismissed
+            .as_ref()
+            .is_some_and(|gone| gone.same_as(&fault));
+        if showing || dismissed {
+            return false;
+        }
+        self.recovery_fault = Some(fault);
+        self.dispatch_overlay(OverlayEvent::OpenRecovery);
+        crate::ring::WINDOW.ring();
+        true
+    }
+
+    pub(crate) fn resolve_fault(&mut self, pane: tear_types::PaneId) {
+        if self
+            .recovery_dismissed
+            .as_ref()
+            .is_some_and(|gone| gone.site().pane == pane)
+        {
+            self.recovery_dismissed = None;
+        }
+        if !self
+            .recovery_fault
+            .as_ref()
+            .is_some_and(|fault| fault.site().pane == pane)
+        {
+            return;
+        }
+        self.recovery_fault = None;
+        if self.overlay == Overlay::Recovery {
+            self.dispatch_overlay(OverlayEvent::Key(OverlayKey {
+                nav: None,
+                key: modes::OverlayKeyClass::Escape,
+                text: None,
+                plain: true,
+            }));
+            self.recovery_dismissed = None;
+        }
+    }
+
+    pub(crate) fn holds_back_reattach(&self, pane: tear_types::PaneId) -> bool {
+        use crate::recovery::PaneFaultKind;
+        [
+            self.recovery_fault.as_ref(),
+            self.recovery_dismissed.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .any(|fault| {
+            fault.site().pane == pane
+                && matches!(
+                    fault.kind(),
+                    PaneFaultKind::SnapshotTooLarge | PaneFaultKind::AttachFailed
+                )
+        })
+    }
+
+    pub(crate) fn take_recovery_request(
+        &mut self,
+    ) -> Option<(crate::recovery::RecoveryAction, crate::recovery::PaneFault)> {
+        self.recovery_request.take()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn headless(terminal: SharedTerminal) -> (TerminalRenderer, Self) {
+        let mut renderer = TerminalRenderer::new(
+            Arc::clone(&terminal),
+            14.0,
+            1.4,
+            "monospace".into(),
+            "monospace".into(),
+            "monospace".into(),
+            0.0,
+            crate::config::CursorStyle::Block,
+            false,
+            500,
+            wgpu::Color::BLACK,
+            crate::terminal::Color::WHITE,
+        );
+        let config = crate::config::MadoConfig::default();
+        let cursor_terminal = Arc::clone(&terminal);
+        let mut engine = Self::attach_to_renderer(
+            &mut renderer,
+            InputEngineParams {
+                terminal,
+                pty: Box::new(|_: &[u8]| {}),
+                resize: Box::new(|_: u16, _: u16| {}),
+                shared: SharedUxState::fresh(),
+                clipboard: Arc::new(hasami::MockClipboard::new()),
+                keybinds: KeybindManager::with_mado_defaults(),
+                behavior: UxBehavior::from(&config),
+                links: config.links.clone(),
+                cursor_keys_mode: Box::new(move || cursor_terminal.read().cursor_keys_mode()),
+                default_font_size: 14.0,
+                padding: 0.0,
+                session_picker_bridge: None,
+                suggest_attention: false,
+            },
+        );
+        engine.set_pasteboard(crate::file_drop::no_pasteboard());
+        (renderer, engine)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn recovery_fault(&self) -> Option<&crate::recovery::PaneFault> {
+        self.recovery_fault.as_ref()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn overlay(&self) -> Overlay {
+        self.overlay
+    }
+
+    #[cfg(test)]
+    pub(crate) fn recovery_menu(&self) -> Arc<Mutex<crate::recovery::RecoveryMenuState>> {
+        Arc::clone(&self.recovery)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn overlay_key(&mut self, class: modes::OverlayKeyClass) {
+        self.dispatch_overlay(OverlayEvent::Key(OverlayKey {
+            nav: None,
+            key: class,
+            text: None,
+            plain: true,
+        }));
+    }
+
+    fn recovery_open(&mut self) {
+        let Some(fault) = self.recovery_fault.as_ref() else {
+            self.recovery.lock().unwrap().open(Vec::new(), true);
+            return;
+        };
+        let actions = crate::recovery::actions_for(fault);
+        let notice = fault.to_string();
+        let mut menu = self.recovery.lock().unwrap();
+        menu.open(actions, false);
+        menu.notice = Some(notice);
+    }
+
+    fn recovery_dismiss(&mut self) {
+        self.recovery.lock().unwrap().close();
+        self.recovery_dismissed = self.recovery_fault.take();
+    }
+
+    fn recovery_accept(&mut self) {
+        use crate::recovery::RecoveryAction;
+        let chosen = self.recovery.lock().unwrap().selected_row().copied();
+        self.recovery.lock().unwrap().close();
+        let (Some(action), Some(fault)) = (chosen, self.recovery_fault.clone()) else {
+            return;
+        };
+        match action {
+            RecoveryAction::Dismiss => {
+                self.recovery_dismissed = self.recovery_fault.take();
+            }
+            RecoveryAction::OpenSessionPicker => {
+                self.dispatch_overlay(OverlayEvent::OpenSessionPicker);
+            }
+            RecoveryAction::Retry
+            | RecoveryAction::SwitchToPrevious
+            | RecoveryAction::KillSession => {
+                self.recovery_request = Some((action, fault));
+                crate::ring::WINDOW.ring();
             }
         }
     }
@@ -1052,7 +1249,10 @@ impl InputEngine {
     fn picker_owns_pointer(&self) -> bool {
         matches!(
             self.overlay,
-            Overlay::SessionPicker | Overlay::SessionRename | Overlay::DirPicker
+            Overlay::SessionPicker
+                | Overlay::SessionRename
+                | Overlay::DirPicker
+                | Overlay::Recovery
         )
     }
 
@@ -1070,6 +1270,12 @@ impl InputEngine {
                     dp.selected = index;
                 }
             }
+            Overlay::Recovery => {
+                let mut menu = self.recovery.lock().unwrap();
+                if index < menu.results.len() {
+                    menu.selected = index;
+                }
+            }
             _ => {}
         }
     }
@@ -1083,6 +1289,10 @@ impl InputEngine {
             Overlay::DirPicker => {
                 let dp = self.dir_picker.lock().unwrap();
                 Some((dp.selected, dp.results.len()))
+            }
+            Overlay::Recovery => {
+                let menu = self.recovery.lock().unwrap();
+                Some((menu.selected, menu.results.len()))
             }
             _ => None,
         }
@@ -1123,7 +1333,7 @@ impl InputEngine {
             plain: true,
         };
         match (self.overlay, row) {
-            (Overlay::SessionPicker | Overlay::DirPicker, Some(index)) => {
+            (Overlay::SessionPicker | Overlay::DirPicker | Overlay::Recovery, Some(index)) => {
                 self.picker_select(index);
                 self.dispatch_overlay(OverlayEvent::Key(key(modes::OverlayKeyClass::Enter)));
             }
@@ -5149,6 +5359,7 @@ mod tests {
                 Overlay::DirPicker => (false, true, false),
                 // The rename sub-mode keeps the session-picker board open.
                 Overlay::SessionPicker | Overlay::SessionRename => (false, false, true),
+                Overlay::Recovery => (false, false, false),
             };
             if h.engine.overlay != want || (search_active, dp_open, sp_open) != want_cells {
                 failures.push(format!(
@@ -6655,5 +6866,164 @@ mod tests {
                 }
             }
         }
+    }
+
+    fn faulted(kind: &str) -> crate::recovery::PaneFault {
+        use crate::recovery::{FaultSite, PaneFault};
+        let site = FaultSite {
+            pane: PaneId::from_seed("faulted"),
+            session: Some(SessionId::from_seed("owner")),
+            previous: Some(PaneId::from_seed("before")),
+        };
+        match kind {
+            "elided" => PaneFault::HistoryElided { site, rows: 12 },
+            "unreachable" => PaneFault::DaemonUnreachable {
+                site,
+                detail: "gone".into(),
+            },
+            _ => PaneFault::SnapshotTooLarge {
+                site,
+                detail: "response-too-large".into(),
+            },
+        }
+    }
+
+    #[test]
+    fn a_recorded_fault_opens_the_recovery_overlay_with_its_actions() {
+        use crate::recovery::RecoveryAction;
+        let mut h = Harness::new(SinkKind::Closure);
+        assert!(h.engine.record_fault(faulted("too-large")));
+        assert_eq!(h.engine.overlay, Overlay::Recovery);
+        assert_eq!(*h.engine.overlay_focus.lock().unwrap(), Overlay::Recovery);
+        {
+            let menu = h.engine.recovery.lock().unwrap();
+            assert!(menu.open);
+            assert_eq!(
+                menu.results,
+                crate::recovery::actions_for(&faulted("too-large"))
+            );
+            assert_eq!(menu.results.first(), Some(&RecoveryAction::Retry));
+            assert!(
+                menu.notice
+                    .as_deref()
+                    .is_some_and(|n| n.contains("too large")),
+                "the overlay names the fault: {:?}",
+                menu.notice
+            );
+        }
+        h.clear_sent();
+        h.key(KeyCode::Char('x'), Some("x"), no_mods());
+        assert!(
+            h.sent.lock().unwrap().is_empty(),
+            "input never reaches a pane while the overlay is open"
+        );
+        assert!(
+            !h.engine.record_fault(faulted("too-large")),
+            "a repeat is not a new fault"
+        );
+    }
+
+    #[test]
+    fn choosing_retry_hands_the_window_loop_a_typed_request() {
+        use crate::recovery::RecoveryAction;
+        let mut h = Harness::new(SinkKind::Closure);
+        h.engine.record_fault(faulted("too-large"));
+        h.key(KeyCode::Enter, None, no_mods());
+        assert_eq!(h.engine.overlay, Overlay::None);
+        let (action, fault) = h.engine.take_recovery_request().expect("a request");
+        assert_eq!(action, RecoveryAction::Retry);
+        assert_eq!(fault, faulted("too-large"));
+        assert!(h.engine.take_recovery_request().is_none());
+        assert!(
+            h.engine.record_fault(faulted("too-large")),
+            "a retry that fails again shows the overlay again"
+        );
+    }
+
+    #[test]
+    fn arrows_and_a_click_choose_the_other_actions() {
+        use crate::recovery::RecoveryAction;
+        let mut h = Harness::new(SinkKind::Closure);
+        h.engine.record_fault(faulted("too-large"));
+        h.key(KeyCode::Down, None, no_mods());
+        h.key(KeyCode::Enter, None, no_mods());
+        assert_eq!(
+            h.engine.take_recovery_request().map(|(a, _)| a),
+            Some(RecoveryAction::SwitchToPrevious)
+        );
+
+        h.engine.record_fault(faulted("too-large"));
+        h.engine.picker_select(2);
+        h.key(KeyCode::Enter, None, no_mods());
+        assert_eq!(
+            h.engine.overlay,
+            Overlay::SessionPicker,
+            "the picker action opens the Ctrl-S board"
+        );
+        assert!(h.engine.take_recovery_request().is_none());
+    }
+
+    #[test]
+    fn escape_dismisses_and_the_same_fault_stays_quiet_until_it_resolves() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.engine.record_fault(faulted("unreachable"));
+        h.key(KeyCode::Escape, None, no_mods());
+        assert_eq!(h.engine.overlay, Overlay::None);
+        assert!(h.engine.recovery_fault().is_none());
+        assert!(
+            !h.engine.record_fault(faulted("unreachable")),
+            "a dismissed fault does not pop back every backoff tick"
+        );
+        assert_eq!(h.engine.overlay, Overlay::None);
+        assert!(
+            h.engine.record_fault(faulted("too-large")),
+            "a different fault still shows"
+        );
+        h.engine.resolve_fault(PaneId::from_seed("faulted"));
+        assert_eq!(
+            h.engine.overlay,
+            Overlay::None,
+            "resolving closes the overlay"
+        );
+        assert!(h.engine.recovery_fault().is_none());
+        assert!(
+            h.engine.record_fault(faulted("unreachable")),
+            "after the pane recovered, the same fault is news again"
+        );
+    }
+
+    #[test]
+    fn a_refused_pane_is_not_retried_behind_the_operators_back() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let pane = PaneId::from_seed("faulted");
+        assert!(!h.engine.holds_back_reattach(pane));
+        h.engine.record_fault(faulted("too-large"));
+        assert!(h.engine.holds_back_reattach(pane), "showing");
+        assert!(!h.engine.holds_back_reattach(PaneId::from_seed("other")));
+        h.key(KeyCode::Escape, None, no_mods());
+        assert!(h.engine.holds_back_reattach(pane), "dismissed");
+        h.engine.resolve_fault(pane);
+        assert!(!h.engine.holds_back_reattach(pane), "resolved");
+        h.engine.record_fault(faulted("unreachable"));
+        assert!(
+            !h.engine.holds_back_reattach(pane),
+            "a daemon that comes back re-attaches by itself"
+        );
+    }
+
+    #[test]
+    fn a_history_notice_never_steals_the_keyboard() {
+        let mut h = Harness::new(SinkKind::Closure);
+        assert!(h.engine.record_fault(faulted("elided")));
+        assert_eq!(h.engine.overlay, Overlay::None);
+        let pill = h.engine.pill_frame().expect("the notice shows in the pill");
+        assert!(
+            pill.text.contains("12 oldest history rows"),
+            "{}",
+            pill.text
+        );
+        h.clear_sent();
+        h.key(KeyCode::Char('x'), Some("x"), no_mods());
+        assert_eq!(h.sent.lock().unwrap().concat(), b"x");
     }
 }

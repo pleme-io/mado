@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 
 pub const HOLD: Duration = Duration::from_millis(1200);
 pub const FADE: Duration = Duration::from_millis(300);
+pub const NOTICE_HOLD: Duration = Duration::from_millis(6000);
 const NAME_MAX: usize = 28;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,6 +45,7 @@ pub enum Attached {
     File { name: String, size: Option<Size> },
     Files(usize),
     Refused,
+    Notice(String),
 }
 
 impl Attached {
@@ -76,6 +78,7 @@ impl fmt::Display for Attached {
             Self::File { name, size: None } => write!(f, "attached {}", ShortName(name)),
             Self::Files(n) => write!(f, "attached {n} files"),
             Self::Refused => f.write_str("refused: no file or image"),
+            Self::Notice(text) => f.write_str(text),
         }
     }
 }
@@ -114,14 +117,22 @@ impl AttachPill {
         }
     }
 
+    pub fn notify(&mut self, text: String, now: Instant) {
+        self.shown = Some((Attached::Notice(text), now));
+    }
+
     #[must_use]
     pub fn alpha_at(&self, now: Instant) -> Option<f32> {
-        let (_, at) = self.shown.as_ref()?;
+        let (what, at) = self.shown.as_ref()?;
+        let hold = match what {
+            Attached::Notice(_) => NOTICE_HOLD,
+            Attached::File { .. } | Attached::Files(_) | Attached::Refused => HOLD,
+        };
         let age = now.saturating_duration_since(*at);
-        if age < HOLD {
+        if age < hold {
             return Some(1.0);
         }
-        let fading = age - HOLD;
+        let fading = age - hold;
         (fading < FADE).then(|| 1.0 - fading.as_secs_f32() / FADE.as_secs_f32())
     }
 
@@ -140,6 +151,23 @@ impl AttachPill {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_notice_shows_even_with_the_attachment_pill_off_and_holds_longer() {
+        let mut pill = AttachPill::new(false);
+        let at = Instant::now();
+        pill.show(Attached::Refused, at);
+        assert_eq!(pill.frame(at), None);
+        pill.notify(
+            "pane p: 9 oldest history rows were too large to load".into(),
+            at,
+        );
+        let frame = pill.frame(at).expect("the notice shows");
+        assert!(frame.text.contains("history rows"));
+        assert!(!frame.refused);
+        assert_eq!(pill.alpha_at(at + HOLD + FADE), Some(1.0));
+        assert_eq!(pill.alpha_at(at + NOTICE_HOLD + FADE), None);
+    }
 
     #[test]
     fn sizes_read_like_finder() {
