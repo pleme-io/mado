@@ -27,7 +27,7 @@
 //! the Consumer impl below is identical for both.
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::task::Waker;
 
 use engate_attach::Consumer;
@@ -104,6 +104,7 @@ pub struct TerminalSink {
     writer: ResponseWriter,
     probes: Arc<ProbeCounters>,
     bell: Option<Waker>,
+    elided: Arc<AtomicUsize>,
 }
 
 impl TerminalSink {
@@ -130,7 +131,13 @@ impl TerminalSink {
             writer,
             probes,
             bell: None,
+            elided: Arc::new(AtomicUsize::new(0)),
         }
+    }
+
+    #[must_use]
+    pub fn elided(&self) -> Arc<AtomicUsize> {
+        Arc::clone(&self.elided)
     }
 
     /// The sink's probe counters (clone of the shared handle).
@@ -251,6 +258,8 @@ impl Consumer for TerminalSink {
         // current grid through mado's VT parser. Idempotent at the
         // parser level — same bytes the daemon-mode M0 path delivers
         // as the first PaneBytes frame.
+        self.elided
+            .store(snapshot.0.scrollback_elided, Ordering::Relaxed);
         let bytes = snapshot.to_ansi();
         // ★ SILENT: these bytes were already delivered once. See `feed_silent`.
         self.feed_silent(&bytes);
@@ -432,6 +441,7 @@ mod tests {
             combining: Vec::new(),
             modes: tear_types::modes::ModeSet::default(),
             graphics: Vec::new(),
+            scrollback_elided: 0,
         });
 
         sink.replay(snap);
@@ -442,6 +452,17 @@ mod tests {
             "replay wrote to the pty — a query already answered live got a \
              SECOND answer, which is the ^[[31;24R^[[31;24R the operator saw"
         );
+    }
+
+    #[test]
+    fn replay_reports_how_much_history_tear_left_out() {
+        let term = Arc::new(RwLock::new(Terminal::with_scrollback(80, 24, 100)));
+        let mut sink = TerminalSink::new_without_writeback(Arc::clone(&term));
+        let elided = sink.elided();
+        let mut snap = tear_types::pane_snapshot::PaneSnapshot::blank(24, 80);
+        snap.scrollback_elided = 4096;
+        sink.replay(PaneSnapshotWrap(snap));
+        assert_eq!(elided.load(Ordering::Relaxed), 4096);
     }
 
     fn mirror_modes(t: &Terminal) -> (bool, bool, crate::terminal::MouseMode, bool, bool, u32) {

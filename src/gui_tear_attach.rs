@@ -778,6 +778,13 @@ fn report_fault(engine: &mut crate::ux::InputEngine, recovery: bool, fault: Pane
     }
 }
 
+fn history_elided(pane: PaneId, rows: usize) -> Option<PaneFault> {
+    (rows > 0).then(|| PaneFault::HistoryElided {
+        site: FaultSite::new(pane),
+        rows,
+    })
+}
+
 fn feeder_fault(pane: PaneId, error: &anyhow::Error) -> PaneFault {
     let site = FaultSite::new(pane);
     match error.downcast_ref::<engate_types::AttachError>() {
@@ -1071,7 +1078,11 @@ where
             Arc::clone(&child_exited),
             feeder_name.clone(),
         ) {
-            Ok(()) => {}
+            Ok(rows) => {
+                if let Some(notice) = history_elided(pane_id, rows) {
+                    pending_fault.get_or_insert(notice);
+                }
+            }
             Err(e) if recovery_enabled => {
                 let fault = feeder_fault(pane_id, &e);
                 pending_fault.get_or_insert(fault);
@@ -1080,7 +1091,12 @@ where
         }
     } else {
         match attach_stream(&producer_for, pane_id, Arc::clone(&response_writer)) {
-            Ok(stream) => live_cell = Some(stream),
+            Ok(stream) => {
+                if let Some(notice) = history_elided(pane_id, stream.scrollback_elided()) {
+                    pending_fault.get_or_insert(notice);
+                }
+                live_cell = Some(stream);
+            }
             Err(e) if recovery_enabled => {
                 let fault = PaneFault::from_attach(FaultSite::new(pane_id).located(&*control), &e);
                 pending_fault.get_or_insert(fault);
@@ -1379,7 +1395,12 @@ where
                             Arc::clone(&child_exited_for_events),
                             feeder_name.clone(),
                         ) {
-                            Ok(()) => engine.resolve_fault(pane),
+                            Ok(rows) => {
+                                engine.resolve_fault(pane);
+                                if let Some(notice) = history_elided(pane, rows) {
+                                    report_fault(&mut engine, recovery_enabled, notice);
+                                }
+                            }
                             Err(e) => {
                                 report_fault(&mut engine, recovery_enabled, feeder_fault(pane, &e));
                             }
@@ -1465,6 +1486,11 @@ where
                             |site| site.located(&*control_for_switch),
                         );
                         live_cell = rebuilt.stream;
+                        if let Some(notice) = live_cell.as_ref().and_then(|s| {
+                            history_elided(rebuilt.showing, s.scrollback_elided())
+                        }) {
+                            report_fault(&mut engine, recovery_enabled, notice);
+                        }
                         if live_cell.is_some() && rebuilt.showing == target {
                             tracing::info!(
                                 from = ?from,

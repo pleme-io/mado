@@ -74,6 +74,7 @@ pub struct PaneStream<P: Producer<Item = Vec<u8>, Snap = PaneSnapshotWrap>> {
     stamp: Arc<Stamp>,
     terminal: SharedTerminal,
     ended: bool,
+    scrollback_elided: usize,
 }
 
 impl<P> PaneStream<P>
@@ -93,6 +94,7 @@ where
         });
         let producer = CountedProducer::new(producer_for(Waker::from(Arc::clone(&stamp))), calls);
         let consumer = TerminalSink::live(Arc::clone(&terminal), writer);
+        let elided = consumer.elided();
         let (subscribed, history) = Attach::builder()
             .producer(producer)
             .consumer(consumer)
@@ -104,6 +106,7 @@ where
             stamp,
             terminal,
             ended: false,
+            scrollback_elided: elided.load(Ordering::Relaxed),
         })
     }
 
@@ -141,6 +144,11 @@ where
     pub fn ended(&self) -> bool {
         self.ended
     }
+
+    #[must_use]
+    pub fn scrollback_elided(&self) -> usize {
+        self.scrollback_elided
+    }
 }
 
 #[must_use]
@@ -156,11 +164,12 @@ pub fn spawn_feeder<P>(
     bell: Waker,
     ended: Arc<AtomicBool>,
     name: String,
-) -> anyhow::Result<()>
+) -> anyhow::Result<usize>
 where
     P: Producer<Item = Vec<u8>, Snap = PaneSnapshotWrap>,
 {
     let consumer = TerminalSink::ringing(terminal, writer, bell.clone());
+    let elided = consumer.elided();
     let (subscribed, history) = Attach::builder()
         .producer(CountedProducer::new(producer, calls))
         .consumer(consumer)
@@ -173,7 +182,7 @@ where
         ended.store(true, Ordering::Release);
         bell.wake_by_ref();
     })?;
-    Ok(())
+    Ok(elided.load(Ordering::Relaxed))
 }
 
 #[derive(Debug, Clone, Copy)]
