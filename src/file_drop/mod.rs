@@ -57,11 +57,56 @@ pub enum Payload {
     Image(ImageKind, Vec<u8>),
 }
 
+pub const EPHEMERAL_DIRS: [&str; 1] = ["TemporaryItems"];
+
 pub fn land(payload: Payload, dir: &Path) -> std::io::Result<Vec<PathBuf>> {
     match payload {
-        Payload::Files(paths) => Ok(paths),
+        Payload::Files(paths) => Ok(settle_files(paths, dir)),
         Payload::Image(kind, bytes) => materialize_image(kind, &bytes, dir).map(|p| vec![p]),
     }
+}
+
+#[must_use]
+pub fn is_ephemeral(path: &Path) -> bool {
+    path.components()
+        .any(|c| EPHEMERAL_DIRS.iter().any(|d| c.as_os_str() == *d))
+}
+
+#[must_use]
+pub fn settle_files(paths: Vec<PathBuf>, dir: &Path) -> Vec<PathBuf> {
+    let mut owned: Option<PathBuf> = None;
+    paths
+        .into_iter()
+        .map(|path| {
+            if !is_ephemeral(&path) {
+                return path;
+            }
+            match copy_into_owned(&path, dir, &mut owned) {
+                Ok(copy) => copy,
+                Err(error) => {
+                    tracing::warn!(%error, path = %path.display(), "ephemeral drop could not be copied; pasting its own path");
+                    path
+                }
+            }
+        })
+        .collect()
+}
+
+fn copy_into_owned(
+    path: &Path,
+    dir: &Path,
+    owned: &mut Option<PathBuf>,
+) -> std::io::Result<PathBuf> {
+    let name = path.file_name().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no file name")
+    })?;
+    let dest_dir = match owned {
+        Some(d) => d.clone(),
+        None => owned.insert(promise_dir(dir)?).clone(),
+    };
+    let dest = dest_dir.join(name);
+    std::fs::copy(path, &dest)?;
+    Ok(dest)
 }
 
 pub type PasteboardReader = Arc<dyn Fn() -> Option<Payload> + Send + Sync>;
@@ -355,6 +400,75 @@ mod tests {
                 .unwrap()
                 .starts_with("mado-drop-")
         );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_screenshot_thumbnail_temp_is_ephemeral_and_a_finder_file_is_not() {
+        assert!(is_ephemeral(Path::new(
+            "/var/folders/y9/x/T/TemporaryItems/NSIRD_screencaptureui_d4EyP9/Screenshot 2026-10-20 at 03.51.16.png"
+        )));
+        assert!(!is_ephemeral(Path::new("/Users/op/code/main.rs")));
+        assert!(!is_ephemeral(Path::new(
+            "/Users/op/TemporaryItemsNotes.png"
+        )));
+    }
+
+    #[test]
+    fn an_ephemeral_drop_is_copied_into_an_owned_dir_and_a_real_file_keeps_its_path() {
+        let dir = scratch();
+        let shot_dir = dir
+            .join("TemporaryItems")
+            .join("NSIRD_screencaptureui_test");
+        std::fs::create_dir_all(&shot_dir).unwrap();
+        let shot = shot_dir.join("Screenshot 1.png");
+        std::fs::write(&shot, png_bytes()).unwrap();
+        let real = dir.join("real.png");
+        std::fs::write(&real, b"x").unwrap();
+
+        let settled = settle_files(vec![shot.clone(), real.clone()], &dir);
+
+        assert_eq!(settled.len(), 2);
+        assert_ne!(settled[0], shot);
+        assert!(!is_ephemeral(&settled[0]), "{}", settled[0].display());
+        assert_eq!(settled[0].file_name().unwrap(), "Screenshot 1.png");
+        assert!(
+            settled[0]
+                .parent()
+                .unwrap()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .starts_with("mado-drop-")
+        );
+        assert_eq!(std::fs::read(&settled[0]).unwrap(), png_bytes());
+        assert_eq!(settled[1], real);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn an_ephemeral_drop_that_cannot_be_read_keeps_its_own_path() {
+        let dir = scratch();
+        let gone = dir
+            .join("TemporaryItems")
+            .join("NSIRD_gone")
+            .join("Screenshot.png");
+        assert_eq!(settle_files(vec![gone.clone()], &dir), vec![gone]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn landing_files_settles_ephemeral_ones() {
+        let dir = scratch();
+        let shot_dir = dir.join("TemporaryItems").join("NSIRD_land");
+        std::fs::create_dir_all(&shot_dir).unwrap();
+        let shot = shot_dir.join("s.png");
+        std::fs::write(&shot, png_bytes()).unwrap();
+        let landed = land(Payload::Files(vec![shot.clone()]), &dir).unwrap();
+        assert_eq!(landed.len(), 1);
+        assert!(!is_ephemeral(&landed[0]));
+        assert!(landed[0].exists());
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -1600,8 +1600,9 @@ impl InputEngine {
     /// rest of the paste as keystrokes (classic paste injection).
     fn paste(&mut self) {
         let offer = (self.pasteboard)();
-        if let Some(crate::file_drop::Payload::Files(paths)) = &offer {
-            self.drop_files(paths);
+        if let Some(crate::file_drop::Payload::Files(paths)) = offer {
+            let paths = crate::file_drop::settle_files(paths, &std::env::temp_dir());
+            self.drop_files(&paths);
             return;
         }
         if let Ok(text) = self.clipboard.paste_text() {
@@ -4996,6 +4997,38 @@ mod tests {
             assert_eq!(sent.len(), 1, "{kind:?}");
             assert_eq!(framed_body(&sent[0]), crate::file_drop::paste_text(&paths));
         }
+    }
+
+    #[test]
+    fn cmd_v_of_a_screenshot_thumbnail_pastes_a_copy_a_shell_can_read() {
+        let root = std::env::temp_dir().join(format!(
+            "mado-engine-ephemeral-{}-{}",
+            std::process::id(),
+            crate::file_drop::DROP_TEMP.name("")
+        ));
+        let shot_dir = root.join("TemporaryItems").join("NSIRD_screencaptureui_t");
+        std::fs::create_dir_all(&shot_dir).unwrap();
+        let shot = shot_dir.join("Screenshot 2.png");
+        std::fs::write(&shot, b"png").unwrap();
+        for kind in [SinkKind::Closure, SinkKind::Control] {
+            let mut h = Harness::new(kind);
+            h.feed(b"\x1b[?2004h");
+            let files = crate::file_drop::Payload::Files(vec![shot.clone()]);
+            h.engine
+                .set_pasteboard(Arc::new(move || Some(files.clone())));
+            h.key(KeyCode::Char('v'), Some("v"), cmd());
+            let sent = h.sent_bytes();
+            assert_eq!(sent.len(), 1, "{kind:?}");
+            let body = framed_body(&sent[0]);
+            let words = split_unescaped(&body);
+            assert_eq!(words.len(), 1, "{body:?}");
+            let pasted = std::path::PathBuf::from(&words[0]);
+            assert!(!crate::file_drop::is_ephemeral(&pasted), "{pasted:?}");
+            assert_eq!(pasted.file_name().unwrap(), "Screenshot 2.png");
+            assert_eq!(std::fs::read(&pasted).unwrap(), b"png");
+            let _ = std::fs::remove_dir_all(pasted.parent().unwrap());
+        }
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]
