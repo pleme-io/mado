@@ -3382,7 +3382,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.205"
+version = "0.1.206"
 dependencies = [
  "anyhow",
  "awase",
