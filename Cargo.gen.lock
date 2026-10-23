@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "1570ba03c1a0336275bd46b88f5eab4af65b1d3dbf80e20ce9fcc45665bf836d",
+  "cargo_lock_sha256": "2806cf9038f7329372616479eb25c033dd0d60428769439e19537318894d14f4",
   "manifest_sha256": {
-    "Cargo.toml": "8b046aa51bf8a052567d67edfac5ff598ac53bcff4b825ee080ee1a69da7ef87"
+    "Cargo.toml": "ed12e97d7c3486a4dc059bfc44229bf5c7c7f86249afdcb9cba59cfcd20a8184"
   },
   "target_resolves": {
     "base": {
@@ -1751,7 +1751,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "cc-1.9.0": {
+      "cc-1.10.0": {
         "runtime_dependencies": [
           {
             "name": "find_msvc_tools",
@@ -6993,7 +6993,7 @@
           },
           {
             "name": "webpki_roots",
-            "package_key": "webpki-roots-1.0.10",
+            "package_key": "webpki-roots-1.0.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9544,7 +9544,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.9.0",
+            "package_key": "cc-1.10.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -9560,7 +9560,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.9.0",
+            "package_key": "cc-1.10.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -13576,7 +13576,7 @@
           },
           {
             "name": "cc",
-            "package_key": "cc-1.9.0",
+            "package_key": "cc-1.10.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -14984,7 +14984,7 @@
           },
           {
             "name": "webpki_roots",
-            "package_key": "webpki-roots-1.0.10",
+            "package_key": "webpki-roots-1.0.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16544,7 +16544,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.28.0",
+            "package_key": "uuid-1.29.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16965,7 +16965,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.28.0",
+            "package_key": "uuid-1.29.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -17081,7 +17081,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.28.0",
+            "package_key": "uuid-1.29.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -18809,7 +18809,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.28.0",
+            "package_key": "uuid-1.29.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19519,7 +19519,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.28.0",
+            "package_key": "uuid-1.29.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19911,7 +19911,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.28.0",
+            "package_key": "uuid-1.29.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20150,7 +20150,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.28.0",
+            "package_key": "uuid-1.29.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20212,7 +20212,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.9.0",
+            "package_key": "cc-1.10.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -21022,7 +21022,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.28.0",
+            "package_key": "uuid-1.29.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -24962,7 +24962,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.28.0",
+            "package_key": "uuid-1.29.0",
             "kind": "normal",
             "features": [
               "serde"
@@ -24981,7 +24981,7 @@
           "uuid"
         ]
       },
-      "uuid-1.28.0": {
+      "uuid-1.29.0": {
         "runtime_dependencies": [
           {
             "name": "getrandom",
@@ -25599,7 +25599,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.28.0",
+            "package_key": "uuid-1.29.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -25699,7 +25699,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.28.0",
+            "package_key": "uuid-1.29.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -25848,7 +25848,7 @@
         "runtime_dependencies": [
           {
             "name": "parent",
-            "package_key": "webpki-roots-1.0.10",
+            "package_key": "webpki-roots-1.0.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25860,7 +25860,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "webpki-roots-1.0.10": {
+      "webpki-roots-1.0.11": {
         "runtime_dependencies": [
           {
             "name": "pki_types",
@@ -26809,7 +26809,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -27783,7 +27783,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.210": {
+          "mado-0.1.211": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30756,7 +30756,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -32126,7 +32126,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -32947,7 +32947,7 @@
               "system"
             ]
           },
-          "mado-0.1.210": {
+          "mado-0.1.211": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -33959,7 +33959,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -34725,7 +34725,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -36347,7 +36347,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -37168,7 +37168,7 @@
               "system"
             ]
           },
-          "mado-0.1.210": {
+          "mado-0.1.211": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -38180,7 +38180,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -38946,7 +38946,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -40554,7 +40554,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -41570,7 +41570,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.210": {
+          "mado-0.1.211": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44523,7 +44523,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -45946,7 +45946,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -46809,7 +46809,7 @@
               "system"
             ]
           },
-          "mado-0.1.210": {
+          "mado-0.1.211": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -47801,7 +47801,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -48586,7 +48586,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -50242,7 +50242,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -51105,7 +51105,7 @@
               "system"
             ]
           },
-          "mado-0.1.210": {
+          "mado-0.1.211": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -52097,7 +52097,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -52882,7 +52882,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.9.0",
+                "package_key": "cc-1.10.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -54616,7 +54616,7 @@
     "cast-0.3.0": {
       "edition": "2018"
     },
-    "cc-1.9.0": {
+    "cc-1.10.0": {
       "edition": "2021"
     },
     "cfg-if-1.0.5": {
@@ -55432,7 +55432,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.210": {
+    "mado-0.1.211": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -56781,7 +56781,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "uuid-1.28.0": {
+    "uuid-1.29.0": {
       "edition": "2021"
     },
     "validit-0.2.6": {
@@ -56874,7 +56874,7 @@
     "webpki-roots-0.26.11": {
       "edition": "2021"
     },
-    "webpki-roots-1.0.10": {
+    "webpki-roots-1.0.11": {
       "edition": "2021"
     },
     "weezl-0.1.12": {

@@ -10906,7 +10906,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.210";
+        version = "0.1.211";
         edition = "2024";
         crateBin = [
           {
@@ -22538,9 +22538,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.1082";
+        version = "0.1.1083";
         edition = "2024";
-        sha256 = "0641kgmds0xcdv6hzldi92yd125sa44y3hvdjy14xyx1lc0kmy0v";
+        sha256 = "08smrh43h7bkwzicawxd2ql35x4d88cyfjsa71vc9p2q8pqf2gi5";
         dependencies = [
           {
             name = "arc-swap";
@@ -28249,9 +28249,9 @@ rec {
       };
       "vigy" = rec {
         crateName = "vigy";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2021";
-        sha256 = "1q5m6mdsmlbdal74a6866pzk4xxc5ldvqki2n84yxmmykspvjsyb";
+        sha256 = "113lhf1c43hb9xlnv0kxf7sfc0gp6cdcvr9iybi19z9lszbswqh7";
         authors = [
           "Pleme Team <team@pleme.io>"
         ];
@@ -28353,9 +28353,9 @@ rec {
       };
       "vigy-mcp" = rec {
         crateName = "vigy-mcp";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2021";
-        sha256 = "10y4hsxj8x2cmdpfkin66vf481s45b65b7bzihj3vx5v08awh9r6";
+        sha256 = "1an34apmziwz1dh3spcg5yazp38nicbl0a0qshd474haglgnqa0f";
         libName = "vigy_mcp";
         authors = [
           "Pleme Team <team@pleme.io>"
