@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "7301881357900ac52ba4c458229e4837f1c0e3ca6c5467a89a7fc735f776fe61",
+  "cargo_lock_sha256": "1570ba03c1a0336275bd46b88f5eab4af65b1d3dbf80e20ce9fcc45665bf836d",
   "manifest_sha256": {
-    "Cargo.toml": "f3d9537ac2675672aa174850521b4360d69e485fe8ad13a0c809d5479c63fbdd"
+    "Cargo.toml": "8b046aa51bf8a052567d67edfac5ff598ac53bcff4b825ee080ee1a69da7ef87"
   },
   "target_resolves": {
     "base": {
@@ -8161,7 +8161,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1082",
+            "package_key": "shikumi-0.1.1083",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9982,7 +9982,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1082",
+            "package_key": "shikumi-0.1.1083",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17955,7 +17955,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1082",
+            "package_key": "shikumi-0.1.1083",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18002,7 +18002,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.1082": {
+      "shikumi-0.1.1083": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -20982,7 +20982,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1082",
+            "package_key": "shikumi-0.1.1083",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21928,7 +21928,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1082",
+            "package_key": "shikumi-0.1.1083",
             "kind": "normal",
             "features": [
               "cli"
@@ -25043,7 +25043,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-0.1.9": {
+      "vigy-0.1.10": {
         "runtime_dependencies": [
           {
             "name": "vigy_eval",
@@ -25057,7 +25057,7 @@
           },
           {
             "name": "vigy_mcp",
-            "package_key": "vigy-mcp-0.1.9",
+            "package_key": "vigy-mcp-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25243,7 +25243,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-mcp-0.1.9": {
+      "vigy-mcp-0.1.10": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -27783,7 +27783,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.209": {
+          "mado-0.1.210": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -28384,7 +28384,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1082",
+                "package_key": "shikumi-0.1.1083",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -28574,7 +28574,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.9",
+                "package_key": "vigy-0.1.10",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -32947,7 +32947,7 @@
               "system"
             ]
           },
-          "mado-0.1.209": {
+          "mado-0.1.210": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -33478,7 +33478,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1082",
+                "package_key": "shikumi-0.1.1083",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -33668,7 +33668,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.9",
+                "package_key": "vigy-0.1.10",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -37168,7 +37168,7 @@
               "system"
             ]
           },
-          "mado-0.1.209": {
+          "mado-0.1.210": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -37699,7 +37699,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1082",
+                "package_key": "shikumi-0.1.1083",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -37889,7 +37889,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.9",
+                "package_key": "vigy-0.1.10",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -41570,7 +41570,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.209": {
+          "mado-0.1.210": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -42171,7 +42171,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1082",
+                "package_key": "shikumi-0.1.1083",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -42361,7 +42361,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.9",
+                "package_key": "vigy-0.1.10",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -46809,7 +46809,7 @@
               "system"
             ]
           },
-          "mado-0.1.209": {
+          "mado-0.1.210": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -47340,7 +47340,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1082",
+                "package_key": "shikumi-0.1.1083",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -47530,7 +47530,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.9",
+                "package_key": "vigy-0.1.10",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -51105,7 +51105,7 @@
               "system"
             ]
           },
-          "mado-0.1.209": {
+          "mado-0.1.210": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -51636,7 +51636,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1082",
+                "package_key": "shikumi-0.1.1083",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -51826,7 +51826,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.9",
+                "package_key": "vigy-0.1.10",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -55432,7 +55432,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.209": {
+    "mado-0.1.210": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -56283,7 +56283,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.1082": {
+    "shikumi-0.1.1083": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -56793,13 +56793,13 @@
     "version_check-0.9.5": {
       "edition": "2015"
     },
-    "vigy-0.1.9": {
+    "vigy-0.1.10": {
       "edition": "2021"
     },
     "vigy-eval-0.1.10": {
       "edition": "2021"
     },
-    "vigy-mcp-0.1.9": {
+    "vigy-mcp-0.1.10": {
       "edition": "2021"
     },
     "vigy-runtime-0.1.10": {

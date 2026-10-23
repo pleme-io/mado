@@ -1432,7 +1432,7 @@ rec {
           "traits-preview" = [ "dep:digest" ];
           "zeroize" = [ "dep:zeroize" "arrayvec/zeroize" ];
         };
-        resolvedDefaultFeatures = [ "default" "std" ];
+        resolvedDefaultFeatures = [ "default" "pure" "std" ];
       };
       "block" = rec {
         crateName = "block";
@@ -1519,6 +1519,350 @@ rec {
           "unstable-winobjc" = [ "gnustep-1-8" ];
         };
         resolvedDefaultFeatures = [ "alloc" "default" "std" ];
+      };
+      "blue-lang-bidama" = rec {
+        crateName = "blue-lang-bidama";
+        version = "0.0.85";
+        edition = "2021";
+        sha256 = "1v48vnzxn0msara6zv6j1v2fsapsdm3hhlmyrn3j1y9xxm2rpdzn";
+        libName = "blue_lang_bidama";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "blue-lang-waku";
+            packageId = "blue-lang-waku";
+          }
+        ];
+
+      };
+      "blue-lang-check" = rec {
+        crateName = "blue-lang-check";
+        version = "0.0.85";
+        edition = "2021";
+        sha256 = "14nk34h66ja7pp98lms95psc0gnzq8k5kg9ff42w6zs6l3rq8js2";
+        libName = "blue_lang_check";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "blue-lang-syntax";
+            packageId = "blue-lang-syntax";
+          }
+          {
+            name = "tatara-lisp";
+            packageId = "tatara-lisp 0.4.8";
+          }
+        ];
+
+      };
+      "blue-lang-fmt" = rec {
+        crateName = "blue-lang-fmt";
+        version = "0.0.85";
+        edition = "2021";
+        sha256 = "1lr694gk0cydwbp2wb15syhb6iglk8hib01r9psh1xzciba3my9q";
+        libName = "blue_lang_fmt";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "blue-lang-syntax";
+            packageId = "blue-lang-syntax";
+          }
+          {
+            name = "tatara-lisp";
+            packageId = "tatara-lisp 0.4.8";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.21";
+          }
+        ];
+
+      };
+      "blue-lang-host" = rec {
+        crateName = "blue-lang-host";
+        version = "0.0.85";
+        edition = "2021";
+        sha256 = "0x53v73693k340p0cmrqp1hf7hmjdwha6wb1xjksi2w144fsmmdw";
+        libName = "blue_lang_host";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "blue-lang-host-macros";
+            packageId = "blue-lang-host-macros";
+          }
+          {
+            name = "blue-lang-pkg";
+            packageId = "blue-lang-pkg";
+          }
+          {
+            name = "blue-lang-runtime";
+            packageId = "blue-lang-runtime";
+          }
+          {
+            name = "blue-lang-waku";
+            packageId = "blue-lang-waku";
+          }
+          {
+            name = "tatara-lisp";
+            packageId = "tatara-lisp 0.4.8";
+          }
+          {
+            name = "tatara-lisp-eval";
+            packageId = "tatara-lisp-eval 0.4.8";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.21";
+          }
+        ];
+        features = {
+          "default" = [ "packages" ];
+          "packages" = [ "blue-lang-pkg/embedded" ];
+        };
+        resolvedDefaultFeatures = [ "default" "packages" ];
+      };
+      "blue-lang-host-macros" = rec {
+        crateName = "blue-lang-host-macros";
+        version = "0.0.85";
+        edition = "2021";
+        sha256 = "0c8ma8b00xpjszbr3bjjxvvygm7862f9mxlphg7yyd33i2b25szs";
+        procMacro = true;
+        libName = "blue_lang_host_macros";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn 2.0.119";
+            features = [ "full" ];
+          }
+        ];
+
+      };
+      "blue-lang-pkg" = rec {
+        crateName = "blue-lang-pkg";
+        version = "0.0.85";
+        edition = "2021";
+        sha256 = "1mxnfpkl87b63zc8zw101ls9aqjiql7y77cqgw9hbd4vs7h699pw";
+        libName = "blue_lang_pkg";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "blue-lang-bidama";
+            packageId = "blue-lang-bidama";
+          }
+          {
+            name = "blue-lang-check";
+            packageId = "blue-lang-check";
+          }
+          {
+            name = "blue-lang-fmt";
+            packageId = "blue-lang-fmt";
+          }
+          {
+            name = "blue-lang-runtime";
+            packageId = "blue-lang-runtime";
+          }
+          {
+            name = "blue-lang-syntax";
+            packageId = "blue-lang-syntax";
+          }
+          {
+            name = "blue-lang-waku";
+            packageId = "blue-lang-waku";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "tatara-lisp";
+            packageId = "tatara-lisp 0.4.8";
+          }
+          {
+            name = "tatara-lisp-eval";
+            packageId = "tatara-lisp-eval 0.4.8";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.21";
+          }
+        ];
+        features = {
+        };
+        resolvedDefaultFeatures = [ "embedded" ];
+      };
+      "blue-lang-proc" = rec {
+        crateName = "blue-lang-proc";
+        version = "0.0.85";
+        edition = "2021";
+        sha256 = "0m73vp068znyp2k5bk569d0vb1ymmn506mwd8aiyi4sxdr2npvhd";
+        libName = "blue_lang_proc";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "blue-lang-waku";
+            packageId = "blue-lang-waku";
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "tatara-lisp";
+            packageId = "tatara-lisp 0.4.8";
+          }
+          {
+            name = "tatara-lisp-eval";
+            packageId = "tatara-lisp-eval 0.4.8";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+        ];
+
+      };
+      "blue-lang-runtime" = rec {
+        crateName = "blue-lang-runtime";
+        version = "0.0.85";
+        edition = "2021";
+        sha256 = "0y24as4g9nwh51i31sh3vky9ybvf46xic34a8kgcxfb7w4scrk96";
+        libName = "blue_lang_runtime";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "blake3";
+            packageId = "blake3";
+            usesDefaultFeatures = false;
+            features = [ "std" "pure" ];
+          }
+          {
+            name = "blue-lang-check";
+            packageId = "blue-lang-check";
+          }
+          {
+            name = "blue-lang-fmt";
+            packageId = "blue-lang-fmt";
+          }
+          {
+            name = "blue-lang-proc";
+            packageId = "blue-lang-proc";
+          }
+          {
+            name = "blue-lang-syntax";
+            packageId = "blue-lang-syntax";
+          }
+          {
+            name = "blue-lang-waku";
+            packageId = "blue-lang-waku";
+          }
+          {
+            name = "ed25519-dalek";
+            packageId = "ed25519-dalek";
+            usesDefaultFeatures = false;
+            features = [ "std" "fast" "zeroize" ];
+          }
+          {
+            name = "rnix";
+            packageId = "rnix";
+          }
+          {
+            name = "rowan";
+            packageId = "rowan";
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "sha2";
+            packageId = "sha2";
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+          {
+            name = "tatara-lisp";
+            packageId = "tatara-lisp 0.4.8";
+          }
+          {
+            name = "tatara-lisp-eval";
+            packageId = "tatara-lisp-eval 0.4.8";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.21";
+          }
+        ];
+        features = {
+        };
+      };
+      "blue-lang-syntax" = rec {
+        crateName = "blue-lang-syntax";
+        version = "0.0.85";
+        edition = "2021";
+        sha256 = "128cfxp2xdf4w5i8pi7hibmva59ha1h5cqsj0biysyjbfq7m0y96";
+        libName = "blue_lang_syntax";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "tatara-lisp";
+            packageId = "tatara-lisp 0.4.8";
+          }
+        ];
+
+      };
+      "blue-lang-waku" = rec {
+        crateName = "blue-lang-waku";
+        version = "0.0.85";
+        edition = "2021";
+        sha256 = "1k24ban2v9m5bqm5lhivqig001jcnv34h6ga104wi1bb2s6l1437";
+        libName = "blue_lang_waku";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "blue-lang-syntax";
+            packageId = "blue-lang-syntax";
+          }
+          {
+            name = "tatara-lisp";
+            packageId = "tatara-lisp 0.4.8";
+          }
+        ];
+
       };
       "borsh" = rec {
         crateName = "borsh";
@@ -2938,6 +3282,22 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "fontconfig" "std" "swash" "sys-locale" ];
       };
+      "countme" = rec {
+        crateName = "countme";
+        version = "3.0.1";
+        edition = "2018";
+        sha256 = "0dn62hhvgmwyxslh14r4nlbvz8h50cp5mnn1qhqsw63vs7yva13p";
+        authors = [
+          "Aleksey Kladov <aleksey.kladov@gmail.com>"
+        ];
+        features = {
+          "dashmap" = [ "dep:dashmap" ];
+          "enable" = [ "dashmap" "once_cell" "rustc-hash" ];
+          "once_cell" = [ "dep:once_cell" ];
+          "print_at_exit" = [ "enable" ];
+          "rustc-hash" = [ "dep:rustc-hash" ];
+        };
+      };
       "cpufeatures 0.2.17" = rec {
         crateName = "cpufeatures";
         version = "0.2.17";
@@ -3394,6 +3754,98 @@ rec {
           "std" = [ "alloc" ];
         };
         resolvedDefaultFeatures = [ "alloc" "default" "std" ];
+      };
+      "curve25519-dalek" = rec {
+        crateName = "curve25519-dalek";
+        version = "4.1.3";
+        edition = "2021";
+        sha256 = "1gmjb9dsknrr8lypmhkyjd67p1arb8mbfamlwxm7vph38my8pywp";
+        libName = "curve25519_dalek";
+        authors = [
+          "Isis Lovecruft <isis@patternsinthevoid.net>"
+          "Henry de Valence <hdevalence@hdevalence.ca>"
+        ];
+        dependencies = [
+          {
+            name = "cfg-if";
+            packageId = "cfg-if";
+          }
+          {
+            name = "cpufeatures";
+            packageId = "cpufeatures 0.2.17";
+            target = { target, features }: ("x86_64" == target."arch" or null);
+          }
+          {
+            name = "curve25519-dalek-derive";
+            packageId = "curve25519-dalek-derive";
+            target = { target, features }: ((!("fiat" == target."curve25519_dalek_backend" or null)) && (!("serial" == target."curve25519_dalek_backend" or null)) && ("x86_64" == target."arch" or null));
+          }
+          {
+            name = "digest";
+            packageId = "digest";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "fiat-crypto";
+            packageId = "fiat-crypto";
+            usesDefaultFeatures = false;
+            target = { target, features }: ("fiat" == target."curve25519_dalek_backend" or null);
+          }
+          {
+            name = "subtle";
+            packageId = "subtle";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "zeroize";
+            packageId = "zeroize";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "rustc_version";
+            packageId = "rustc_version";
+          }
+        ];
+        features = {
+          "alloc" = [ "zeroize?/alloc" ];
+          "default" = [ "alloc" "precomputed-tables" "zeroize" ];
+          "digest" = [ "dep:digest" ];
+          "ff" = [ "dep:ff" ];
+          "group" = [ "dep:group" "rand_core" ];
+          "group-bits" = [ "group" "ff/bits" ];
+          "rand_core" = [ "dep:rand_core" ];
+          "serde" = [ "dep:serde" ];
+          "zeroize" = [ "dep:zeroize" ];
+        };
+        resolvedDefaultFeatures = [ "alloc" "digest" "precomputed-tables" "zeroize" ];
+      };
+      "curve25519-dalek-derive" = rec {
+        crateName = "curve25519-dalek-derive";
+        version = "0.1.1";
+        edition = "2021";
+        sha256 = "1cry71xxrr0mcy5my3fb502cwfxy6822k4pm19cwrilrg7hq4s7l";
+        procMacro = true;
+        libName = "curve25519_dalek_derive";
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn 2.0.119";
+            features = [ "full" ];
+          }
+        ];
+
       };
       "darling 0.20.11" = rec {
         crateName = "darling";
@@ -4219,6 +4671,116 @@ rec {
         ];
 
       };
+      "ed25519" = rec {
+        crateName = "ed25519";
+        version = "2.2.3";
+        edition = "2021";
+        sha256 = "0lydzdf26zbn82g7xfczcac9d7mzm3qgx934ijjrd5hjpjx32m8i";
+        authors = [
+          "RustCrypto Developers"
+        ];
+        dependencies = [
+          {
+            name = "pkcs8";
+            packageId = "pkcs8";
+            optional = true;
+          }
+          {
+            name = "signature";
+            packageId = "signature";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "alloc" = [ "pkcs8?/alloc" ];
+          "default" = [ "std" ];
+          "pem" = [ "alloc" "pkcs8/pem" ];
+          "pkcs8" = [ "dep:pkcs8" ];
+          "serde" = [ "dep:serde" ];
+          "serde_bytes" = [ "serde" "dep:serde_bytes" ];
+          "std" = [ "pkcs8?/std" "signature/std" ];
+          "zeroize" = [ "dep:zeroize" ];
+        };
+        resolvedDefaultFeatures = [ "alloc" "std" ];
+      };
+      "ed25519-dalek" = rec {
+        crateName = "ed25519-dalek";
+        version = "2.2.0";
+        edition = "2021";
+        sha256 = "1agcwij1z687hg26ngzwhnmpz29b2w56m8z1ap3pvrnfh709drvh";
+        libName = "ed25519_dalek";
+        authors = [
+          "isis lovecruft <isis@patternsinthevoid.net>"
+          "Tony Arcieri <bascule@gmail.com>"
+          "Michael Rosenberg <michael@mrosenberg.pub>"
+        ];
+        dependencies = [
+          {
+            name = "curve25519-dalek";
+            packageId = "curve25519-dalek";
+            usesDefaultFeatures = false;
+            features = [ "digest" ];
+          }
+          {
+            name = "ed25519";
+            packageId = "ed25519";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "sha2";
+            packageId = "sha2";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "subtle";
+            packageId = "subtle";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "zeroize";
+            packageId = "zeroize";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+        ];
+        devDependencies = [
+          {
+            name = "curve25519-dalek";
+            packageId = "curve25519-dalek";
+            usesDefaultFeatures = false;
+            features = [ "digest" "rand_core" ];
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+        ];
+        features = {
+          "alloc" = [ "curve25519-dalek/alloc" "ed25519/alloc" "serde?/alloc" "zeroize/alloc" ];
+          "asm" = [ "sha2/asm" ];
+          "batch" = [ "alloc" "merlin" "rand_core" ];
+          "default" = [ "fast" "std" "zeroize" ];
+          "digest" = [ "signature/digest" ];
+          "fast" = [ "curve25519-dalek/precomputed-tables" ];
+          "legacy_compatibility" = [ "curve25519-dalek/legacy_compatibility" ];
+          "merlin" = [ "dep:merlin" ];
+          "pem" = [ "alloc" "ed25519/pem" "pkcs8" ];
+          "pkcs8" = [ "ed25519/pkcs8" ];
+          "rand_core" = [ "dep:rand_core" ];
+          "serde" = [ "dep:serde" "ed25519/serde" ];
+          "signature" = [ "dep:signature" ];
+          "std" = [ "alloc" "ed25519/std" "serde?/std" "sha2/std" ];
+          "zeroize" = [ "dep:zeroize" "curve25519-dalek/zeroize" ];
+        };
+        resolvedDefaultFeatures = [ "alloc" "fast" "std" "zeroize" ];
+      };
       "educe" = rec {
         crateName = "educe";
         version = "0.6.0";
@@ -4391,9 +4953,9 @@ rec {
       };
       "engate-attach" = rec {
         crateName = "engate-attach";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2024";
-        sha256 = "02w49l2j0imwk33yjqhhd13jdblam2li866ca8h913np6l032afd";
+        sha256 = "0510yxqcx2b5c5g40pfcgpq6jkgxh0hvcmhbg5mx8cyfqziswb4p";
         libName = "engate_attach";
         authors = [
           "pleme-io <ops@pleme.io>"
@@ -4825,6 +5387,19 @@ rec {
           }
         ];
 
+      };
+      "fiat-crypto" = rec {
+        crateName = "fiat-crypto";
+        version = "0.2.9";
+        edition = "2018";
+        sha256 = "07c1vknddv3ak7w89n85ik0g34nzzpms6yb845vrjnv9m4csbpi8";
+        libName = "fiat_crypto";
+        authors = [
+          "Fiat Crypto library authors <jgross@mit.edu>"
+        ];
+        features = {
+          "default" = [ "std" ];
+        };
       };
       "figment" = rec {
         crateName = "figment";
@@ -10331,7 +10906,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.209";
+        version = "0.1.210";
         edition = "2024";
         crateBin = [
           {
@@ -11182,11 +11757,11 @@ rec {
         ];
 
       };
-      "monosashi 0.4.7" = rec {
+      "monosashi 0.4.8" = rec {
         crateName = "monosashi";
-        version = "0.4.7";
+        version = "0.4.8";
         edition = "2021";
-        sha256 = "0fab0aa9khpjbxfaxagka678ffjy811c77prwj24sdll3jvhbadn";
+        sha256 = "14vhvb4b9n7jcnldd51ajpv43zrxky78v0vz0kq6bxk8a9lyf4mm";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
@@ -19134,6 +19709,55 @@ rec {
         ];
 
       };
+      "rnix" = rec {
+        crateName = "rnix";
+        version = "0.14.0";
+        edition = "2021";
+        sha256 = "16sp7zzagxdk7wps74jfpqrilz6yny24bhsisc8dzv1f6wbvsqy1";
+        authors = [
+          "jD91mZM2 <me@krake.one>"
+        ];
+        dependencies = [
+          {
+            name = "rowan";
+            packageId = "rowan";
+          }
+        ];
+
+      };
+      "rowan" = rec {
+        crateName = "rowan";
+        version = "0.16.1";
+        edition = "2021";
+        sha256 = "08azddgq9f9nir996h0y46j8va0wsz4112hv0ls9hd1fb2gklyj1";
+        authors = [
+          "Aleksey Kladov <aleksey.kladov@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "countme";
+            packageId = "countme";
+          }
+          {
+            name = "hashbrown";
+            packageId = "hashbrown 0.14.5";
+            usesDefaultFeatures = false;
+            features = [ "inline-more" ];
+          }
+          {
+            name = "rustc-hash";
+            packageId = "rustc-hash 1.1.0";
+          }
+          {
+            name = "text-size";
+            packageId = "text-size";
+          }
+        ];
+        features = {
+          "serde" = [ "dep:serde" ];
+          "serde1" = [ "serde" "text-size/serde" ];
+        };
+      };
       "roxmltree" = rec {
         crateName = "roxmltree";
         version = "0.20.0";
@@ -19466,6 +20090,7 @@ rec {
         features = {
           "default" = [ "std" ];
         };
+        resolvedDefaultFeatures = [ "default" "std" ];
       };
       "rustc-hash 2.1.3" = rec {
         crateName = "rustc-hash";
@@ -24140,11 +24765,11 @@ rec {
         ];
 
       };
-      "tatara-closed-set 0.4.7" = rec {
+      "tatara-closed-set 0.4.8" = rec {
         crateName = "tatara-closed-set";
-        version = "0.4.7";
+        version = "0.4.8";
         edition = "2021";
-        sha256 = "0dbxvd32xm1lranwdzz84k0vjgasklc5db9zd9b4i9wwprxnmx66";
+        sha256 = "11h76v086wj9x5z1nsrlh2azd6gs687yx3dm6iffx2vn6zjis9s8";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24152,7 +24777,7 @@ rec {
         dependencies = [
           {
             name = "tatara-closed-set-derive";
-            packageId = "tatara-closed-set-derive 0.4.7";
+            packageId = "tatara-closed-set-derive 0.4.8";
           }
         ];
 
@@ -24184,11 +24809,11 @@ rec {
         ];
 
       };
-      "tatara-closed-set-derive 0.4.7" = rec {
+      "tatara-closed-set-derive 0.4.8" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.4.7";
+        version = "0.4.8";
         edition = "2021";
-        sha256 = "1809kmi1a1mx8wkrpqw7xvpip251887r1mw9bdhbdxkw8z2gwls5";
+        sha256 = "1b6fvbbfc1l3iijdag7cks7yk05g6wkq17jad9jls66h2h9k6a2z";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -24398,11 +25023,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "tatara-lisp 0.4.7" = rec {
+      "tatara-lisp 0.4.8" = rec {
         crateName = "tatara-lisp";
-        version = "0.4.7";
+        version = "0.4.8";
         edition = "2021";
-        sha256 = "0cq9g31zacsfxl70f230zx1cajr8k7xq6488ia79zr71m38k2i8k";
+        sha256 = "1223f2a6v318392bfxwl12m57blkmgzj2vbr7s6h3i032bjaxdls";
         libName = "tatara_lisp";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24423,11 +25048,11 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set 0.4.7";
+            packageId = "tatara-closed-set 0.4.8";
           }
           {
             name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive 0.4.7";
+            packageId = "tatara-lisp-derive 0.4.8";
           }
           {
             name = "thiserror";
@@ -24465,11 +25090,11 @@ rec {
         ];
 
       };
-      "tatara-lisp-derive 0.4.7" = rec {
+      "tatara-lisp-derive 0.4.8" = rec {
         crateName = "tatara-lisp-derive";
-        version = "0.4.7";
+        version = "0.4.8";
         edition = "2021";
-        sha256 = "0aj3w272gw3y5g7a534b8r4w86ad3arw3f94fsfh5ziw1vh4kp0x";
+        sha256 = "0yvrzs4c5l2a5g6g9vp2kh158dxdprwck7761b1q4davdn6gfvws";
         procMacro = true;
         libName = "tatara_lisp_derive";
         authors = [
@@ -24521,11 +25146,11 @@ rec {
         ];
 
       };
-      "tatara-lisp-eval 0.4.7" = rec {
+      "tatara-lisp-eval 0.4.8" = rec {
         crateName = "tatara-lisp-eval";
-        version = "0.4.7";
+        version = "0.4.8";
         edition = "2021";
-        sha256 = "0vikr1hr8cj9g7f76i4fr5c821hzv1hlmw27pccr881cxb9ja36g";
+        sha256 = "0ydkjln7w1ykazx5pkf1mc3a298yfhww8b7rr8y24wfg4m4l3syj";
         libName = "tatara_lisp_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24537,7 +25162,7 @@ rec {
           }
           {
             name = "monosashi";
-            packageId = "monosashi 0.4.7";
+            packageId = "monosashi 0.4.8";
           }
           {
             name = "stacker";
@@ -24546,11 +25171,11 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set 0.4.7";
+            packageId = "tatara-closed-set 0.4.8";
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.7";
+            packageId = "tatara-lisp 0.4.8";
           }
           {
             name = "thiserror";
@@ -25280,6 +25905,20 @@ rec {
           }
         ];
 
+      };
+      "text-size" = rec {
+        crateName = "text-size";
+        version = "1.1.1";
+        edition = "2018";
+        sha256 = "0cwjbkl7w3xc8mnkhg1nwij6p5y2qkcfldgss8ddnawvhf3s32pi";
+        libName = "text_size";
+        authors = [
+          "Aleksey Kladov <aleksey.kladov@gmail.com>"
+          "Christopher Durham (CAD97) <cad97@cad97.com>"
+        ];
+        features = {
+          "serde" = [ "dep:serde" ];
+        };
       };
       "thiserror 1.0.69" = rec {
         crateName = "thiserror";
@@ -27650,9 +28289,9 @@ rec {
       };
       "vigy-eval" = rec {
         crateName = "vigy-eval";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2021";
-        sha256 = "1cxv99s6cl8b8b7vj9mgs0qinqpnjiwq3wxprgc1vv3myfk7dn66";
+        sha256 = "1w24i7jdgy16l02qxj60n8s24h8nasvv7vbh00p50sgwb08r85p6";
         libName = "vigy_eval";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27667,6 +28306,10 @@ rec {
             packageId = "async-trait";
           }
           {
+            name = "blue-lang-host";
+            packageId = "blue-lang-host";
+          }
+          {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
@@ -27677,11 +28320,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.7";
+            packageId = "tatara-lisp 0.4.8";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.7";
+            packageId = "tatara-lisp-eval 0.4.8";
           }
           {
             name = "thiserror";
@@ -27753,9 +28396,9 @@ rec {
       };
       "vigy-runtime" = rec {
         crateName = "vigy-runtime";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2021";
-        sha256 = "1n53h5rzrbs29mgq1apn3k3v0jmbw9hsnk9maibpcxqfr2n8ds4p";
+        sha256 = "0sghvy3sjq25fmhqf2ggqhrnzk2pihi91bdncjqx5w1nwxdpral4";
         libName = "vigy_runtime";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27812,9 +28455,9 @@ rec {
       };
       "vigy-store" = rec {
         crateName = "vigy-store";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2021";
-        sha256 = "0y5wshrcz4y8r7h9dfvsmnn6nlmjdq68smbbjh9jik63dqgh49py";
+        sha256 = "0zisgidk3a2zf360k67csgkn80gd0b8n07gvkwz6frvghfj6dlmk";
         libName = "vigy_store";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27883,9 +28526,9 @@ rec {
       };
       "vigy-types" = rec {
         crateName = "vigy-types";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2021";
-        sha256 = "011p0qlm5rh4xvsn53q50770iynz0m4hfswwpszrdnj6apb0n1rv";
+        sha256 = "1fhx4c3bv94ghgvba2m0i7c07a5d26gy0ywms15kk5cgpic51rjp";
         libName = "vigy_types";
         authors = [
           "Pleme Team <team@pleme.io>"
