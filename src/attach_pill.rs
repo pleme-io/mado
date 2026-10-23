@@ -1,6 +1,6 @@
 use std::fmt;
 use std::path::PathBuf;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 pub const HOLD: Duration = Duration::from_millis(1200);
 pub const FADE: Duration = Duration::from_millis(300);
@@ -90,16 +90,38 @@ pub struct PillFrame {
     pub refused: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Stamp {
+    Pending,
+    At(f32),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PillDemand {
+    Idle,
+    Now,
+    At(f32),
+    Continuous,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct AttachPill {
     enabled: bool,
-    shown: Option<(Attached, Instant)>,
+    shown: Option<(Attached, Stamp)>,
 }
 
 impl Default for AttachPill {
     fn default() -> Self {
         Self::new(false)
     }
+}
+
+fn hold_of(what: &Attached) -> f32 {
+    match what {
+        Attached::Notice(_) => NOTICE_HOLD,
+        Attached::File { .. } | Attached::Files(_) | Attached::Refused => HOLD,
+    }
+    .as_secs_f32()
 }
 
 impl AttachPill {
@@ -111,40 +133,66 @@ impl AttachPill {
         }
     }
 
-    pub fn show(&mut self, what: Attached, now: Instant) {
+    pub fn show(&mut self, what: Attached) {
         if self.enabled {
-            self.shown = Some((what, now));
+            self.shown = Some((what, Stamp::Pending));
         }
     }
 
-    pub fn notify(&mut self, text: String, now: Instant) {
-        self.shown = Some((Attached::Notice(text), now));
+    pub fn notify(&mut self, text: String) {
+        self.shown = Some((Attached::Notice(text), Stamp::Pending));
+    }
+
+    fn adopt(&mut self, elapsed: f32) {
+        if let Some((_, stamp @ Stamp::Pending)) = self.shown.as_mut() {
+            *stamp = Stamp::At(elapsed);
+        }
     }
 
     #[must_use]
-    pub fn alpha_at(&self, now: Instant) -> Option<f32> {
-        let (what, at) = self.shown.as_ref()?;
-        let hold = match what {
-            Attached::Notice(_) => NOTICE_HOLD,
-            Attached::File { .. } | Attached::Files(_) | Attached::Refused => HOLD,
+    pub fn alpha_at(&self, elapsed: f32) -> Option<f32> {
+        let (what, stamp) = self.shown.as_ref()?;
+        let Stamp::At(at) = *stamp else {
+            return Some(1.0);
         };
-        let age = now.saturating_duration_since(*at);
+        let age = (elapsed - at).max(0.0);
+        let hold = hold_of(what);
         if age < hold {
             return Some(1.0);
         }
+        let fade = FADE.as_secs_f32();
         let fading = age - hold;
-        (fading < FADE).then(|| 1.0 - fading.as_secs_f32() / FADE.as_secs_f32())
+        (fading < fade).then(|| 1.0 - fading / fade)
     }
 
-    #[must_use]
-    pub fn frame(&self, now: Instant) -> Option<PillFrame> {
-        let alpha = self.alpha_at(now)?;
+    pub fn frame(&mut self, elapsed: f32) -> Option<PillFrame> {
+        self.adopt(elapsed);
+        let alpha = self.alpha_at(elapsed)?;
         let (what, _) = self.shown.as_ref()?;
         Some(PillFrame {
             text: what.to_string(),
             alpha,
             refused: matches!(what, Attached::Refused),
         })
+    }
+
+    #[must_use]
+    pub fn demand(&self, elapsed: f32) -> PillDemand {
+        let Some((what, stamp)) = self.shown.as_ref() else {
+            return PillDemand::Idle;
+        };
+        let Stamp::At(at) = *stamp else {
+            return PillDemand::Now;
+        };
+        let age = (elapsed - at).max(0.0);
+        let hold = hold_of(what);
+        if age < hold {
+            PillDemand::At(at + hold)
+        } else if age - hold < FADE.as_secs_f32() {
+            PillDemand::Continuous
+        } else {
+            PillDemand::Idle
+        }
     }
 }
 
@@ -155,18 +203,15 @@ mod tests {
     #[test]
     fn a_notice_shows_even_with_the_attachment_pill_off_and_holds_longer() {
         let mut pill = AttachPill::new(false);
-        let at = Instant::now();
-        pill.show(Attached::Refused, at);
-        assert_eq!(pill.frame(at), None);
-        pill.notify(
-            "pane p: 9 oldest history rows were too large to load".into(),
-            at,
-        );
-        let frame = pill.frame(at).expect("the notice shows");
+        pill.show(Attached::Refused);
+        assert_eq!(pill.frame(0.0), None);
+        pill.notify("pane p: 9 oldest history rows were too large to load".into());
+        let frame = pill.frame(0.0).expect("the notice shows");
         assert!(frame.text.contains("history rows"));
         assert!(!frame.refused);
-        assert_eq!(pill.alpha_at(at + HOLD + FADE), Some(1.0));
-        assert_eq!(pill.alpha_at(at + NOTICE_HOLD + FADE), None);
+        let settle = (HOLD + FADE).as_secs_f32();
+        assert_eq!(pill.alpha_at(settle), Some(1.0));
+        assert_eq!(pill.alpha_at((NOTICE_HOLD + FADE).as_secs_f32()), None);
     }
 
     #[test]
@@ -223,27 +268,43 @@ mod tests {
 
     #[test]
     fn the_pill_holds_then_fades_then_is_gone() {
-        let t0 = Instant::now();
         let mut pill = AttachPill::new(true);
-        assert_eq!(pill.frame(t0), None);
-        pill.show(Attached::Files(2), t0);
-        let held = pill.frame(t0 + HOLD - Duration::from_millis(1)).unwrap();
-        assert_eq!(held.text, "attached 2 files");
+        assert_eq!(pill.frame(0.0), None);
+        pill.show(Attached::Files(2));
+        let first = pill.frame(10.0).unwrap();
+        assert_eq!(first.text, "attached 2 files");
+        let hold = HOLD.as_secs_f32();
+        let fade = FADE.as_secs_f32();
+        let held = pill.frame(10.0 + hold - 0.001).unwrap();
         assert!((held.alpha - 1.0).abs() < f32::EPSILON);
         assert!(!held.refused);
-        let mid = pill.alpha_at(t0 + HOLD + FADE / 2).unwrap();
+        let mid = pill.alpha_at(10.0 + hold + fade / 2.0).unwrap();
         assert!((mid - 0.5).abs() < 0.01, "{mid}");
-        assert_eq!(pill.frame(t0 + HOLD + FADE), None);
+        assert_eq!(pill.frame(10.0 + hold + fade + 0.001), None);
         assert!(HOLD + FADE <= Duration::from_millis(1500));
     }
 
     #[test]
-    fn a_new_attachment_restarts_the_pill() {
-        let t0 = Instant::now();
+    fn the_pill_asks_for_frames_only_while_it_animates() {
         let mut pill = AttachPill::new(true);
-        pill.show(Attached::Files(2), t0);
-        let later = t0 + HOLD + FADE / 2;
-        pill.show(Attached::Refused, later);
+        let hold = HOLD.as_secs_f32();
+        let fade = FADE.as_secs_f32();
+        assert_eq!(pill.demand(0.0), PillDemand::Idle);
+        pill.show(Attached::Files(2));
+        assert_eq!(pill.demand(5.0), PillDemand::Now);
+        pill.frame(5.0);
+        assert_eq!(pill.demand(5.1), PillDemand::At(5.0 + hold));
+        assert_eq!(pill.demand(5.0 + hold + 0.01), PillDemand::Continuous);
+        assert_eq!(pill.demand(5.0 + hold + fade + 0.001), PillDemand::Idle);
+    }
+
+    #[test]
+    fn a_new_attachment_restarts_the_pill() {
+        let mut pill = AttachPill::new(true);
+        pill.show(Attached::Files(2));
+        pill.frame(0.0);
+        let later = HOLD.as_secs_f32() + FADE.as_secs_f32() / 2.0;
+        pill.show(Attached::Refused);
         let frame = pill.frame(later).unwrap();
         assert!(frame.refused);
         assert!((frame.alpha - 1.0).abs() < f32::EPSILON);
@@ -251,9 +312,8 @@ mod tests {
 
     #[test]
     fn a_disabled_pill_never_shows() {
-        let t0 = Instant::now();
         let mut pill = AttachPill::new(false);
-        pill.show(Attached::Files(3), t0);
-        assert_eq!(pill.frame(t0), None);
+        pill.show(Attached::Files(3));
+        assert_eq!(pill.frame(0.0), None);
     }
 }

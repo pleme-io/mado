@@ -327,6 +327,13 @@
       "description": "CRT-look effect knobs — defaults mirror the engawa catalog's\n`CrtParams::default()` (the tuned reference values).",
       "type": "object"
     },
+    "forced_scrub": {
+      "default": {
+        "enabled": false
+      },
+      "description": "The swapchain afterimage workaround: repaint every content change and\nevery grid reset three more times so each back-buffer slot holds current\npixels. Every painted frame already clears and redraws its whole slot and\na synchronized-output defer no longer acquires a surface it will not\npaint, so no slot goes stale; the repaints are off by default. Turn it on\nto restore the old behaviour. Default `false`.",
+      "type": "object"
+    },
     "glow_on_bell": {
       "default": {
         "enabled": false,
@@ -346,7 +353,7 @@
     },
     "popup_elevation": {
       "default": {
-        "enabled": true
+        "enabled": false
       },
       "description": "Popup-elevation — the soft drop-shadow behind the centred Ctrl-S\ncard. Overlay chrome (drawn outside the engawa post-graph via the\nrect pipeline), config-toggleable like the catalog effects so the\nwindow-depth + popup depth read as one consistent, switchable look.",
       "type": "object"

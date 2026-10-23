@@ -1068,7 +1068,7 @@ impl InputEngine {
     pub(crate) fn record_fault(&mut self, fault: crate::recovery::PaneFault) -> bool {
         if !fault.blocking() {
             if let Ok(mut pill) = self.attach_pill.lock() {
-                pill.notify(fault.to_string(), Instant::now());
+                pill.notify(fault.to_string());
             }
             crate::ring::WINDOW.ring();
             return true;
@@ -1838,13 +1838,13 @@ impl InputEngine {
 
     fn show_attached(&self, what: crate::attach_pill::Attached) {
         if let Ok(mut pill) = self.attach_pill.lock() {
-            pill.show(what, Instant::now());
+            pill.show(what);
         }
     }
 
     #[cfg(test)]
     fn pill_frame(&self) -> Option<crate::attach_pill::PillFrame> {
-        self.attach_pill.lock().unwrap().frame(Instant::now())
+        self.attach_pill.lock().unwrap().frame(0.0)
     }
 
     fn provider_image(&self) -> Option<crate::file_drop::Payload> {

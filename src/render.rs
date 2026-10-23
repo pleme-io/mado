@@ -265,6 +265,18 @@ fn powerline_rect(
     RectInstance::powerline([x, y], [cw, ch_h], color, sep.kind())
 }
 
+fn card_shadow(
+    cfg: &crate::config::MadoPopupElevationConfig,
+    [x, y, w, h]: [f32; 4],
+    radius: f32,
+    line_h: f32,
+) -> Vec<RectInstance> {
+    if !cfg.enabled {
+        return Vec::new();
+    }
+    elevation_shadow(x, y, w, h, radius, 4, line_h * 0.9, 0.10, line_h * 0.18)
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct RectInstance {
@@ -1972,7 +1984,7 @@ pub struct TerminalRenderer {
     /// indefinitely without this cap. Once the defer exceeds
     /// `SYNC_OUTPUT_MAX_DEFER`, we force a render and reset the
     /// timestamp.
-    sync_output_deferred_since: Option<Instant>,
+    sync_output_deferred_since: std::cell::Cell<Option<Instant>>,
     /// Last `Terminal::grid_epoch()` this renderer observed. A change
     /// means the grid was fully reset (RIS / config hot-reload /
     /// session switch) and this renderer's per-pane frame state
@@ -2579,7 +2591,7 @@ impl TerminalRenderer {
             last_text_blink_on: false,
             box_draw_templates: RefCell::new(HashMap::new()),
             row_scratch: RefCell::new(Vec::new()),
-            sync_output_deferred_since: None,
+            sync_output_deferred_since: std::cell::Cell::new(None),
             last_grid_epoch: 0,
             last_overlay_snapshot: OverlaySnapshot::default(),
             last_overlay_paint_at: f32::NEG_INFINITY,
@@ -3017,8 +3029,21 @@ impl TerminalRenderer {
         self.attach_pill = pill;
     }
 
-    fn attach_pill_frame(&self, now: Instant) -> Option<crate::attach_pill::PillFrame> {
-        self.attach_pill.lock().ok()?.frame(now)
+    fn attach_pill_frame(&self, elapsed: f32) -> Option<crate::attach_pill::PillFrame> {
+        self.attach_pill.lock().ok()?.frame(elapsed)
+    }
+
+    fn attach_pill_demand(&self, q: madori::FrameQuery, now: Instant) -> madori::FrameDemand {
+        use crate::attach_pill::PillDemand;
+        let Ok(pill) = self.attach_pill.lock() else {
+            return madori::FrameDemand::Idle;
+        };
+        match pill.demand(q.elapsed) {
+            PillDemand::Idle => madori::FrameDemand::Idle,
+            PillDemand::Now => madori::FrameDemand::Now,
+            PillDemand::Continuous => madori::FrameDemand::Continuous,
+            PillDemand::At(at) => render_time(now, q, at),
+        }
     }
 
     fn draw_attach_pill(
@@ -3460,19 +3485,12 @@ impl TerminalRenderer {
             // popup floats with the same depth language as the window-depth
             // vignette. Config-toggleable (`effects.popup_elevation`) so the
             // card depth and the window-edge depth switch together.
-            if self.effects_config.popup_elevation.enabled {
-                rects.extend(elevation_shadow(
-                    px,
-                    py,
-                    pw,
-                    ph,
-                    radius,
-                    4,
-                    line_h * 0.9,
-                    0.10,
-                    line_h * 0.18,
-                ));
-            }
+            rects.extend(card_shadow(
+                &self.effects_config.popup_elevation,
+                [px, py, pw, ph],
+                radius,
+                line_h,
+            ));
             // Accent border: a slightly larger rounded rect peeking out
             // behind the panel as a hairline edge.
             rects.push(RectInstance::rounded(
@@ -6658,15 +6676,24 @@ impl TerminalRenderer {
             return FrameDemand::Now;
         }
 
-        let (seqno, cursor_visible, epoch, presentation) = {
+        let (seqno, cursor_visible, epoch, presentation, sync_output) = {
             let term = self.terminal.read();
             (
                 term.seqno(),
                 term.cursor().visible,
                 term.grid_epoch(),
                 term.cursor_presentation(),
+                term.synchronized_output(),
             )
         };
+        if sync_output && epoch == self.last_grid_epoch {
+            let since = self.sync_output_deferred_since.get().unwrap_or(now);
+            self.sync_output_deferred_since.set(Some(since));
+            let cap = since + SYNC_OUTPUT_MAX_DEFER;
+            if now < cap {
+                return FrameDemand::At(cap);
+            }
+        }
 
         // New content, or a whole new pane.
         if seqno != self.last_seqno || epoch != self.last_grid_epoch {
@@ -6675,7 +6702,7 @@ impl TerminalRenderer {
         // A pending synchronized-output defer means a frame is owed the
         // moment the defer resolves; `render` owns that timer, so the
         // question is asked again when its cap runs out.
-        if let Some(since) = self.sync_output_deferred_since {
+        if let Some(since) = self.sync_output_deferred_since.get() {
             let cap = since + SYNC_OUTPUT_MAX_DEFER;
             if now >= cap {
                 return FrameDemand::Now;
@@ -6685,12 +6712,14 @@ impl TerminalRenderer {
         if self.bell_flash.is_active() {
             return FrameDemand::Continuous;
         }
-        if self.attach_pill_frame(now).is_some() {
-            return FrameDemand::Continuous;
+        let pill_demand = self.attach_pill_demand(q, now);
+        if matches!(pill_demand, FrameDemand::Now | FrameDemand::Continuous) {
+            return pill_demand;
         }
-        if self.pill_painted {
+        if self.pill_painted && matches!(pill_demand, FrameDemand::Idle) {
             return FrameDemand::Now;
         }
+        later = later.with(pill_demand);
         if self.search.lock().unwrap().fingerprint() != self.last_search_fingerprint {
             return FrameDemand::Now;
         }
@@ -7165,9 +7194,11 @@ impl RenderCallback for TerminalRenderer {
             self.last_grid_epoch = peek_epoch;
             self.last_seqno = 0;
             self.last_cursor_on = false;
-            self.sync_output_deferred_since = None;
-            self.force_paint_frames = EPOCH_FORCE_PAINT_FRAMES;
-            self.scrub_reason = crate::perf::PaintReason::EpochScrub;
+            self.sync_output_deferred_since.set(None);
+            if self.effects_config.forced_scrub.enabled {
+                self.force_paint_frames = EPOCH_FORCE_PAINT_FRAMES;
+                self.scrub_reason = crate::perf::PaintReason::EpochScrub;
+            }
         }
         // While forcing post-reset frames, never defer on synchronized
         // output — every swapchain slot must be repainted with the new
@@ -7178,7 +7209,8 @@ impl RenderCallback for TerminalRenderer {
             // frame. But cap the defer at SYNC_OUTPUT_MAX_DEFER: a
             // missing/late ESU shouldn't freeze the screen indefinitely.
             let now = Instant::now();
-            let since = *self.sync_output_deferred_since.get_or_insert(now);
+            let since = self.sync_output_deferred_since.get().unwrap_or(now);
+            self.sync_output_deferred_since.set(Some(since));
             if now.duration_since(since) < SYNC_OUTPUT_MAX_DEFER {
                 self.metrics.declined_after_acquire().inc();
                 return;
@@ -7186,10 +7218,10 @@ impl RenderCallback for TerminalRenderer {
             // Defer cap exceeded — fall through and render whatever
             // partial state the terminal currently has. Reset the
             // marker so the next BSU starts a fresh defer window.
-            self.sync_output_deferred_since = None;
+            self.sync_output_deferred_since.set(None);
         } else {
             // Not deferring — clear any stale marker from a prior BSU.
-            self.sync_output_deferred_since = None;
+            self.sync_output_deferred_since.set(None);
         }
         // We are committed to painting this frame (the only early return
         // above is the synchronized-output defer, which is bypassed
@@ -7344,7 +7376,7 @@ impl RenderCallback for TerminalRenderer {
         // Armed only when the content actually CHANGED: re-arming on an
         // unchanged seqno would hold the renderer permanently awake, which is
         // the opposite defect (a terminal that never idles).
-        if seqno != self.last_seqno {
+        if self.effects_config.forced_scrub.enabled && seqno != self.last_seqno {
             self.force_paint_frames = self.force_paint_frames.max(CONTENT_FORCE_PAINT_FRAMES);
             self.scrub_reason = if epoch_reset {
                 crate::perf::PaintReason::EpochScrub
@@ -7929,7 +7961,7 @@ impl RenderCallback for TerminalRenderer {
         if !matches!(focus, Overlay::None) {
             self.overlay_motion.end_frame();
         }
-        let pill = self.attach_pill_frame(Instant::now());
+        let pill = self.attach_pill_frame(ctx.elapsed);
         if let Some(pill) = &pill {
             self.draw_attach_pill(
                 pill,
@@ -8138,7 +8170,7 @@ mod render_invariants {
         r.last_seqno = seqno;
         r.last_grid_epoch = epoch;
         r.force_paint_frames = 0;
-        r.sync_output_deferred_since = None;
+        r.sync_output_deferred_since.set(None);
         // The overlay half of "settled", for the same reason the seqno half
         // exists: `render` records this after every paint, so a renderer that
         // has painted once has it recorded. Leaving it at `Default` would make
@@ -8696,18 +8728,46 @@ mod render_invariants {
     }
 
     #[test]
+    fn a_synchronized_output_defer_acquires_no_surface_it_will_not_paint() {
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        term.write().feed(b"\x1b[?2026hpartial");
+        let demand = r.frame_demand(Q0);
+        assert!(!demand.draws(), "{demand:?}");
+        assert!(demand.deadline().is_some(), "{demand:?}");
+    }
+
+    #[test]
+    fn the_default_configuration_renders_no_shadow() {
+        let cfg = crate::config::MadoEffectsConfig::default();
+        assert!(!cfg.popup_elevation.enabled);
+        assert!(!cfg.window_depth.enabled);
+        assert!(
+            card_shadow(&cfg.popup_elevation, [40.0, 40.0, 300.0, 200.0], 8.0, 20.0).is_empty()
+        );
+        let (r, _term) = harness(20, 5);
+        assert!(
+            !r.enabled_effect_set()
+                .contains(engawa_wgpu::catalog::CatalogEffect::WindowDepth)
+        );
+        let on = crate::config::MadoPopupElevationConfig { enabled: true };
+        assert!(!card_shadow(&on, [40.0, 40.0, 300.0, 200.0], 8.0, 20.0).is_empty());
+    }
+
+    #[test]
     fn a_pending_sync_output_defer_wakes_the_loop_when_it_resolves() {
         let (mut r, term) = harness(20, 5);
         settled(&mut r, &term);
         let since = Instant::now();
-        r.sync_output_deferred_since = Some(since);
+        r.sync_output_deferred_since.set(Some(since));
         assert_eq!(
             r.frame_demand(Q0),
             madori::FrameDemand::At(since + SYNC_OUTPUT_MAX_DEFER),
             "a frame is owed the moment the defer resolves, and `render` owns \
              that timer — the loop sleeps until it runs out, never past it"
         );
-        r.sync_output_deferred_since = since.checked_sub(SYNC_OUTPUT_MAX_DEFER);
+        r.sync_output_deferred_since
+            .set(since.checked_sub(SYNC_OUTPUT_MAX_DEFER));
         assert!(r.needs_frame(Q0), "a defer past its cap draws at once");
     }
 
@@ -8878,7 +8938,7 @@ mod render_invariants {
             r.last_seqno,
             r.last_cursor_on,
             r.force_paint_frames,
-            r.sync_output_deferred_since.is_some(),
+            r.sync_output_deferred_since.get().is_some(),
             r.last_selection_epoch,
         );
         for _ in 0..10 {
@@ -8888,7 +8948,7 @@ mod render_invariants {
             r.last_seqno,
             r.last_cursor_on,
             r.force_paint_frames,
-            r.sync_output_deferred_since.is_some(),
+            r.sync_output_deferred_since.get().is_some(),
             r.last_selection_epoch,
         );
         assert_eq!(
@@ -11434,6 +11494,16 @@ mod render_gpu_invariants {
         text: &mut TextLayerStack,
         target: &HeadlessTarget,
     ) -> Vec<u8> {
+        render_one_frame_headless_at(gpu, renderer, text, target, 0.0)
+    }
+
+    fn render_one_frame_headless_at(
+        gpu: &garasu::GpuContext,
+        renderer: &mut TerminalRenderer,
+        text: &mut TextLayerStack,
+        target: &HeadlessTarget,
+        elapsed: f32,
+    ) -> Vec<u8> {
         let mut ctx = RenderContext {
             gpu,
             text,
@@ -11441,7 +11511,7 @@ mod render_gpu_invariants {
             width: target.width(),
             height: target.height(),
             scale_factor: 1.0,
-            elapsed: 0.0,
+            elapsed,
             dt: 0.0,
         };
         renderer.render(&mut ctx);
@@ -12558,7 +12628,50 @@ mod render_gpu_invariants {
         let paints = metrics.paints();
         assert_eq!(paints.total(), 3);
         assert_eq!(paints.get(crate::perf::PaintReason::Content), 1);
+        assert_eq!(paints.get(crate::perf::PaintReason::ForcedScrub), 0);
+        assert_eq!(paints.get(crate::perf::PaintReason::LateIdle), 2);
+    }
+
+    #[test]
+    fn the_forced_scrub_setting_restores_two_scrub_paints_after_a_change() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target = HeadlessTarget::new(&gpu, 96, 32, SURFACE_FORMAT);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 4);
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.forced_scrub.enabled = true;
+        r.set_effects_config(effects);
+        let metrics = fresh_metrics(&mut r);
+        t.write().feed(b"observability test");
+        for _ in 0..3 {
+            let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        }
+        let paints = metrics.paints();
+        assert_eq!(paints.get(crate::perf::PaintReason::Content), 1);
         assert_eq!(paints.get(crate::perf::PaintReason::ForcedScrub), 2);
+    }
+
+    #[test]
+    fn a_painted_change_leaves_the_loop_idle_unless_the_forced_scrub_is_on() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target = HeadlessTarget::new(&gpu, 96, 32, SURFACE_FORMAT);
+        for scrub in [false, true] {
+            let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 4);
+            r.cursor_blink = false;
+            let mut effects = crate::config::MadoEffectsConfig::default();
+            effects.forced_scrub.enabled = scrub;
+            r.set_effects_config(effects);
+            t.write().feed(b"a change");
+            let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            assert_eq!(
+                r.frame_demand(madori::FrameQuery {
+                    elapsed: 0.0,
+                    dt: 0.0
+                })
+                .draws(),
+                scrub,
+                "forced_scrub={scrub}: a painted change must owe a frame only when the scrub is on"
+            );
+        }
     }
 
     fn fresh_metrics(r: &mut TerminalRenderer) -> &'static crate::perf::RenderMetrics {
@@ -12576,6 +12689,9 @@ mod render_gpu_invariants {
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let target = HeadlessTarget::new(&gpu, 96, 32, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 4);
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.forced_scrub.enabled = true;
+        r.set_effects_config(effects);
         let metrics = fresh_metrics(&mut r);
         let reasons = || {
             R::ALL
@@ -12892,9 +13008,7 @@ mod render_gpu_invariants {
         r.set_attach_pill(Arc::clone(&pill));
 
         let plain = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
-        pill.lock()
-            .unwrap()
-            .show(Attached::Files(2), std::time::Instant::now());
+        pill.lock().unwrap().show(Attached::Files(2));
         let shown = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
         assert!(assert_no_magenta_pixels(&shown, w, h).is_ok());
         let changed: Vec<(u32, u32)> = (0..h)
@@ -12910,11 +13024,8 @@ mod render_gpu_invariants {
             "the pill stays in the top-right, away from the prompt"
         );
 
-        let gone = std::time::Instant::now()
-            .checked_sub(HOLD + FADE)
-            .expect("a clock old enough to backdate");
-        pill.lock().unwrap().show(Attached::Files(2), gone);
-        let cleared = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let gone = (HOLD + FADE).as_secs_f32() + 0.01;
+        let cleared = render_one_frame_headless_at(&gpu, &mut r, &mut text, &target, gone);
         assert_eq!(
             frame_hash(&cleared),
             frame_hash(&plain),

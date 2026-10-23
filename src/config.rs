@@ -312,6 +312,8 @@ pub struct MadoEffectsConfig {
     /// window-depth + popup depth read as one consistent, switchable look.
     #[serde(default)]
     pub popup_elevation: MadoPopupElevationConfig,
+    #[serde(default)]
+    pub forced_scrub: MadoForcedScrubConfig,
 }
 
 /// Aurora (Vellum signature curtain) power-user override. The
@@ -597,17 +599,35 @@ impl Default for MadoWindowDepthConfig {
 /// overlay CHROME (the popup is drawn outside the engawa post-graph via
 /// the rect pipeline), so it lives here as a toggle rather than a catalog
 /// effect, but shares the same depth language so the window edges and the
-/// card read as one consistent look. Defaults ON — the card floats.
+/// card read as one consistent look. Defaults OFF — no shadow is cast.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoPopupElevationConfig {
-    /// Cast the soft shadow behind the centred popup card. Default `true`.
-    #[serde(default = "default_true")]
+    /// Cast the soft shadow behind the centred popup card. Default `false`.
+    #[serde(default)]
     pub enabled: bool,
 }
 
 impl Default for MadoPopupElevationConfig {
     fn default() -> Self {
-        Self { enabled: true }
+        Self { enabled: false }
+    }
+}
+
+/// The swapchain afterimage workaround: repaint every content change and
+/// every grid reset three more times so each back-buffer slot holds current
+/// pixels. Every painted frame already clears and redraws its whole slot and
+/// a synchronized-output defer no longer acquires a surface it will not
+/// paint, so no slot goes stale; the repaints are off by default. Turn it on
+/// to restore the old behaviour. Default `false`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct MadoForcedScrubConfig {
+    #[serde(default)]
+    pub enabled: bool,
+}
+
+impl Default for MadoForcedScrubConfig {
+    fn default() -> Self {
+        Self { enabled: false }
     }
 }
 
@@ -7844,6 +7864,7 @@ mod coverage {
         "effects.crt.curvature",
         "effects.crt.enabled",
         "effects.crt.vignette",
+        "effects.forced_scrub.enabled",
         "effects.glow_on_bell.enabled",
         "effects.glow_on_bell.glow_retain",
         "effects.glow_on_bell.radius_px",
