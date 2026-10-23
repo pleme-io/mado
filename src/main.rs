@@ -827,7 +827,9 @@ fn main() -> anyhow::Result<()> {
 
     // Apply active profile if set — same resolution the hot-reload
     // source performs on every reload (config.rs::with_active_profile).
-    let config = config.with_active_profile();
+    let config = config
+        .with_active_profile()
+        .with_os_reduce_motion(crate::platform::os_reduce_motion());
     crate::clipboard_store::set_temp_ttl_secs(config.attachments.temp_ttl_secs);
     crate::clipboard_store::spawn_temp_sweeper();
     let ui = crate::perf::UiThread::mark();
@@ -929,6 +931,7 @@ fn main() -> anyhow::Result<()> {
         rows,
         scrollback,
         config.behavior.reflow_on_resize,
+        config.behavior.image_max_bytes,
         config.behavior.kitty_keyboard,
         None,
         extra_env,

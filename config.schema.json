@@ -5,6 +5,11 @@
       "description": "Colorblind simulation mode.",
       "type": "unknown"
     },
+    "follow_os_reduce_motion": {
+      "default": true,
+      "description": "Treat the operating system's reduce-motion preference as\n`reduce_motion = true`. Default `true`. Set `false` to ignore the OS\npreference and let `reduce_motion` alone decide.",
+      "type": "bool"
+    },
     "font_scale": {
       "default": 1.0,
       "description": "Font scale multiplier (1.0 = normal, 2.0 = double size).",
@@ -85,6 +90,11 @@
       "default": true,
       "description": "When `copy_on_select` auto-copies a highlight on mouse release,\nALSO clear the highlight — so lifting the mouse both copies AND\nunhighlights and no click is ever needed to copy. `false` keeps the\nhighlight live after the auto-copy (the pre-2026-07-06 behavior,\nstill fully available). Inert when `copy_on_select` is off (nothing\nis auto-copied, so nothing is auto-cleared). Default on.",
       "type": "bool"
+    },
+    "image_max_bytes": {
+      "default": 268435456,
+      "description": "Ceiling, in decoded RGBA bytes, on the images one terminal holds\n(Kitty, sixel and inline). An image that would pass it is refused\nalone. Default 256 MiB; set `18446744073709551615` to switch the\nbound off.",
+      "type": "int"
     },
     "kitty_keyboard": {
       "default": {

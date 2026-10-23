@@ -413,6 +413,18 @@ pub fn is_dark_mode() -> bool {
     }
 }
 
+#[must_use]
+pub fn os_reduce_motion() -> Option<bool> {
+    #[cfg(target_os = "macos")]
+    {
+        macos::os_reduce_motion()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        None
+    }
+}
+
 // ── Follow-OS light/dark ─────────────────────────────────────────────
 //
 // [`is_dark_mode`] shipped long ago and had exactly ONE call site: a
@@ -855,6 +867,11 @@ mod tests {
     #[test]
     fn is_dark_mode_returns_bool() {
         let _ = is_dark_mode();
+    }
+
+    #[test]
+    fn os_reduce_motion_reads_without_panicking() {
+        let _ = os_reduce_motion();
     }
 
     #[test]
@@ -1678,6 +1695,17 @@ mod macos {
             "quick terminal placed"
         );
         true
+    }
+
+    pub fn os_reduce_motion() -> Option<bool> {
+        let suite = NSString::from_str("com.apple.universalaccess");
+        let key = NSString::from_str("reduceMotion");
+        let defaults = NSUserDefaults::initWithSuiteName(
+            <NSUserDefaults as objc2::AnyThread>::alloc(),
+            Some(&suite),
+        )?;
+        defaults.objectForKey(&key)?;
+        Some(defaults.boolForKey(&key))
     }
 
     /// Check if macOS is in dark mode.

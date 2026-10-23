@@ -111,7 +111,9 @@ pub enum TearDefaultOutcome {
 /// a subscribed pane id, then runs the madori::App event loop.
 /// This is the `mado tear-attach --gpu <pane>` path.
 pub fn run(pane_id: PaneId, socket_path: PathBuf) -> Result<()> {
-    let config = crate::config::load(&None).unwrap_or_default();
+    let config = crate::config::load(&None)
+        .unwrap_or_default()
+        .with_os_reduce_motion(crate::platform::os_reduce_motion());
     let ui = crate::perf::UiThread::mark();
 
     // ── Tear control connection — discovery-driven ────────────
@@ -899,6 +901,7 @@ where
         // M2 — behavior.reflow_on_resize: rewrap-on-resize knob,
         // same wiring the local-PTY path gets via single_pane::spawn.
         term.set_reflow_on_resize(config.behavior.reflow_on_resize);
+        term.set_image_max_bytes(config.behavior.image_max_bytes);
         let kitty = config.behavior.kitty_keyboard;
         term.set_kitty_keyboard(kitty.enabled, kitty.reset_on_command_end);
         term

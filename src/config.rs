@@ -3060,6 +3060,12 @@ pub struct BehaviorConfig {
     /// full-screen TUIs redraw themselves on SIGWINCH.
     #[serde(default = "default_true")]
     pub reflow_on_resize: bool,
+    /// Ceiling, in decoded RGBA bytes, on the images one terminal holds
+    /// (Kitty, sixel and inline). An image that would pass it is refused
+    /// alone. Default 256 MiB; set `18446744073709551615` to switch the
+    /// bound off.
+    #[serde(default = "default_image_max_bytes")]
+    pub image_max_bytes: usize,
     /// Momentum scrolling: a wheel/two-finger flick injects velocity
     /// that DECELERATES naturally to a stop, instead of a 1:1 instant
     /// jump — a weighty, gravity-like feel. `false` restores the
@@ -3405,6 +3411,11 @@ pub struct AccessibilityConfig {
     /// Reduce motion (disable cursor blink and animations).
     #[serde(default)]
     pub reduce_motion: bool,
+    /// Treat the operating system's reduce-motion preference as
+    /// `reduce_motion = true`. Default `true`. Set `false` to ignore the OS
+    /// preference and let `reduce_motion` alone decide.
+    #[serde(default = "default_true")]
+    pub follow_os_reduce_motion: bool,
 }
 
 #[derive(
@@ -3429,6 +3440,7 @@ impl Default for AccessibilityConfig {
             min_contrast: 0.0,
             font_scale: default_font_scale(),
             reduce_motion: false,
+            follow_os_reduce_motion: true,
         }
     }
 }
@@ -3579,6 +3591,14 @@ impl MadoConfig {
     /// (`ux::config_apply::ConfigReloadSource::take_if_dirty`), so a
     /// watched-config edit sees the same effective config the boot
     /// path would have produced.
+    #[must_use]
+    pub fn with_os_reduce_motion(mut self, os: Option<bool>) -> Self {
+        if self.accessibility.follow_os_reduce_motion && os == Some(true) {
+            self.accessibility.reduce_motion = true;
+        }
+        self
+    }
+
     #[must_use]
     pub fn with_active_profile(&self) -> Self {
         match &self.active_profile {
@@ -3974,8 +3994,9 @@ impl MadoConfig {
                 link_url: false,        // bare = no URL detection
                 mouse_reporting: false, // bare = no mouse events to apps
                 mouse_shift_capture: MouseShiftCapture::False,
-                reflow_on_resize: false, // bare = legacy truncate on resize
-                scroll_momentum: false,  // bare = direct 1:1 scroll, no inertia
+                reflow_on_resize: false, // bare = legacy cut on resize
+                image_max_bytes: default_image_max_bytes(),
+                scroll_momentum: false, // bare = direct 1:1 scroll, no inertia
                 scroll_friction: default_scroll_friction(),
                 scroll_max_velocity: default_scroll_max_velocity(),
                 kitty_keyboard: KittyKeyboardConfig {
@@ -4009,6 +4030,7 @@ impl MadoConfig {
                 min_contrast: 0.0,
                 font_scale: 1.0, // unity
                 reduce_motion: false,
+                follow_os_reduce_motion: true,
             },
             // ── Shell integration ────────────────────────────────
             shell_integration: ShellIntegrationConfig {
@@ -4618,6 +4640,7 @@ impl Default for BehaviorConfig {
             mouse_reporting: true,
             mouse_shift_capture: MouseShiftCapture::default(),
             reflow_on_resize: true,
+            image_max_bytes: default_image_max_bytes(),
             scroll_momentum: true,
             scroll_friction: default_scroll_friction(),
             scroll_max_velocity: default_scroll_max_velocity(),
@@ -4842,6 +4865,10 @@ fn default_theme() -> String {
     // guard so a fleet rebrand can't leave mado on a stale name.
     crate::auto_detect::detect_theme_or_fallback().to_string()
 }
+fn default_image_max_bytes() -> usize {
+    crate::terminal::DEFAULT_IMAGE_MAX_BYTES
+}
+
 fn default_true() -> bool {
     true
 }
@@ -7265,6 +7292,57 @@ active_profile: "dark"
     }
 
     #[test]
+    fn follow_os_reduce_motion_defaults_on_everywhere_a_default_is_built() {
+        assert!(AccessibilityConfig::default().follow_os_reduce_motion);
+        assert!(MadoConfig::default().accessibility.follow_os_reduce_motion);
+        let parsed: MadoConfig = serde_yaml_ng::from_str("accessibility: {}\n").unwrap();
+        assert!(parsed.accessibility.follow_os_reduce_motion);
+    }
+
+    #[test]
+    fn follow_os_reduce_motion_parses_off() {
+        let parsed: MadoConfig =
+            serde_yaml_ng::from_str("accessibility: {follow_os_reduce_motion: false}\n").unwrap();
+        assert!(!parsed.accessibility.follow_os_reduce_motion);
+    }
+
+    #[test]
+    fn an_os_reduce_motion_preference_turns_reduce_motion_on_by_default() {
+        let config = MadoConfig::default().with_os_reduce_motion(Some(true));
+        assert!(config.accessibility.reduce_motion);
+        assert_eq!(
+            config.resolved_effects().ambience,
+            crate::ambience::AmbiencePreset::Off
+        );
+    }
+
+    #[test]
+    fn an_os_without_the_preference_or_unreadable_leaves_reduce_motion_off() {
+        for os in [Some(false), None] {
+            let config = MadoConfig::default().with_os_reduce_motion(os);
+            assert!(!config.accessibility.reduce_motion, "os={os:?}");
+        }
+    }
+
+    #[test]
+    fn the_setting_off_ignores_the_os_preference() {
+        let mut config = MadoConfig::default();
+        config.accessibility.follow_os_reduce_motion = false;
+        let config = config.with_os_reduce_motion(Some(true));
+        assert!(!config.accessibility.reduce_motion);
+    }
+
+    #[test]
+    fn the_os_never_lowers_an_explicit_reduce_motion() {
+        let mut config = MadoConfig::default();
+        config.accessibility.reduce_motion = true;
+        for os in [Some(false), None] {
+            let config = config.clone().with_os_reduce_motion(os);
+            assert!(config.accessibility.reduce_motion, "os={os:?}");
+        }
+    }
+
+    #[test]
     fn test_font_config_defaults() {
         let f = FontConfig::default();
         assert!(f.family_bold.is_none());
@@ -7817,6 +7895,7 @@ mod coverage {
     /// `notify_center`, `JanitorsConfig` → `janitors::from_config`).
     const CONSUMED_FIELDS: &[&str] = &[
         "accessibility.colorblind",
+        "accessibility.follow_os_reduce_motion",
         "accessibility.font_scale",
         "accessibility.reduce_motion",
         "active_profile",
@@ -7836,6 +7915,7 @@ mod coverage {
         "behavior.mouse_shift_capture",
         "behavior.precise_scroll_mode",
         "behavior.precise_scroll_multiplier",
+        "behavior.image_max_bytes",
         "behavior.reflow_on_resize",
         "behavior.scroll_friction",
         "behavior.scroll_max_velocity",

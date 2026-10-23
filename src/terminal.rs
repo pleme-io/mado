@@ -1032,6 +1032,12 @@ struct SelectionSpanMemo {
 /// scrolls to, and far short of exhausting RAM.
 pub const DEFAULT_SCROLLBACK_MAX_BYTES: usize = 1 << 30; // 1 GiB
 
+/// Default ceiling on the decoded RGBA bytes a terminal holds across all
+/// stored images (Kitty, sixel and inline). An image that would pass it is
+/// refused alone; every other image and all text carry on. Raise it with
+/// `behavior.image_max_bytes` (`usize::MAX` switches the bound off).
+pub const DEFAULT_IMAGE_MAX_BYTES: usize = 256 << 20;
+
 struct Grid {
     /// All rows: scrollback at front, visible at back.
     rows: VecDeque<Line>,
@@ -2236,6 +2242,7 @@ pub struct Terminal {
 
     // Kitty graphics protocol — image cache and placements
     images: HashMap<u32, KittyImage>,
+    image_max_bytes: usize,
     image_placements: Vec<ImagePlacement>,
     next_image_id: u32,
     pending_kitty: Option<KittyPending>,
@@ -2433,6 +2440,7 @@ impl Terminal {
             kitty_keyboard_enabled: true,
             kitty_reset_on_command_end: true,
             images: HashMap::new(),
+            image_max_bytes: DEFAULT_IMAGE_MAX_BYTES,
             image_placements: Vec::new(),
             next_image_id: 1,
             pending_kitty: None,
@@ -2815,6 +2823,15 @@ impl Terminal {
     /// grid's logical lines; `false` = legacy truncate on both grids.
     pub fn set_reflow_on_resize(&mut self, on: bool) {
         self.reflow_on_resize = on;
+    }
+
+    pub fn set_image_max_bytes(&mut self, bytes: usize) {
+        self.image_max_bytes = bytes;
+    }
+
+    #[must_use]
+    pub fn image_bytes(&self) -> usize {
+        self.images.values().map(|i| i.data.len()).sum()
     }
 
     /// Wire `behavior.kitty_keyboard`: whether pushes are honoured and
@@ -4494,7 +4511,13 @@ impl Terminal {
         };
 
         if let Some((rgba_data, w, h)) = rgba {
-            self.store_rgba_image(id, rgba_data, w, h);
+            if !self.store_rgba_image(id, rgba_data, w, h) {
+                self.response_bytes
+                    .extend_from_slice(&crate::vt::apc(&format!(
+                        "Gi={id};ENOSPC:image byte limit reached"
+                    )));
+                return;
+            }
 
             // Send OK response
             self.response_bytes
@@ -4533,7 +4556,19 @@ impl Terminal {
         }
     }
 
-    fn store_rgba_image(&mut self, id: u32, rgba: Vec<u8>, width: u32, height: u32) {
+    fn store_rgba_image(&mut self, id: u32, rgba: Vec<u8>, width: u32, height: u32) -> bool {
+        let replaced = self.images.get(&id).map_or(0, |i| i.data.len());
+        let held = self.image_bytes() - replaced;
+        if rgba.len().saturating_add(held) > self.image_max_bytes {
+            tracing::warn!(
+                id,
+                bytes = rgba.len(),
+                held,
+                max = self.image_max_bytes,
+                "image refused: behavior.image_max_bytes would be exceeded"
+            );
+            return false;
+        }
         self.images.insert(
             id,
             KittyImage {
@@ -4544,6 +4579,7 @@ impl Terminal {
                 seqno: self.seqno,
             },
         );
+        true
     }
 
     /// Decode a sixel DCS payload into RGBA and feed the shared texture
@@ -4582,7 +4618,9 @@ impl Terminal {
         let id = self.next_image_id;
         self.next_image_id += 1;
         self.seqno += 1;
-        self.store_rgba_image(id, img.pixels, w, h);
+        if !self.store_rgba_image(id, img.pixels, w, h) {
+            return;
+        }
         // Sixel carries no display-geometry keys — the extent comes
         // from the texture, which is what `(0, 0)` means downstream.
         self.place_decoded_image_at_cursor(id, 0, 0);
@@ -4621,7 +4659,9 @@ impl Terminal {
         let id = self.next_image_id;
         self.next_image_id += 1;
         self.seqno += 1;
-        self.store_rgba_image(id, img.pixels, w, h);
+        if !self.store_rgba_image(id, img.pixels, w, h) {
+            return;
+        }
         self.place_decoded_image_at_cursor(id, cols, rows);
         self.dirty();
         tracing::debug!(
@@ -10810,6 +10850,132 @@ mod tests {
     /// `image_placements`). The payload is a 2-wide, full-6-row red column
     /// (`#0;2;100;0;0` defines color 0 = red, `#0` selects it, `~~` paints
     /// two full-height columns → 2×6 px).
+    fn kitty_rgba_apc(id: u32, pixels: u32) -> String {
+        let rgba = vec![9u8; pixels as usize * 4];
+        format!(
+            "\x1b_Ga=T,f=32,s={pixels},v=1,i={id};{}\x1b\\",
+            base64_encode(&rgba)
+        )
+    }
+
+    #[test]
+    fn the_default_image_limit_is_finite_and_set_on_a_new_terminal() {
+        assert!(DEFAULT_IMAGE_MAX_BYTES > 0);
+        assert!(DEFAULT_IMAGE_MAX_BYTES < usize::MAX);
+        let term = Terminal::new(80, 24);
+        assert_eq!(term.image_max_bytes, DEFAULT_IMAGE_MAX_BYTES);
+        assert_eq!(term.image_bytes(), 0);
+    }
+
+    #[test]
+    fn a_kitty_image_over_the_limit_is_refused_with_an_error_reply_and_no_placement() {
+        let mut term = Terminal::new(80, 24);
+        term.set_image_max_bytes(16);
+        term.feed(kitty_rgba_apc(7, 5).as_bytes());
+        assert!(term.images().is_empty());
+        assert!(term.image_placements().is_empty());
+        assert_eq!(term.image_bytes(), 0);
+        let reply = String::from_utf8_lossy(&term.take_response().unwrap_or_default()).into_owned();
+        assert!(reply.contains("Gi=7;ENOSPC"), "{reply:?}");
+        assert!(!reply.contains("Gi=7;OK"), "{reply:?}");
+    }
+
+    #[test]
+    fn a_kitty_image_exactly_at_the_limit_is_stored() {
+        let mut term = Terminal::new(80, 24);
+        term.set_image_max_bytes(16);
+        term.feed(kitty_rgba_apc(7, 4).as_bytes());
+        assert_eq!(term.images().len(), 1);
+        assert_eq!(term.image_bytes(), 16);
+        assert_eq!(term.image_placements().len(), 1);
+    }
+
+    #[test]
+    fn the_limit_counts_every_stored_image_and_refuses_only_the_one_that_passes_it() {
+        let mut term = Terminal::new(80, 24);
+        term.set_image_max_bytes(32);
+        term.feed(kitty_rgba_apc(1, 4).as_bytes());
+        term.feed(kitty_rgba_apc(2, 4).as_bytes());
+        term.feed(kitty_rgba_apc(3, 1).as_bytes());
+        assert_eq!(term.images().len(), 2);
+        assert!(term.images().contains_key(&1));
+        assert!(term.images().contains_key(&2));
+        assert!(!term.images().contains_key(&3));
+        assert_eq!(term.image_bytes(), 32);
+        term.feed(b"still alive");
+        assert!(term.images().contains_key(&1));
+    }
+
+    #[test]
+    fn replacing_an_image_id_counts_the_new_bytes_not_both() {
+        let mut term = Terminal::new(80, 24);
+        term.set_image_max_bytes(16);
+        term.feed(kitty_rgba_apc(1, 4).as_bytes());
+        term.feed(kitty_rgba_apc(1, 4).as_bytes());
+        assert_eq!(term.images().len(), 1);
+        assert_eq!(term.image_bytes(), 16);
+    }
+
+    #[test]
+    fn deleting_an_image_frees_its_bytes_for_the_next_one() {
+        let mut term = Terminal::new(80, 24);
+        term.set_image_max_bytes(16);
+        term.feed(kitty_rgba_apc(1, 4).as_bytes());
+        term.feed(kitty_rgba_apc(2, 4).as_bytes());
+        assert!(!term.images().contains_key(&2));
+        term.feed(b"\x1b_Ga=d,d=i,i=1;\x1b\\");
+        assert_eq!(term.image_bytes(), 0);
+        term.feed(kitty_rgba_apc(2, 4).as_bytes());
+        assert!(term.images().contains_key(&2));
+    }
+
+    #[test]
+    fn raising_the_limit_to_max_switches_the_bound_off() {
+        let mut term = Terminal::new(80, 24);
+        term.set_image_max_bytes(16);
+        term.feed(kitty_rgba_apc(1, 5).as_bytes());
+        assert!(term.images().is_empty());
+        term.set_image_max_bytes(usize::MAX);
+        term.feed(kitty_rgba_apc(1, 5).as_bytes());
+        term.feed(kitty_rgba_apc(2, 5).as_bytes());
+        assert_eq!(term.images().len(), 2);
+    }
+
+    #[test]
+    fn a_limit_of_zero_refuses_every_image() {
+        let mut term = Terminal::new(80, 24);
+        term.set_image_max_bytes(0);
+        term.feed(kitty_rgba_apc(1, 1).as_bytes());
+        assert!(term.images().is_empty());
+    }
+
+    #[test]
+    fn a_sixel_over_the_limit_is_refused_without_a_placement() {
+        let mut term = Terminal::new(80, 24);
+        term.set_image_max_bytes(8);
+        term.feed(b"\x1bP0;0;0q#0;2;100;0;0#0~~\x1b\\");
+        assert!(term.images().is_empty());
+        assert!(term.image_placements().is_empty());
+        term.set_image_max_bytes(2 * 6 * 4);
+        term.feed(b"\x1bP0;0;0q#0;2;100;0;0#0~~\x1b\\");
+        assert_eq!(term.images().len(), 1);
+        assert_eq!(term.image_placements().len(), 1);
+    }
+
+    #[test]
+    fn an_inline_file_over_the_limit_is_refused_without_a_placement() {
+        let mut term = Terminal::new(80, 24);
+        let seq = osc_1337_file_seq("inline=1", &base64_encode(&inline_png_3x2()));
+        term.set_image_max_bytes(3 * 2 * 4 - 1);
+        term.feed(&seq);
+        assert!(term.images().is_empty());
+        assert!(term.image_placements().is_empty());
+        term.set_image_max_bytes(3 * 2 * 4);
+        term.feed(&seq);
+        assert_eq!(term.images().len(), 1);
+        assert_eq!(term.image_placements().len(), 1);
+    }
+
     #[test]
     fn sixel_payload_decodes_to_expected_dims_and_one_placement() {
         let mut term = Terminal::new(80, 24);
