@@ -1553,7 +1553,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.8";
+            packageId = "tatara-lisp 0.4.9";
           }
         ];
 
@@ -1574,7 +1574,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.8";
+            packageId = "tatara-lisp 0.4.9";
           }
           {
             name = "thiserror";
@@ -1611,11 +1611,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.8";
+            packageId = "tatara-lisp 0.4.9";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.8";
+            packageId = "tatara-lisp-eval 0.4.9";
           }
           {
             name = "thiserror";
@@ -1700,11 +1700,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.8";
+            packageId = "tatara-lisp 0.4.9";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.8";
+            packageId = "tatara-lisp-eval 0.4.9";
           }
           {
             name = "thiserror";
@@ -1735,11 +1735,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.8";
+            packageId = "tatara-lisp 0.4.9";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.8";
+            packageId = "tatara-lisp-eval 0.4.9";
           }
         ];
         devDependencies = [
@@ -1812,11 +1812,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.8";
+            packageId = "tatara-lisp 0.4.9";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.8";
+            packageId = "tatara-lisp-eval 0.4.9";
           }
           {
             name = "thiserror";
@@ -1838,7 +1838,7 @@ rec {
         dependencies = [
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.8";
+            packageId = "tatara-lisp 0.4.9";
           }
         ];
 
@@ -1859,7 +1859,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.8";
+            packageId = "tatara-lisp 0.4.9";
           }
         ];
 
@@ -6230,9 +6230,9 @@ rec {
       };
       "gen-macros" = rec {
         crateName = "gen-macros";
-        version = "0.1.51";
+        version = "0.1.52";
         edition = "2024";
-        sha256 = "1h2rxn0hhvqs8s0pck6fqr23laplv1pskicdp4yr54p37bidd0dr";
+        sha256 = "0ywvzjrr9m8jcgh9f8gmr0p4xsjl27h9pi2i8djfkih9hzkm9aj5";
         procMacro = true;
         libName = "gen_macros";
         authors = [
@@ -6257,9 +6257,9 @@ rec {
       };
       "gen-platform" = rec {
         crateName = "gen-platform";
-        version = "0.1.51";
+        version = "0.1.52";
         edition = "2024";
-        sha256 = "1qywdppqwmf1p1va16gqhbcbgzg0gbpdw7vkdl16wzlg18jirkpj";
+        sha256 = "0yy0l8zclajia8b0bwnmynm5i2dc1svz11ry1pncv6fph32hzghv";
         libName = "gen_platform";
         authors = [
           "pleme-io"
@@ -6295,9 +6295,9 @@ rec {
       };
       "gen-types" = rec {
         crateName = "gen-types";
-        version = "0.1.51";
+        version = "0.1.52";
         edition = "2024";
-        sha256 = "1i9vpqzcpyp0aixmsa212h8kdr2apbfxws7hwy2ccq4k5jx3zh95";
+        sha256 = "1sx71mb1vq40z79hsqyna8r614cn1p04iwsd919klnnl4cjf8vd3";
         libName = "gen_types";
         authors = [
           "pleme-io"
@@ -10906,7 +10906,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.212";
+        version = "0.1.213";
         edition = "2024";
         crateBin = [
           {
@@ -11757,11 +11757,11 @@ rec {
         ];
 
       };
-      "monosashi 0.4.8" = rec {
+      "monosashi 0.4.9" = rec {
         crateName = "monosashi";
-        version = "0.4.8";
+        version = "0.4.9";
         edition = "2021";
-        sha256 = "14vhvb4b9n7jcnldd51ajpv43zrxky78v0vz0kq6bxk8a9lyf4mm";
+        sha256 = "1shicj46w0x2n4yv1big99k8xnj58ydf7ryqq51k2dccvy4p82qv";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
@@ -22843,9 +22843,9 @@ rec {
       };
       "smallvec" = rec {
         crateName = "smallvec";
-        version = "1.16.3";
+        version = "1.16.4";
         edition = "2018";
-        sha256 = "06z0akmcq2zc9qg22dxda298p50gg3di5ggl3y2nllag8ypwhgav";
+        sha256 = "1j772prjisi2872lxry7d9fkss3dfbjwl16jmsvvp2qvk2qx9mfh";
         authors = [
           "The Servo Project Developers"
         ];
@@ -24765,11 +24765,11 @@ rec {
         ];
 
       };
-      "tatara-closed-set 0.4.8" = rec {
+      "tatara-closed-set 0.4.9" = rec {
         crateName = "tatara-closed-set";
-        version = "0.4.8";
+        version = "0.4.9";
         edition = "2021";
-        sha256 = "11h76v086wj9x5z1nsrlh2azd6gs687yx3dm6iffx2vn6zjis9s8";
+        sha256 = "1sib4fkd1gyywd3ppf0kk8mfx03zr80ixfrapkp5f425srmqa65j";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24777,7 +24777,7 @@ rec {
         dependencies = [
           {
             name = "tatara-closed-set-derive";
-            packageId = "tatara-closed-set-derive 0.4.8";
+            packageId = "tatara-closed-set-derive 0.4.9";
           }
         ];
 
@@ -24809,11 +24809,11 @@ rec {
         ];
 
       };
-      "tatara-closed-set-derive 0.4.8" = rec {
+      "tatara-closed-set-derive 0.4.9" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.4.8";
+        version = "0.4.9";
         edition = "2021";
-        sha256 = "1b6fvbbfc1l3iijdag7cks7yk05g6wkq17jad9jls66h2h9k6a2z";
+        sha256 = "01kf0gb3wqsyrzlkh3nl871dg60akdrmd5qm7jv1pcdjpf9jpd34";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -25023,11 +25023,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "tatara-lisp 0.4.8" = rec {
+      "tatara-lisp 0.4.9" = rec {
         crateName = "tatara-lisp";
-        version = "0.4.8";
+        version = "0.4.9";
         edition = "2021";
-        sha256 = "1223f2a6v318392bfxwl12m57blkmgzj2vbr7s6h3i032bjaxdls";
+        sha256 = "054zb9m0jjj1rsyc0vamna7jdzvzj2w97a0a1862mnn3yx773885";
         libName = "tatara_lisp";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -25048,11 +25048,11 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set 0.4.8";
+            packageId = "tatara-closed-set 0.4.9";
           }
           {
             name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive 0.4.8";
+            packageId = "tatara-lisp-derive 0.4.9";
           }
           {
             name = "thiserror";
@@ -25090,11 +25090,11 @@ rec {
         ];
 
       };
-      "tatara-lisp-derive 0.4.8" = rec {
+      "tatara-lisp-derive 0.4.9" = rec {
         crateName = "tatara-lisp-derive";
-        version = "0.4.8";
+        version = "0.4.9";
         edition = "2021";
-        sha256 = "0yvrzs4c5l2a5g6g9vp2kh158dxdprwck7761b1q4davdn6gfvws";
+        sha256 = "0hhf979qshbprjra21lzwljarghywsq1j0kg6hz2mxh6kwzwj0zf";
         procMacro = true;
         libName = "tatara_lisp_derive";
         authors = [
@@ -25146,11 +25146,11 @@ rec {
         ];
 
       };
-      "tatara-lisp-eval 0.4.8" = rec {
+      "tatara-lisp-eval 0.4.9" = rec {
         crateName = "tatara-lisp-eval";
-        version = "0.4.8";
+        version = "0.4.9";
         edition = "2021";
-        sha256 = "0ydkjln7w1ykazx5pkf1mc3a298yfhww8b7rr8y24wfg4m4l3syj";
+        sha256 = "1lpv4gxn72qhdp1nfhq69wcam6g795n519k65wdynbj9i4f5nkhl";
         libName = "tatara_lisp_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -25162,7 +25162,7 @@ rec {
           }
           {
             name = "monosashi";
-            packageId = "monosashi 0.4.8";
+            packageId = "monosashi 0.4.9";
           }
           {
             name = "stacker";
@@ -25171,11 +25171,11 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set 0.4.8";
+            packageId = "tatara-closed-set 0.4.9";
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.8";
+            packageId = "tatara-lisp 0.4.9";
           }
           {
             name = "thiserror";
@@ -28320,11 +28320,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.8";
+            packageId = "tatara-lisp 0.4.9";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.8";
+            packageId = "tatara-lisp-eval 0.4.9";
           }
           {
             name = "thiserror";

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "9070dcba2f8b3452366094df39f69cb6afd6bb5cf224196252501ad1e22f6ea1",
+  "cargo_lock_sha256": "3c6033066a71d75a7bb506baab740294a3777126d84879bdc797154b5d923cfe",
   "manifest_sha256": {
-    "Cargo.toml": "3c886e7b3d64316a3bbb268c5daf01ebcf0d397660683c07296c7f432ac77151"
+    "Cargo.toml": "570d166ed15464a2ba5680c19e2b796bb9a5be18c4c67a63db4c66ec1bf17d37"
   },
   "target_resolves": {
     "base": {
@@ -5223,7 +5223,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.52": {
+      "gen-macros-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -5262,11 +5262,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.52": {
+      "gen-platform-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.52",
+            "package_key": "gen-macros-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5276,7 +5276,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.52",
+            "package_key": "gen-types-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5330,7 +5330,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.52": {
+      "gen-types-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -9467,7 +9467,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "kukaku-0.1.49": {
+      "kukaku-0.1.50": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -13211,7 +13211,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.49",
+            "package_key": "tear-types-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18052,7 +18052,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.52",
+            "package_key": "gen-platform-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18062,7 +18062,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.52",
+            "package_key": "gen-types-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21771,7 +21771,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.49": {
+      "tear-client-0.1.50": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -21815,7 +21815,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.49",
+            "package_key": "tear-config-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21825,7 +21825,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.49",
+            "package_key": "tear-types-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21840,7 +21840,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.49": {
+      "tear-config-0.1.50": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21940,7 +21940,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.49",
+            "package_key": "tear-types-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22088,7 +22088,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.49",
+            "package_key": "tear-config-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22098,7 +22098,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.49",
+            "package_key": "tear-makimono-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22108,7 +22108,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.49",
+            "package_key": "tear-tamotsu-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22118,7 +22118,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.49",
+            "package_key": "tear-types-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22284,7 +22284,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.49",
+            "package_key": "tear-config-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22304,7 +22304,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.49",
+            "package_key": "tear-makimono-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22314,7 +22314,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.49",
+            "package_key": "tear-tamotsu-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22324,7 +22324,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.49",
+            "package_key": "tear-types-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22362,7 +22362,7 @@
           "default"
         ]
       },
-      "tear-makimono-0.1.49": {
+      "tear-makimono-0.1.50": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -22388,7 +22388,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.49",
+            "package_key": "tear-types-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22470,7 +22470,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.49",
+            "package_key": "tear-types-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22496,7 +22496,7 @@
           "testing"
         ]
       },
-      "tear-tamotsu-0.1.49": {
+      "tear-tamotsu-0.1.50": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -22567,7 +22567,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.49",
+            "package_key": "tear-makimono-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22591,7 +22591,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.49": {
+      "tear-types-0.1.50": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -22645,7 +22645,7 @@
           },
           {
             "name": "kukaku",
-            "package_key": "kukaku-0.1.49",
+            "package_key": "kukaku-0.1.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25087,7 +25087,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.10",
+            "package_key": "vigy-types-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25231,7 +25231,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.10",
+            "package_key": "vigy-types-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25318,7 +25318,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.10",
+            "package_key": "vigy-types-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25448,7 +25448,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.10",
+            "package_key": "vigy-types-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25612,7 +25612,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.10",
+            "package_key": "vigy-types-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25624,7 +25624,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-types-0.1.10": {
+      "vigy-types-0.1.11": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -27783,7 +27783,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.212": {
+          "mado-0.1.213": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -28436,7 +28436,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.49",
+                "package_key": "tear-client-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -28448,7 +28448,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.49",
+                "package_key": "tear-config-0.1.50",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28482,7 +28482,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.49",
+                "package_key": "tear-types-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32947,7 +32947,7 @@
               "system"
             ]
           },
-          "mado-0.1.212": {
+          "mado-0.1.213": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -33530,7 +33530,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.49",
+                "package_key": "tear-client-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -33542,7 +33542,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.49",
+                "package_key": "tear-config-0.1.50",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33576,7 +33576,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.49",
+                "package_key": "tear-types-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -37168,7 +37168,7 @@
               "system"
             ]
           },
-          "mado-0.1.212": {
+          "mado-0.1.213": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -37751,7 +37751,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.49",
+                "package_key": "tear-client-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -37763,7 +37763,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.49",
+                "package_key": "tear-config-0.1.50",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37797,7 +37797,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.49",
+                "package_key": "tear-types-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -41570,7 +41570,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.212": {
+          "mado-0.1.213": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -42223,7 +42223,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.49",
+                "package_key": "tear-client-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -42235,7 +42235,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.49",
+                "package_key": "tear-config-0.1.50",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42269,7 +42269,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.49",
+                "package_key": "tear-types-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -46809,7 +46809,7 @@
               "system"
             ]
           },
-          "mado-0.1.212": {
+          "mado-0.1.213": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -47392,7 +47392,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.49",
+                "package_key": "tear-client-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -47404,7 +47404,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.49",
+                "package_key": "tear-config-0.1.50",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47438,7 +47438,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.49",
+                "package_key": "tear-types-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -51105,7 +51105,7 @@
               "system"
             ]
           },
-          "mado-0.1.212": {
+          "mado-0.1.213": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -51688,7 +51688,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.49",
+                "package_key": "tear-client-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -51700,7 +51700,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.49",
+                "package_key": "tear-config-0.1.50",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51734,7 +51734,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.49",
+                "package_key": "tear-types-0.1.50",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -55051,14 +55051,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.52": {
+    "gen-macros-0.1.53": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.52": {
+    "gen-platform-0.1.53": {
       "edition": "2024"
     },
-    "gen-types-0.1.52": {
+    "gen-types-0.1.53": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -55359,7 +55359,7 @@
     "kube-runtime-0.99.0": {
       "edition": "2021"
     },
-    "kukaku-0.1.49": {
+    "kukaku-0.1.50": {
       "edition": "2024"
     },
     "lazy_static-1.5.1": {
@@ -55432,7 +55432,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.212": {
+    "mado-0.1.213": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -56494,10 +56494,10 @@
         }
       ]
     },
-    "tear-client-0.1.49": {
+    "tear-client-0.1.50": {
       "edition": "2024"
     },
-    "tear-config-0.1.49": {
+    "tear-config-0.1.50": {
       "edition": "2024"
     },
     "tear-core-0.1.49": {
@@ -56506,7 +56506,7 @@
     "tear-daemon-0.1.49": {
       "edition": "2024"
     },
-    "tear-makimono-0.1.49": {
+    "tear-makimono-0.1.50": {
       "edition": "2024",
       "lib_target": {
         "name": "makimono",
@@ -56516,7 +56516,7 @@
     "tear-picker-0.1.49": {
       "edition": "2024"
     },
-    "tear-tamotsu-0.1.49": {
+    "tear-tamotsu-0.1.50": {
       "edition": "2024",
       "lib_target": {
         "name": "tamotsu",
@@ -56529,7 +56529,7 @@
         }
       ]
     },
-    "tear-types-0.1.49": {
+    "tear-types-0.1.50": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
@@ -56808,7 +56808,7 @@
     "vigy-store-0.1.10": {
       "edition": "2021"
     },
-    "vigy-types-0.1.10": {
+    "vigy-types-0.1.11": {
       "edition": "2021"
     },
     "vte-0.15.0": {
