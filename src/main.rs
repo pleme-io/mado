@@ -912,13 +912,9 @@ fn main() -> anyhow::Result<()> {
 
     let effective_font_size = config.font_size * config.accessibility.font_scale;
     let padding = config.window.padding as f32;
-    let cell_w = effective_font_size * 0.6;
-    let cell_h = effective_font_size * config.line_height;
-
-    let cols = ((config.window.width as f32 - 2.0 * padding) / cell_w) as usize;
-    let rows = ((config.window.height as f32 - 2.0 * padding) / cell_h) as usize;
-    let cols = cols.max(10);
-    let rows = rows.max(3);
+    let estimate = config.estimated_grid();
+    let cols = usize::from(estimate.cols()).max(10);
+    let rows = usize::from(estimate.rows()).max(3);
 
     let scrollback = config.behavior.scrollback_lines;
 

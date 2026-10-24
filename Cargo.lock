@@ -3659,13 +3659,14 @@ dependencies = [
 
 [[package]]
 name = "madori"
-version = "0.1.24"
+version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a0acb399d90a6020f92c3e2b594bd675d1e71eab13ad3e162dd099618b4fda4"
+checksum = "4d833bb0dd589fb60757ed84991a170cd14eef8125d50fa32ec2ebb286c4e965"
 dependencies = [
  "egaku",
  "garasu",
  "ishou-tokens",
+ "objc2 0.5.3",
  "pleme-allvariants-derive",
  "pollster",
  "serde",

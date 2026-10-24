@@ -227,14 +227,8 @@ pub fn try_run_default(
     // it to new_session_with_source_and_size so the shell spawns
     // at the right grid from t=0. Eliminates the brief 80×24
     // default + post-attach SIGWINCH re-layout.
-    let cell_w_logical = config.font_size * 0.6;
-    let cell_h_logical = config.font_size * config.line_height;
-    let pad_logical = config.window.padding as f32;
-    let init_cols =
-        (((config.window.width as f32 - 2.0 * pad_logical) / cell_w_logical).floor() as u16).max(1);
-    let init_rows = (((config.window.height as f32 - 2.0 * pad_logical) / cell_h_logical).floor()
-        as u16)
-        .max(1);
+    let estimate = config.estimated_grid();
+    let (init_cols, init_rows) = (estimate.cols(), estimate.rows());
 
     // Project the full capability env to the DAEMON before spawning the
     // session — the daemon-runtime mirror of the embedded path's
@@ -1119,13 +1113,8 @@ where
     // shell runs zshrc + renders its first prompt. Mado is the size
     // authority.
     {
-        let logical_w = config.window.width as f32;
-        let logical_h = config.window.height as f32;
-        let pad = padding;
-        let cell_w_logical = effective_font_size * 0.6;
-        let cell_h_logical = effective_font_size * config.line_height;
-        let init_cols: u16 = (((logical_w - 2.0 * pad) / cell_w_logical).floor() as u16).max(1);
-        let init_rows: u16 = (((logical_h - 2.0 * pad) / cell_h_logical).floor() as u16).max(1);
+        let estimate = config.estimated_grid();
+        let (init_cols, init_rows) = (estimate.cols(), estimate.rows());
         if init_cols as usize != cols || init_rows as usize != rows {
             // Both halves move together — a mirror left at snapshot
             // size answers CPR/XTWINOPS for a grid the PTY no longer
@@ -1904,14 +1893,8 @@ fn try_run_default_embedded(
     );
     let session_name = boot_name.render(ishou_tokens::SessionNameStyle::Glyph);
 
-    let cell_w_logical = config.font_size * 0.6;
-    let cell_h_logical = config.font_size * config.line_height;
-    let pad_logical = config.window.padding as f32;
-    let init_cols =
-        (((config.window.width as f32 - 2.0 * pad_logical) / cell_w_logical).floor() as u16).max(1);
-    let init_rows = (((config.window.height as f32 - 2.0 * pad_logical) / cell_h_logical).floor()
-        as u16)
-        .max(1);
+    let estimate = config.estimated_grid();
+    let (init_cols, init_rows) = (estimate.cols(), estimate.rows());
 
     // window.inherit_working_directory threading (M4 stage 2). LAW:
     // the boot cwd now flows through the typed `SpawnEnv.cwd` seam set

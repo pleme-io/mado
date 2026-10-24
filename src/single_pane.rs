@@ -117,8 +117,12 @@ impl SinglePane {
         if cell_w <= 0.0 || cell_h <= 0.0 {
             return;
         }
-        let cols = (((width - 2.0 * padding) / cell_w) as u16).max(1);
-        let rows = (((height - 2.0 * padding) / cell_h) as u16).max(1);
+        let grid = madori::grid::Grid::fit(
+            madori::grid::SurfaceSize::new(width, height),
+            madori::grid::CellMetrics::new(cell_w, cell_h),
+            madori::grid::Insets::uniform(padding),
+        );
+        let (cols, rows) = (grid.cols(), grid.rows());
         self.resize(cols, rows);
         // Resize the terminal grid too — without this, the renderer
         // would read stale cell counts.

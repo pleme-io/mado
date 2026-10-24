@@ -2897,6 +2897,63 @@ pub struct WindowConfig {
     /// `~/.config/mado/mado.yaml`.
     #[serde(default)]
     pub macos: MacosWindowConfig,
+    /// When a window drag's new cell grid reaches the shell and the mirror.
+    #[serde(default)]
+    pub resize: ResizeConfig,
+}
+
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq, Default,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum ResizeCommit {
+    Live,
+    #[default]
+    Coalesce,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq)]
+pub struct ResizeConfig {
+    /// `live` resizes the shell at each cell change; `coalesce` waits until the drag is quiet.
+    #[serde(default)]
+    pub commit: ResizeCommit,
+    /// `coalesce`: milliseconds without a change before the grid commits.
+    #[serde(default = "default_resize_quiet_ms")]
+    pub quiet_ms: u32,
+    /// `coalesce`: the latest a pending grid commits, from its first change.
+    #[serde(default = "default_resize_max_wait_ms")]
+    pub max_wait_ms: u32,
+}
+
+fn default_resize_quiet_ms() -> u32 {
+    40
+}
+
+fn default_resize_max_wait_ms() -> u32 {
+    250
+}
+
+impl Default for ResizeConfig {
+    fn default() -> Self {
+        Self {
+            commit: ResizeCommit::default(),
+            quiet_ms: default_resize_quiet_ms(),
+            max_wait_ms: default_resize_max_wait_ms(),
+        }
+    }
+}
+
+impl ResizeConfig {
+    #[must_use]
+    pub fn commit_policy(self) -> madori::resize::Commit {
+        match self.commit {
+            ResizeCommit::Live => madori::resize::Commit::Live,
+            ResizeCommit::Coalesce => madori::resize::Commit::Coalesce {
+                quiet: std::time::Duration::from_millis(u64::from(self.quiet_ms)),
+                max_wait: std::time::Duration::from_millis(u64::from(self.max_wait_ms)),
+            },
+        }
+    }
 }
 
 /// macOS window-chrome configuration. Every axis defaults to the
@@ -3590,6 +3647,19 @@ fn default_quick_terminal_animation_ms() -> u64 {
 }
 
 impl MadoConfig {
+    #[must_use]
+    #[allow(clippy::cast_precision_loss)]
+    pub fn estimated_grid(&self) -> madori::grid::Grid {
+        madori::grid::Grid::fit(
+            madori::grid::SurfaceSize::new(self.window.width as f32, self.window.height as f32),
+            madori::grid::CellMetrics::estimate(
+                self.font_size * self.accessibility.font_scale,
+                self.line_height,
+            ),
+            madori::grid::Insets::uniform(self.window.padding as f32),
+        )
+    }
+
     /// Resolve `active_profile`, if set — the ONE profile-application
     /// point shared by boot (`main.rs`) and hot-reload
     /// (`ux::config_apply::ConfigReloadSource::take_if_dirty`), so a
@@ -3955,6 +4025,10 @@ impl MadoConfig {
                     native_tabs: false,
                     titlebar: TitlebarStyle::Flush,
                     appearance: WindowAppearance::Dark,
+                },
+                resize: ResizeConfig {
+                    commit: ResizeCommit::Live, // bare = legacy commit per cell change
+                    ..ResizeConfig::default()
                 },
             },
             // ── Shell ────────────────────────────────────────────
@@ -4574,6 +4648,7 @@ impl Default for WindowConfig {
             inherit_font_size: true,
             padding_balance: true,
             macos: MacosWindowConfig::default(),
+            resize: ResizeConfig::default(),
         }
     }
 }
@@ -8120,6 +8195,9 @@ mod coverage {
         "window.macos.native_tabs",
         "window.macos.titlebar",
         "window.padding",
+        "window.resize.commit",
+        "window.resize.max_wait_ms",
+        "window.resize.quiet_ms",
         "window.width",
     ];
 

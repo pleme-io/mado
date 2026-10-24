@@ -1947,6 +1947,7 @@ pub struct TerminalRenderer {
     /// consume `snap.rows` (byte-identical frames — determinism tests guard it).
     row_scratch: RefCell<Vec<Vec<Cell>>>,
     painted_snapshot: Option<Snapshot>,
+    resize_commit: madori::resize::Commit,
     /// P28 — last-rendered cursor_on bit. Cursor blink is a 1–4 Hz
     /// animation (period 500 ms default); we'd otherwise wake every
     /// 16 ms vsync just to repaint the SAME cursor state. Skip frames
@@ -2439,7 +2440,7 @@ impl TerminalRenderer {
         bg_color: wgpu::Color,
         fg_color: Color,
     ) -> Self {
-        let cell_width = font_size * 0.6;
+        let cell_width = font_size * madori::grid::MONO_ADVANCE_ESTIMATE;
         // panel_ratio starts at 1.0 (no discovered downscale yet) → identical
         // to the framebuffer-only quantize; re-snapped once the ratio is
         // discovered (set_panel_ratio) and metrics are re-measured.
@@ -2596,6 +2597,7 @@ impl TerminalRenderer {
             box_draw_templates: RefCell::new(HashMap::new()),
             row_scratch: RefCell::new(Vec::new()),
             painted_snapshot: None,
+            resize_commit: madori::resize::Commit::default(),
             sync_output_deferred_since: std::cell::Cell::new(None),
             last_grid_epoch: 0,
             last_overlay_snapshot: OverlaySnapshot::default(),
@@ -2648,6 +2650,7 @@ impl TerminalRenderer {
         self.set_feedback_visual_bell(config.feedback.visual_bell);
         self.set_feedback_exit_glow(config.feedback.exit_code_glow);
         self.set_feedback_block_separators(config.feedback.block_separators);
+        self.set_resize_commit(config.window.resize.commit_policy());
         self.set_motion_unfocused_dim(config.motion.unfocused_dim);
         self.set_motion_picker_animate(config.motion.picker_animate);
         // Bell-flash SHAPE is the operator's to morph (motion.bell_flash);
@@ -2903,14 +2906,26 @@ impl TerminalRenderer {
     /// TUI apps query via TIOCGWINSZ).
     #[must_use]
     pub fn cells_for_window_phys(&self, width_phys: u32, height_phys: u32) -> (u16, u16) {
-        let pad_phys = self.padding_px();
-        let inner_w = (width_phys as f32 - 2.0 * pad_phys).max(0.0);
-        let inner_h = (height_phys as f32 - 2.0 * pad_phys).max(0.0);
-        let cw = self.cell_width.max(1.0);
-        let ch = self.cell_height.max(1.0);
-        let cols = ((inner_w / cw).floor() as u16).max(1);
-        let rows = ((inner_h / ch).floor() as u16).max(1);
-        (cols, rows)
+        let grid = self.grid_for_window_phys(width_phys, height_phys);
+        (grid.cols(), grid.rows())
+    }
+
+    #[must_use]
+    pub fn grid_for_window_phys(&self, width_phys: u32, height_phys: u32) -> madori::grid::Grid {
+        madori::grid::Grid::fit(
+            madori::grid::SurfaceSize::physical(width_phys, height_phys),
+            madori::grid::CellMetrics::new(self.cell_width, self.cell_height),
+            madori::grid::Insets::uniform(self.padding_px()),
+        )
+    }
+
+    #[must_use]
+    pub fn resize_commit(&self) -> madori::resize::Commit {
+        self.resize_commit
+    }
+
+    pub fn set_resize_commit(&mut self, commit: madori::resize::Commit) {
+        self.resize_commit = commit;
     }
 
     /// The grid the CURRENT surface actually supports —
@@ -3968,7 +3983,7 @@ impl TerminalRenderer {
     pub fn set_font_size(&mut self, size: f32) {
         let size = size.clamp(6.0, 72.0);
         self.font_size = size;
-        self.cell_width = size * 0.6;
+        self.cell_width = size * madori::grid::MONO_ADVANCE_ESTIMATE;
         self.cell_height = snap_cell_height_px(size * self.line_height, self.panel_ratio);
         self.metrics_measured = false;
         self.last_seqno = 0;

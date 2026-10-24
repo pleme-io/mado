@@ -250,14 +250,7 @@ pub struct InputEngine {
     /// so wheel reports use the tracked position (closes the
     /// documented fake-`1;1` wheel-coordinate gap).
     last_mouse_pos: (f64, f64),
-    /// PTY-grid ⇄ display reconciler signature: (surface w, surface
-    /// h, cell w bits, cell h bits) last pushed. Latching on render
-    /// truth (never on what-was-pushed) is load-bearing: events
-    /// dispatch before render, so event-derived bookkeeping is one
-    /// frame ahead of measured metrics and ping-pongs the pane
-    /// between old/new grids.
-    grid_sync_sig: Option<(u32, u32, u32, u32, u32)>,
-    pushed_cells: Option<(u16, u16)>,
+    grid: madori::resize::GridReconciler,
     /// Last-seen [`Terminal::grid_generation`] — the search
     /// re-anchoring seam. A resize (rewrap or truncate) renumbers
     /// absolute grid rows, so the active search's match list goes
@@ -396,8 +389,7 @@ impl InputEngine {
             float_panels,
             last_mods: Modifiers::default(),
             last_mouse_pos: (0.0, 0.0),
-            grid_sync_sig: None,
-            pushed_cells: None,
+            grid: madori::resize::GridReconciler::default(),
             search_grid_gen: None,
             scroll,
             last_scroll_tick: None,
@@ -3079,15 +3071,22 @@ impl InputEngine {
 
     #[must_use]
     pub fn frame_demand(&self) -> madori::FrameDemand {
+        let grid = self
+            .grid
+            .deadline()
+            .map_or(madori::FrameDemand::Idle, madori::FrameDemand::At);
         if self.scroll.is_active() {
             return madori::FrameDemand::Continuous;
         }
         if self.session_picker_bridge.is_some() && self.session_picker.lock().unwrap().open {
-            return self.last_board_tick.map_or(madori::FrameDemand::Now, |at| {
-                madori::FrameDemand::At(at + BOARD_TICK)
-            });
+            return self
+                .last_board_tick
+                .map_or(madori::FrameDemand::Now, |at| {
+                    madori::FrameDemand::At(at + BOARD_TICK)
+                })
+                .with(grid);
         }
-        madori::FrameDemand::Idle
+        grid
     }
 
     pub fn on_redraw_tick(&mut self, renderer: &TerminalRenderer) {
@@ -3110,20 +3109,8 @@ impl InputEngine {
             {
                 self.last_viewport = egaku::Rect::new(0.0, 0.0, w as f32, h as f32);
             }
-            let cw = renderer.cell_width();
-            let ch = renderer.cell_height();
-            // ★ PADDING IS AN INPUT TO THE GRID, so it belongs in the
-            // signature that decides whether to recompute it.
-            // `cells_for_window_phys` subtracts `2 * padding_px()`, and this
-            // tuple omitted it — so a padding reload changed the cell count
-            // without changing (w, h, cw, ch), the push was skipped, and
-            // `renderer.measured_grid()` and `terminal.cols()/rows()`
-            // disagreed with nothing to resync them.
-            let sig = (w, h, cw.to_bits(), ch.to_bits(), self.padding.to_bits());
-            if self.grid_sync_sig != Some(sig) {
-                self.grid_sync_sig = Some(sig);
-                self.push_grid(renderer, w, h);
-            }
+            self.grid.set_policy(renderer.resize_commit());
+            self.reconcile_grid(renderer.grid_for_window_phys(w, h), Instant::now());
         }
         // AFTER any grid push: re-anchor the active search if the
         // grid geometry moved this tick (the push above bumps the
@@ -3364,21 +3351,21 @@ impl InputEngine {
         st.set_query(&query, &rows, cols, first_abs);
     }
 
-    /// Resize both halves from physical surface dims: the mirror
-    /// Terminal first (so CPR/XTWINOPS answers match), then the
-    /// sink. Cell math goes through the renderer's
-    /// `cells_for_window_phys` — ONE source of truth for the grid in
-    /// both modes (the pre-M1 local loop subtracted UNSCALED logical
-    /// padding here; converged on the physical-padding math the
-    /// renderer actually draws with).
-    pub(crate) fn push_grid(&mut self, renderer: &TerminalRenderer, width: u32, height: u32) {
-        let (cols, rows) = renderer.cells_for_window_phys(width, height);
-        if self.pushed_cells == Some((cols, rows)) {
-            return;
+    pub(crate) fn reconcile_grid(&mut self, target: madori::grid::Grid, now: Instant) {
+        if let Some(grid) = self
+            .grid
+            .observe(target, now)
+            .or_else(|| self.grid.due(now))
+        {
+            self.push_grid(grid);
         }
-        self.pushed_cells = Some((cols, rows));
-        self.terminal.write().resize(cols as usize, rows as usize);
-        self.resize.resize(cols, rows);
+    }
+
+    pub(crate) fn push_grid(&mut self, grid: madori::grid::Grid) {
+        self.terminal
+            .write()
+            .resize(usize::from(grid.cols()), usize::from(grid.rows()));
+        self.resize.resize(grid.cols(), grid.rows());
     }
 }
 
@@ -6255,42 +6242,73 @@ mod tests {
         );
         // The reconciler's push primitive resizes BOTH halves: the
         // mirror VT grid and the sink.
-        h.engine.push_grid(&h.renderer, w, h_px);
+        h.engine.push_grid(h.renderer.grid_for_window_phys(w, h_px));
         let (cols, rows) = h.renderer.cells_for_window_phys(w, h_px);
         assert_eq!(h.resized.lock().unwrap().as_slice(), &[(cols, rows)]);
         let term = h.terminal.read();
         assert_eq!((term.cols(), term.rows()), (cols as usize, rows as usize));
     }
 
-    #[test]
-    fn a_drag_inside_one_cell_pushes_no_resize_to_the_pane() {
-        let mut h = Harness::new(SinkKind::Closure);
+    fn drag(h: &mut Harness, policy: madori::resize::Commit, step_ms: u64) -> Vec<(u16, u16)> {
+        h.renderer.set_resize_commit(policy);
+        let t0 = Instant::now();
         let (w0, h0) = (800u32, 600u32);
-        h.engine.push_grid(&h.renderer, w0, h0);
-        let first = h.renderer.cells_for_window_phys(w0, h0);
-        let mut expected = vec![first];
-        for w in w0..w0 + 120 {
-            h.engine.push_grid(&h.renderer, w, h0);
-            let cells = h.renderer.cells_for_window_phys(w, h0);
-            if expected.last() != Some(&cells) {
-                expected.push(cells);
-            }
+        h.engine.grid.set_policy(policy);
+        h.engine
+            .reconcile_grid(h.renderer.grid_for_window_phys(w0, h0), t0);
+        for (i, w) in (w0..w0 + 120).enumerate() {
+            let now = t0 + Duration::from_millis(step_ms * (i as u64 + 1));
+            h.engine
+                .reconcile_grid(h.renderer.grid_for_window_phys(w, h0), now);
         }
-        let pushed = h.resized.lock().unwrap().clone();
-        assert_eq!(pushed, expected);
-        assert!(
-            pushed.len() < 40,
-            "one push per cell change, not per pixel: {pushed:?}"
-        );
-        assert_eq!(
-            usize::from(pushed.last().unwrap().0 - first.0) + 1,
-            pushed.len()
-        );
-        let last = *pushed.last().unwrap();
+        h.resized.lock().unwrap().clone()
+    }
+
+    #[test]
+    fn a_live_drag_pushes_one_resize_per_cell_change_never_per_pixel() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let pushed = drag(&mut h, madori::resize::Commit::Live, 1);
+        let first = h.renderer.cells_for_window_phys(800, 600);
+        let last = h.renderer.cells_for_window_phys(919, 600);
+        assert_eq!(pushed.first(), Some(&first));
+        assert_eq!(pushed.last(), Some(&last));
+        assert_eq!(usize::from(last.0 - first.0) + 1, pushed.len());
         let term = h.terminal.read();
         assert_eq!(
             (term.cols(), term.rows()),
-            (last.0 as usize, last.1 as usize)
+            (usize::from(last.0), usize::from(last.1))
+        );
+    }
+
+    #[test]
+    fn a_coalesced_drag_pushes_the_first_grid_and_then_only_the_settled_one() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let policy = madori::resize::Commit::Coalesce {
+            quiet: Duration::from_millis(40),
+            max_wait: Duration::from_secs(10),
+        };
+        let pushed = drag(&mut h, policy, 1);
+        let first = h.renderer.cells_for_window_phys(800, 600);
+        let last = h.renderer.cells_for_window_phys(919, 600);
+        assert_eq!(
+            pushed,
+            vec![first],
+            "nothing reaches the pane while the drag moves"
+        );
+        let deadline = h
+            .engine
+            .grid
+            .deadline()
+            .expect("a pending grid owes a frame");
+        assert_eq!(h.engine.frame_demand(), madori::FrameDemand::At(deadline));
+        let settle = h.renderer.grid_for_window_phys(919, 600);
+        h.engine.reconcile_grid(settle, deadline);
+        assert_eq!(h.resized.lock().unwrap().clone(), vec![first, last]);
+        assert_eq!(h.engine.grid.deadline(), None);
+        let term = h.terminal.read();
+        assert_eq!(
+            (term.cols(), term.rows()),
+            (usize::from(last.0), usize::from(last.1))
         );
     }
 

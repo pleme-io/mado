@@ -1374,6 +1374,15 @@
       "description": "",
       "type": "bool"
     },
+    "resize": {
+      "default": {
+        "commit": "coalesce",
+        "max_wait_ms": 250,
+        "quiet_ms": 40
+      },
+      "description": "When a window drag's new cell grid reaches the shell and the mirror.",
+      "type": "object"
+    },
     "split_divider_color": {
       "default": null,
       "description": "",
