@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 25f7f55353d696ac5dc851d06ab4c7e544f52377252e390b0a047e995440fe36 # shrinks to ops = [InsertLines { top: 0, span: 1, at: 0, n: 1 }, Prompt { repaints: 0 }, Clear { scrollback: false }]
+cc 202871d132d2cf69773737bfee041ff5a09b0eb3d83cd2de398adb515a5c26b5 # shrinks to ops = [Prompt { repaints: 0 }, Prompt { repaints: 0 }]
