@@ -421,6 +421,11 @@
     }
   },
   "feedback": {
+    "block_separators": {
+      "default": true,
+      "description": "A faint rule above each row that holds an OSC 133 `A` prompt start.",
+      "type": "bool"
+    },
     "copy_flash": {
       "default": true,
       "description": "A short selection-overlay flash when `copy_on_select` copies.",

@@ -873,6 +873,7 @@ pub struct Line {
     pub wrapped: bool,
     /// Identity of the logical line this physical row belongs to.
     pub logical_id: LogicalLineId,
+    pub block_start: bool,
 }
 
 impl Line {
@@ -881,6 +882,7 @@ impl Line {
             cells: vec![Cell::default(); cols],
             wrapped: false,
             logical_id,
+            block_start: false,
         }
     }
 
@@ -893,6 +895,7 @@ impl Line {
             cells: vec![fill.clone(); cols],
             wrapped: false,
             logical_id,
+            block_start: false,
         }
     }
 
@@ -1370,7 +1373,22 @@ impl Grid {
             }
             // Cleared rows carry no soft-wrap continuation.
             line.wrapped = false;
+            line.block_start = false;
         }
+    }
+
+    fn set_block_start(&mut self, row: usize, on: bool) {
+        self.visible_line_mut(row).block_start = on;
+    }
+
+    fn block_start_viewport_rows(&self, scroll_offset: usize) -> Vec<usize> {
+        let sb_len = self.scrollback_len();
+        let start = sb_len - scroll_offset.min(sb_len);
+        self.rows
+            .range(start..(start + self.visible_rows).min(self.rows.len()))
+            .enumerate()
+            .filter_map(|(i, line)| line.block_start.then_some(i))
+            .collect()
     }
 
     /// Resize the grid.
@@ -1469,9 +1487,11 @@ impl Grid {
         let mut pending: Option<Line> = iter.next();
         while let Some(first) = pending.take() {
             let logical_id = first.logical_id;
+            let mut block_start = false;
             let mut run: Vec<Cell> = Vec::new();
             let mut cur = first;
             loop {
+                block_start |= cur.block_start;
                 if cur.wrapped {
                     // Non-final row of the run: the payload is content,
                     // EXCEPT a single trailing default cell left by the
@@ -1518,7 +1538,7 @@ impl Grid {
                     break;
                 }
             }
-            Self::push_reflowed_line(&mut new_rows, run, new_cols, logical_id);
+            Self::push_reflowed_line(&mut new_rows, run, new_cols, logical_id, block_start);
         }
 
         self.rows = new_rows;
@@ -1573,6 +1593,7 @@ impl Grid {
         run: Vec<Cell>,
         cols: usize,
         id: LogicalLineId,
+        block_start: bool,
     ) {
         // Precompute box-drawing run starts ONCE, over the whole run,
         // before any consumption. `run_start_len[i] == Some(len)` only
@@ -1645,6 +1666,7 @@ impl Grid {
                 cells,
                 wrapped: k != last,
                 logical_id: id,
+                block_start: block_start && k == 0,
             });
         }
     }
@@ -3985,6 +4007,7 @@ impl Terminal {
             // clock and reset the TUI (alt-screen-used) flag.
             PromptKind::Start => {
                 self.command_input_anchor = None;
+                self.primary.set_block_start(self.cursor.row, true);
             }
             PromptKind::CommandStart => {
                 self.command_input_anchor = Some((grid_row, self.cursor.col));
@@ -4140,10 +4163,11 @@ impl Terminal {
     }
 
     /// Block-aware rendering helper: viewport-relative row
-    /// indices where an OSC 133 `A` (prompt-start) mark sits.
-    /// The render layer draws a faint horizontal separator at
-    /// each of these rows so the operator sees discrete blocks
-    /// without needing a sidebar.
+    /// indices of the rows that hold a prompt start. The render
+    /// layer draws a faint horizontal separator at each of these
+    /// rows so the operator sees discrete blocks without needing
+    /// a sidebar. The source is `Line::block_start`, never a stored
+    /// row index.
     ///
     /// Alt-screen TUIs (vim, helix, btop) don't have block
     /// boundaries — those screens are atomic. Returns an empty
@@ -4153,19 +4177,7 @@ impl Terminal {
         if self.use_alternate {
             return Vec::new();
         }
-        let grid = &self.primary;
-        let base = grid.rows.len().saturating_sub(grid.visible_rows);
-        let view_top = base.saturating_sub(self.scroll_offset);
-        let view_bottom = view_top + grid.visible_rows;
-        self.prompt_marks
-            .iter()
-            .filter(|m| {
-                m.kind == crate::prompt_mark::PromptKind::Start
-                    && m.grid_row >= view_top
-                    && m.grid_row < view_bottom
-            })
-            .map(|m| m.grid_row - view_top)
-            .collect()
+        self.primary.block_start_viewport_rows(self.scroll_offset)
     }
 
     /// Full terminal reset (RIS). Preserves scrollback setting and theme colors.
@@ -5876,25 +5888,33 @@ impl Terminal {
                 self.dirty();
             }
             C::EraseDisplay(mode) => {
-                match mode {
+                let erased_rows = match mode {
                     0 => {
                         self.erase_cells(self.cursor.row, self.cursor.col, self.cols);
                         for r in (self.cursor.row + 1)..self.rows {
                             self.erase_cells(r, 0, self.cols);
                         }
+                        (self.cursor.row + 1)..self.rows
                     }
                     1 => {
                         for r in 0..self.cursor.row {
                             self.erase_cells(r, 0, self.cols);
                         }
                         self.erase_cells(self.cursor.row, 0, self.cursor.col + 1);
+                        0..(self.cursor.row + 1)
                     }
                     2 | 3 => {
                         for r in 0..self.rows {
                             self.erase_cells(r, 0, self.cols);
                         }
+                        0..self.rows
                     }
-                    _ => {}
+                    _ => 0..0,
+                };
+                if !self.use_alternate {
+                    for r in erased_rows {
+                        self.primary.set_block_start(r, false);
+                    }
                 }
                 self.dirty();
             }
@@ -13607,6 +13627,9 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod block_separator_invariant;
 
 // ---------------------------------------------------------------------------
 // Property tests (proptest)

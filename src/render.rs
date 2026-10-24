@@ -1805,6 +1805,8 @@ pub struct TerminalRenderer {
     /// gate is the final "render it at all" switch (like the bell's).
     #[invalidating_setter]
     feedback_exit_glow: bool,
+    #[invalidating_setter]
+    feedback_block_separators: bool,
     /// Whether an unfocused window is whisper-dimmed. Set from
     /// `config.motion.unfocused_dim` in
     /// [`apply_effects_and_accessibility`](Self::apply_effects_and_accessibility).
@@ -2547,6 +2549,7 @@ impl TerminalRenderer {
             // `config.{feedback,motion}` (bare strips them).
             feedback_visual_bell: true,
             feedback_exit_glow: true,
+            feedback_block_separators: true,
             motion_unfocused_dim: true,
             motion_picker_animate: true,
             reduce_motion: false,
@@ -2642,6 +2645,7 @@ impl TerminalRenderer {
         // unfocused-window dim. Both prescribed-ON; the bare tier strips them.
         self.set_feedback_visual_bell(config.feedback.visual_bell);
         self.set_feedback_exit_glow(config.feedback.exit_code_glow);
+        self.set_feedback_block_separators(config.feedback.block_separators);
         self.set_motion_unfocused_dim(config.motion.unfocused_dim);
         self.set_motion_picker_animate(config.motion.picker_animate);
         // Bell-flash SHAPE is the operator's to morph (motion.bell_flash);
@@ -4872,7 +4876,12 @@ impl TerminalRenderer {
         // — visible but not distracting. Sits *above* the row
         // so it visually separates "previous block ends here"
         // from "next block starts below".
-        for sep_row in &snap.block_separator_rows {
+        let separator_rows: &[usize] = if self.feedback_block_separators {
+            &snap.block_separator_rows
+        } else {
+            &[]
+        };
+        for sep_row in separator_rows {
             // Skip row 0 — drawing above the top edge would
             // be off-screen / visually noisy.
             if *sep_row == 0 {
@@ -10108,6 +10117,35 @@ mod render_invariants {
             seps.is_empty(),
             "no OSC 133 marks should emit no separators: {seps:?}"
         );
+    }
+
+    fn separator_rects(r: &TerminalRenderer) -> Vec<RectInstance> {
+        let sep_color = overlay_rect_color(0x5E, 0x81, 0xAC, 0.30);
+        compute_rects(r)
+            .into_iter()
+            .filter(|rt| colors_approx_eq(rt.color, sep_color))
+            .collect()
+    }
+
+    #[test]
+    fn a_clear_screen_leaves_no_block_separator_rect() {
+        let (r, t) = harness(40, 8);
+        t.write().feed(
+            b"\x1b]133;A\x1b\\$ a\r\n\x1b]133;A\x1b\\$ b\r\nout\r\n\x1b]133;A\x1b\\$ clear\r\n",
+        );
+        assert!(!separator_rects(&r).is_empty());
+        t.write().feed(b"\x1b[H\x1b[2J\x1b[3Jcopying\r\x1b[K");
+        let seps = separator_rects(&r);
+        assert!(seps.is_empty(), "separators survive the clear: {seps:?}");
+    }
+
+    #[test]
+    fn block_separators_off_draws_no_separator() {
+        let (mut r, t) = harness(40, 8);
+        t.write().feed(b"\n\n\x1b]133;A\x1b\\");
+        assert!(!separator_rects(&r).is_empty());
+        r.set_feedback_block_separators(false);
+        assert!(separator_rects(&r).is_empty());
     }
 
     // ── search-highlight invariants ───────────────────────────────

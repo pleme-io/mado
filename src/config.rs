@@ -1497,6 +1497,8 @@ pub struct FeedbackConfig {
     /// A brief green (exit 0) / red (non-zero) cursor glow when a command
     /// completes — peripheral success/fail feedback (OSC 133 `D`).
     pub exit_code_glow: bool,
+    /// A faint rule above each row that holds an OSC 133 `A` prompt start.
+    pub block_separators: bool,
 }
 
 impl Default for FeedbackConfig {
@@ -1514,6 +1516,7 @@ impl FeedbackConfig {
             visual_bell: false,
             exit_code_coloring: false,
             exit_code_glow: false,
+            block_separators: false,
         }
     }
 
@@ -1525,6 +1528,7 @@ impl FeedbackConfig {
             visual_bell: true,
             exit_code_coloring: true,
             exit_code_glow: true,
+            block_separators: true,
         }
     }
 }
@@ -6073,6 +6077,7 @@ mod tests {
             visual_bell: false,
             exit_code_coloring: true,
             exit_code_glow: true,
+            block_separators: false,
         };
         let yaml = serde_yaml_ng::to_string(&fb).expect("serialize feedback config");
         let back: FeedbackConfig =
@@ -7969,6 +7974,7 @@ mod coverage {
         "effects.window_depth.softness",
         "environment.initial_command",
         "environment.working_directory",
+        "feedback.block_separators",
         "feedback.exit_code_glow",
         "feedback.visual_bell",
         "font.features",
