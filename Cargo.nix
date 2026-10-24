@@ -10906,7 +10906,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.214";
+        version = "0.1.215";
         edition = "2024";
         crateBin = [
           {
@@ -11293,9 +11293,9 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.24";
+        version = "0.1.26";
         edition = "2024";
-        sha256 = "197xnhc9c2fxcbhx6fmix9qiwpb7pnabbqn3j87h59lhklwwn2is";
+        sha256 = "0rg9qj3b5sy25sihzm95h7plxl8c2wd9k17daw3vd7sqvnq3p0sd";
         dependencies = [
           {
             name = "egaku";
@@ -11309,6 +11309,11 @@ rec {
             name = "ishou-tokens";
             packageId = "ishou-tokens";
             features = [ "wgpu" ];
+          }
+          {
+            name = "objc2";
+            packageId = "objc2 0.5.3";
+            target = { target, features }: ("macos" == target."os" or null);
           }
           {
             name = "pleme-allvariants-derive";
@@ -28289,9 +28294,9 @@ rec {
       };
       "vigy-eval" = rec {
         crateName = "vigy-eval";
-        version = "0.1.10";
+        version = "0.1.11";
         edition = "2021";
-        sha256 = "1w24i7jdgy16l02qxj60n8s24h8nasvv7vbh00p50sgwb08r85p6";
+        sha256 = "1rvylld4fmgf678b42ial0wnq9a39jrkc9qpfysnas48nin75s1j";
         libName = "vigy_eval";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -28396,9 +28401,9 @@ rec {
       };
       "vigy-runtime" = rec {
         crateName = "vigy-runtime";
-        version = "0.1.10";
+        version = "0.1.11";
         edition = "2021";
-        sha256 = "0sghvy3sjq25fmhqf2ggqhrnzk2pihi91bdncjqx5w1nwxdpral4";
+        sha256 = "0m382hfmpns4vbdw7lmh2kk4k0d22nlxps2y6nrljn82p874zlvl";
         libName = "vigy_runtime";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -28455,9 +28460,9 @@ rec {
       };
       "vigy-store" = rec {
         crateName = "vigy-store";
-        version = "0.1.10";
+        version = "0.1.11";
         edition = "2021";
-        sha256 = "0zisgidk3a2zf360k67csgkn80gd0b8n07gvkwz6frvghfj6dlmk";
+        sha256 = "1j4fvgl1vwvqxqgb8m0356vmpb9baf5zgh48v243qa3spn1z728i";
         libName = "vigy_store";
         authors = [
           "Pleme Team <team@pleme.io>"
