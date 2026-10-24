@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "2806cf9038f7329372616479eb25c033dd0d60428769439e19537318894d14f4",
+  "cargo_lock_sha256": "9070dcba2f8b3452366094df39f69cb6afd6bb5cf224196252501ad1e22f6ea1",
   "manifest_sha256": {
-    "Cargo.toml": "ed12e97d7c3486a4dc059bfc44229bf5c7c7f86249afdcb9cba59cfcd20a8184"
+    "Cargo.toml": "3c886e7b3d64316a3bbb268c5daf01ebcf0d397660683c07296c7f432ac77151"
   },
   "target_resolves": {
     "base": {
@@ -930,7 +930,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.8",
+            "package_key": "tatara-lisp-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -956,7 +956,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.8",
+            "package_key": "tatara-lisp-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1022,7 +1022,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.8",
+            "package_key": "tatara-lisp-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1032,7 +1032,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.8",
+            "package_key": "tatara-lisp-eval-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1181,7 +1181,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.8",
+            "package_key": "tatara-lisp-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1191,7 +1191,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.8",
+            "package_key": "tatara-lisp-eval-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1239,7 +1239,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.8",
+            "package_key": "tatara-lisp-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1249,7 +1249,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.8",
+            "package_key": "tatara-lisp-eval-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1384,7 +1384,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.8",
+            "package_key": "tatara-lisp-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1394,7 +1394,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.8",
+            "package_key": "tatara-lisp-eval-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1420,7 +1420,7 @@
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.8",
+            "package_key": "tatara-lisp-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1446,7 +1446,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.8",
+            "package_key": "tatara-lisp-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2894,7 +2894,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5223,7 +5223,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.51": {
+      "gen-macros-0.1.52": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -5262,11 +5262,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.51": {
+      "gen-platform-0.1.52": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.51",
+            "package_key": "gen-macros-0.1.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5276,7 +5276,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.51",
+            "package_key": "gen-types-0.1.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5330,7 +5330,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.51": {
+      "gen-types-0.1.52": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -6725,7 +6725,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [
               "const_generics",
@@ -7242,7 +7242,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -7493,7 +7493,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [
               "const_generics"
@@ -9736,7 +9736,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [
               "union"
@@ -10358,7 +10358,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "monosashi-0.4.8": {
+      "monosashi-0.4.9": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -10927,7 +10927,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11661,7 +11661,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11741,7 +11741,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15545,7 +15545,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15875,7 +15875,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18052,7 +18052,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.51",
+            "package_key": "gen-platform-0.1.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18062,7 +18062,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.51",
+            "package_key": "gen-types-0.1.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18307,7 +18307,7 @@
           "std"
         ]
       },
-      "smallvec-1.16.3": {
+      "smallvec-1.16.4": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -18724,7 +18724,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19453,7 +19453,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19841,7 +19841,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [
               "serde"
@@ -20779,11 +20779,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.4.8": {
+      "tatara-closed-set-0.4.9": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.4.8",
+            "package_key": "tatara-closed-set-derive-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20833,7 +20833,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.4.8": {
+      "tatara-closed-set-derive-0.4.9": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -21227,7 +21227,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.4.8": {
+      "tatara-lisp-0.4.9": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -21263,7 +21263,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.8",
+            "package_key": "tatara-closed-set-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21273,7 +21273,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.4.8",
+            "package_key": "tatara-lisp-derive-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21335,7 +21335,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.4.8": {
+      "tatara-lisp-derive-0.4.9": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -21419,7 +21419,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.4.8": {
+      "tatara-lisp-eval-0.4.9": {
         "runtime_dependencies": [
           {
             "name": "imbl",
@@ -21433,7 +21433,7 @@
           },
           {
             "name": "monosashi",
-            "package_key": "monosashi-0.4.8",
+            "package_key": "monosashi-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21453,7 +21453,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.8",
+            "package_key": "tatara-closed-set-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21463,7 +21463,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.8",
+            "package_key": "tatara-lisp-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24473,7 +24473,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25157,7 +25157,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.8",
+            "package_key": "tatara-lisp-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25167,7 +25167,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.8",
+            "package_key": "tatara-lisp-eval-0.4.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25974,7 +25974,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25984,7 +25984,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.3",
+            "package_key": "smallvec-1.16.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -27783,7 +27783,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.211": {
+          "mado-0.1.212": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31278,7 +31278,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31639,7 +31639,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -32947,7 +32947,7 @@
               "system"
             ]
           },
-          "mado-0.1.211": {
+          "mado-0.1.212": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34699,7 +34699,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -35266,7 +35266,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35590,7 +35590,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -37168,7 +37168,7 @@
               "system"
             ]
           },
-          "mado-0.1.211": {
+          "mado-0.1.212": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -38920,7 +38920,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -39487,7 +39487,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39811,7 +39811,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -41570,7 +41570,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.211": {
+          "mado-0.1.212": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45064,7 +45064,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45425,7 +45425,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -46809,7 +46809,7 @@
               "system"
             ]
           },
-          "mado-0.1.211": {
+          "mado-0.1.212": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48560,7 +48560,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -49127,7 +49127,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49451,7 +49451,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -51105,7 +51105,7 @@
               "system"
             ]
           },
-          "mado-0.1.211": {
+          "mado-0.1.212": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -52856,7 +52856,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -53423,7 +53423,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53747,7 +53747,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.3",
+                "package_key": "smallvec-1.16.4",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -55051,14 +55051,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.51": {
+    "gen-macros-0.1.52": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.51": {
+    "gen-platform-0.1.52": {
       "edition": "2024"
     },
-    "gen-types-0.1.51": {
+    "gen-types-0.1.52": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -55432,7 +55432,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.211": {
+    "mado-0.1.212": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -55510,7 +55510,7 @@
     "monosashi-0.3.64": {
       "edition": "2021"
     },
-    "monosashi-0.4.8": {
+    "monosashi-0.4.9": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -56314,7 +56314,7 @@
       "edition": "2018",
       "build_script": "build.rs"
     },
-    "smallvec-1.16.3": {
+    "smallvec-1.16.4": {
       "edition": "2018"
     },
     "smithay-client-toolkit-0.19.2": {
@@ -56442,14 +56442,14 @@
     "tatara-closed-set-0.3.64": {
       "edition": "2021"
     },
-    "tatara-closed-set-0.4.8": {
+    "tatara-closed-set-0.4.9": {
       "edition": "2021"
     },
     "tatara-closed-set-derive-0.3.64": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-closed-set-derive-0.4.8": {
+    "tatara-closed-set-derive-0.4.9": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -56465,21 +56465,21 @@
     "tatara-lisp-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-0.4.8": {
+    "tatara-lisp-0.4.9": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.3.52": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.4.8": {
+    "tatara-lisp-derive-0.4.9": {
       "edition": "2021",
       "proc_macro": true
     },
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-eval-0.4.8": {
+    "tatara-lisp-eval-0.4.9": {
       "edition": "2021"
     },
     "tatara-nix-0.2.568": {

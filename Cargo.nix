@@ -2291,9 +2291,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.9.0";
+        version = "1.10.0";
         edition = "2021";
-        sha256 = "1pz4mvzdqmskrkiyp7hzvmqfnfqnx92a764y5zmlj975r1xgcyw7";
+        sha256 = "185yfn6np0m5x7hz1q7qf595sqzbbs2vc9dshxhssh1ydvx5bq46";
         dependencies = [
           {
             name = "find-msvc-tools";
@@ -2649,9 +2649,9 @@ rec {
       };
       "clipboard-win" = rec {
         crateName = "clipboard-win";
-        version = "5.4.1";
+        version = "5.4.3";
         edition = "2018";
-        sha256 = "1m44gqy11rq1ww7jls86ppif98v6kv2wkwk8p17is86zsdq3gq5x";
+        sha256 = "16isdlcwrj0jgjs5k5c0jvr15mqrs1knlyms2bdcrzk6hj3zfah5";
         libName = "clipboard_win";
         authors = [
           "Douman <douman@gmx.se>"
@@ -7866,7 +7866,7 @@ rec {
           }
           {
             name = "webpki-roots";
-            packageId = "webpki-roots 1.0.10";
+            packageId = "webpki-roots 1.0.11";
             optional = true;
           }
         ];
@@ -10906,7 +10906,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.211";
+        version = "0.1.212";
         edition = "2024";
         crateBin = [
           {
@@ -19401,7 +19401,7 @@ rec {
           }
           {
             name = "webpki-roots";
-            packageId = "webpki-roots 1.0.10";
+            packageId = "webpki-roots 1.0.11";
             optional = true;
             target = { target, features }: (!("wasm32" == target."arch" or null));
           }
@@ -28122,9 +28122,9 @@ rec {
       };
       "uuid" = rec {
         crateName = "uuid";
-        version = "1.28.0";
+        version = "1.29.0";
         edition = "2021";
-        sha256 = "01mnlhz09hwdjaxwzjd6bql3fjb5zl9n8dzaxn7dvdxyhiiiihbw";
+        sha256 = "0525458ww4jwa0nw513jdrhgwxrldglzvfrbw5gnjl0cc88js3ja";
         authors = [
           "Ashley Mannix<ashleymannix@live.com.au>"
           "Dylan DPC<dylan.dpc@gmail.com>"
@@ -29761,17 +29761,17 @@ rec {
         dependencies = [
           {
             name = "webpki-roots";
-            packageId = "webpki-roots 1.0.10";
+            packageId = "webpki-roots 1.0.11";
             rename = "parent";
           }
         ];
 
       };
-      "webpki-roots 1.0.10" = rec {
+      "webpki-roots 1.0.11" = rec {
         crateName = "webpki-roots";
-        version = "1.0.10";
+        version = "1.0.11";
         edition = "2021";
-        sha256 = "1na80y0p8a3dk62brj7fx1kscjhf52vlxrxzbbbcg3x3r0h8w70w";
+        sha256 = "0wgidma8qmksdhmx8pnbpg8m1zx08llqbqz7gn7br1xjnaxq1wpm";
         libName = "webpki_roots";
         dependencies = [
           {
