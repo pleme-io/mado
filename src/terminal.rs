@@ -1384,10 +1384,15 @@ impl Grid {
     fn block_start_viewport_rows(&self, scroll_offset: usize) -> Vec<usize> {
         let sb_len = self.scrollback_len();
         let start = sb_len - scroll_offset.min(sb_len);
-        self.rows
-            .range(start..(start + self.visible_rows).min(self.rows.len()))
-            .enumerate()
-            .filter_map(|(i, line)| line.block_start.then_some(i))
+        let end = (start + self.visible_rows).min(self.rows.len());
+        (start..end)
+            .filter(|&abs| {
+                self.rows[abs].block_start
+                    && !abs
+                        .checked_sub(1)
+                        .is_some_and(|above| self.rows[above].block_start)
+            })
+            .map(|abs| abs - start)
             .collect()
     }
 

@@ -10140,6 +10140,17 @@ mod render_invariants {
     }
 
     #[test]
+    fn empty_prompts_draw_one_separator_only_after_output() {
+        let (r, t) = harness(40, 30);
+        for _ in 0..21 {
+            t.write().feed(b"\x1b]133;A\x1b\\$ \r\n");
+        }
+        assert!(separator_rects(&r).is_empty());
+        t.write().feed(b"\x1b]133;A\x1b\\$ ls\r\nout\r\n\x1b]133;A\x1b\\$ ");
+        assert_eq!(separator_rects(&r).len(), 1);
+    }
+
+    #[test]
     fn block_separators_off_draws_no_separator() {
         let (mut r, t) = harness(40, 8);
         t.write().feed(b"\n\n\x1b]133;A\x1b\\");

@@ -48,12 +48,37 @@ fn clear_then_in_place_progress_leaves_no_separator_on_a_row_that_lost_its_promp
 #[test]
 fn a_line_editor_repaint_keeps_the_live_prompt_separator() {
     let mut term = Terminal::new(40, 10);
-    prompt(&mut term, "true");
+    prompt(&mut term, "echo");
+    term.feed(b"out\r\n");
     term.feed(format!("\r{PROMPT_START}$ ").as_bytes());
     for typed in ["g", "gi", "git"] {
         term.feed(format!("\r\x1b[J$ {typed}").as_bytes());
     }
-    assert_eq!(term.block_separator_viewport_rows(), vec![0, 1]);
+    assert_eq!(term.block_separator_viewport_rows(), vec![0, 2]);
+}
+
+#[test]
+fn consecutive_empty_prompts_draw_no_separator_between_them() {
+    let mut term = Terminal::new(40, 30);
+    for _ in 0..22 {
+        prompt(&mut term, "");
+    }
+    term.feed(format!("\r{PROMPT_START}$ ").as_bytes());
+    assert_eq!(term.block_separator_viewport_rows(), vec![0]);
+    term.feed(b"\r\n");
+    prompt(&mut term, "ls");
+    term.feed(b"a b\r\n");
+    term.feed(format!("\r{PROMPT_START}$ ").as_bytes());
+    assert_eq!(term.block_separator_viewport_rows(), vec![0, 25]);
+}
+
+#[test]
+fn a_prompt_below_the_viewport_top_takes_its_neighbour_from_scrollback() {
+    let mut term = Terminal::new(40, 5);
+    for _ in 0..8 {
+        prompt(&mut term, "");
+    }
+    assert_eq!(term.block_separator_viewport_rows(), Vec::<usize>::new());
 }
 
 #[test]
@@ -185,6 +210,18 @@ proptest! {
             apply(&mut term, op);
             let stale = stale_separators(&term);
             prop_assert!(stale.is_empty(), "after {:?}: separators on rows {:?} hold no prompt", op, stale);
+            let seps = term.block_separator_viewport_rows();
+            for row in 1..term.rows() {
+                let opens_a_block = owns_prompt(&term, row) && !owns_prompt(&term, row - 1);
+                prop_assert_eq!(
+                    seps.contains(&row),
+                    opens_a_block,
+                    "after {:?}: row {} separator must exist iff its prompt follows output; seps {:?}",
+                    op,
+                    row,
+                    seps
+                );
+            }
         }
     }
 }
