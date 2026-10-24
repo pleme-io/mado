@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "3c6033066a71d75a7bb506baab740294a3777126d84879bdc797154b5d923cfe",
+  "cargo_lock_sha256": "f05431dedc559bfb8de50fc99ebac4b1a33d1bd3f5bf6293bbe320406ab43850",
   "manifest_sha256": {
-    "Cargo.toml": "570d166ed15464a2ba5680c19e2b796bb9a5be18c4c67a63db4c66ec1bf17d37"
+    "Cargo.toml": "35aac8efa997106007a380f15d29874726a6d59de39d045de967704a0d2ff14a"
   },
   "target_resolves": {
     "base": {
@@ -25047,7 +25047,7 @@
         "runtime_dependencies": [
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.10",
+            "package_key": "vigy-eval-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25067,7 +25067,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.10",
+            "package_key": "vigy-runtime-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25077,7 +25077,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.10",
+            "package_key": "vigy-store-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25101,7 +25101,7 @@
           "mcp"
         ]
       },
-      "vigy-eval-0.1.10": {
+      "vigy-eval-0.1.11": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -25308,7 +25308,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.10",
+            "package_key": "vigy-runtime-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25330,7 +25330,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-runtime-0.1.10": {
+      "vigy-runtime-0.1.11": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -25428,7 +25428,7 @@
           },
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.10",
+            "package_key": "vigy-eval-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25438,7 +25438,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.10",
+            "package_key": "vigy-store-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25460,7 +25460,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-store-0.1.10": {
+      "vigy-store-0.1.11": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -27783,7 +27783,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.213": {
+          "mado-0.1.214": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32947,7 +32947,7 @@
               "system"
             ]
           },
-          "mado-0.1.213": {
+          "mado-0.1.214": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -37168,7 +37168,7 @@
               "system"
             ]
           },
-          "mado-0.1.213": {
+          "mado-0.1.214": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -41570,7 +41570,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.213": {
+          "mado-0.1.214": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -46809,7 +46809,7 @@
               "system"
             ]
           },
-          "mado-0.1.213": {
+          "mado-0.1.214": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -51105,7 +51105,7 @@
               "system"
             ]
           },
-          "mado-0.1.213": {
+          "mado-0.1.214": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -55432,7 +55432,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.213": {
+    "mado-0.1.214": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -56796,16 +56796,16 @@
     "vigy-0.1.10": {
       "edition": "2021"
     },
-    "vigy-eval-0.1.10": {
+    "vigy-eval-0.1.11": {
       "edition": "2021"
     },
     "vigy-mcp-0.1.10": {
       "edition": "2021"
     },
-    "vigy-runtime-0.1.10": {
+    "vigy-runtime-0.1.11": {
       "edition": "2021"
     },
-    "vigy-store-0.1.10": {
+    "vigy-store-0.1.11": {
       "edition": "2021"
     },
     "vigy-types-0.1.11": {

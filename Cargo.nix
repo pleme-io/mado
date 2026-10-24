@@ -6230,9 +6230,9 @@ rec {
       };
       "gen-macros" = rec {
         crateName = "gen-macros";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "0ywvzjrr9m8jcgh9f8gmr0p4xsjl27h9pi2i8djfkih9hzkm9aj5";
+        sha256 = "0jdqjsm68rdnv0ggzjqikilvrqghyvvmha7cjp03kdxl5i5lj6pi";
         procMacro = true;
         libName = "gen_macros";
         authors = [
@@ -6257,9 +6257,9 @@ rec {
       };
       "gen-platform" = rec {
         crateName = "gen-platform";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "0yy0l8zclajia8b0bwnmynm5i2dc1svz11ry1pncv6fph32hzghv";
+        sha256 = "0590b4lmx8prbqvl43yqzcp4kzz4s1js15zsq3cx6yhr7vc1zj83";
         libName = "gen_platform";
         authors = [
           "pleme-io"
@@ -6295,9 +6295,9 @@ rec {
       };
       "gen-types" = rec {
         crateName = "gen-types";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "1sx71mb1vq40z79hsqyna8r614cn1p04iwsd919klnnl4cjf8vd3";
+        sha256 = "1nlhjmw3davh4kdgjk9sx20ilhhwvxb0vbs32zpiqs184a2apvgd";
         libName = "gen_types";
         authors = [
           "pleme-io"
@@ -10367,9 +10367,9 @@ rec {
       };
       "kukaku" = rec {
         crateName = "kukaku";
-        version = "0.1.49";
+        version = "0.1.50";
         edition = "2024";
-        sha256 = "1qwr1c829g6x9b4ax81h3acc624h33ii7zrsc24dgf5zh5xrzmnc";
+        sha256 = "0lfrvc2sm71dq6l93bgkbqvcfsk9csfq2gn4dlsikhs3nd6rh2fg";
         authors = [
           "pleme-io"
         ];
@@ -10906,7 +10906,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.213";
+        version = "0.1.214";
         edition = "2024";
         crateBin = [
           {
@@ -25323,9 +25323,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.49";
+        version = "0.1.50";
         edition = "2024";
-        sha256 = "1ji3s63y6fm044k7yk4yckrrxhhyccxkan4fzdxrksjvj6i8gf99";
+        sha256 = "1pacj0npkm6gl68ggdgdhn9lswi64y5ha3wrwdkjh47hgf46l31c";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -25366,9 +25366,9 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.49";
+        version = "0.1.50";
         edition = "2024";
-        sha256 = "1fx3b88805wa2vfs5xqxqk6iz802n2hx1szaxxcczbvx0c5mh2v4";
+        sha256 = "03n6czvvkww8g30ybsqflpvr67sz5z0lbzs0z6xvcvvdzh1cm7ss";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -25620,9 +25620,9 @@ rec {
       };
       "tear-makimono" = rec {
         crateName = "tear-makimono";
-        version = "0.1.49";
+        version = "0.1.50";
         edition = "2024";
-        sha256 = "19b0ijidnhr8x8l09lj4dwa5qvlyld3nhg618wcyv880dv2v2mws";
+        sha256 = "0rqx9mspsw4n8yv5v90zzrf8xppdall0yrvpbcvwc9zmlbgp5lgv";
         libName = "makimono";
         authors = [
           "pleme-io"
@@ -25700,10 +25700,10 @@ rec {
       };
       "tear-tamotsu" = rec {
         crateName = "tear-tamotsu";
-        version = "0.1.49";
+        version = "0.1.50";
         edition = "2024";
         crateBin = [];
-        sha256 = "0bgwfx9xcv6wy3495j406prc3fi967d6lbzb4va1vc3jvir23jz7";
+        sha256 = "0pz3gfpq1d8cqzxbmnpvyvs1q7rzni4xha58qgxsxsg74pvxm6qm";
         libName = "tamotsu";
         authors = [
           "pleme-io"
@@ -25752,9 +25752,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.49";
+        version = "0.1.50";
         edition = "2024";
-        sha256 = "0x9l6gwf976rgwdgsjqhj77sr6lyw3dgym1w0m9dawk66za7vc7s";
+        sha256 = "1yni70ldb0w7xmp7nmhnfv9163vda277lkfkrmd1kaw33iir7wxz";
         libName = "tear_types";
         authors = [
           "pleme-io"
@@ -28526,9 +28526,9 @@ rec {
       };
       "vigy-types" = rec {
         crateName = "vigy-types";
-        version = "0.1.10";
+        version = "0.1.11";
         edition = "2021";
-        sha256 = "1fhx4c3bv94ghgvba2m0i7c07a5d26gy0ywms15kk5cgpic51rjp";
+        sha256 = "14my0rkiwlgicx3lrfbj1cih111sxxpx1hj4qicbhy3xz3kp1n99";
         libName = "vigy_types";
         authors = [
           "Pleme Team <team@pleme.io>"

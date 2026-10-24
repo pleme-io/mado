@@ -3573,7 +3573,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.213"
+version = "0.1.214"
 dependencies = [
  "anyhow",
  "awase",
@@ -8234,9 +8234,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-eval"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e616941158fc69502e0070edb3b75616412234b2c0c88e05a026f8d7e48944f0"
+checksum = "32e8726cb4886865b577172736b34c43256c39a02a0ab2d031ee55471aa57ee7"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8269,9 +8269,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-runtime"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84aa7c5be736f0d2b164b6ad90228c57cc6f33c4ef098761754560a987dff069"
+checksum = "74d34f0eba025949b3355ee8dba915a28149e614b0d2c3dbda44db5b1d146854"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8288,9 +8288,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-store"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3d266a4836f67673e9ffb1d60d102ed0164e7d3ec9809cc705fa8315b7c3a7e"
+checksum = "1189f383bd7a283c88d888c0f78b532bad5bb7290354b41eee78f31de8db8ec8"
 dependencies = [
  "anyhow",
  "async-trait",
