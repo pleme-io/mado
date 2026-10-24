@@ -257,6 +257,7 @@ pub struct InputEngine {
     /// frame ahead of measured metrics and ping-pongs the pane
     /// between old/new grids.
     grid_sync_sig: Option<(u32, u32, u32, u32, u32)>,
+    pushed_cells: Option<(u16, u16)>,
     /// Last-seen [`Terminal::grid_generation`] — the search
     /// re-anchoring seam. A resize (rewrap or truncate) renumbers
     /// absolute grid rows, so the active search's match list goes
@@ -396,6 +397,7 @@ impl InputEngine {
             last_mods: Modifiers::default(),
             last_mouse_pos: (0.0, 0.0),
             grid_sync_sig: None,
+            pushed_cells: None,
             search_grid_gen: None,
             scroll,
             last_scroll_tick: None,
@@ -3371,6 +3373,10 @@ impl InputEngine {
     /// renderer actually draws with).
     pub(crate) fn push_grid(&mut self, renderer: &TerminalRenderer, width: u32, height: u32) {
         let (cols, rows) = renderer.cells_for_window_phys(width, height);
+        if self.pushed_cells == Some((cols, rows)) {
+            return;
+        }
+        self.pushed_cells = Some((cols, rows));
         self.terminal.write().resize(cols as usize, rows as usize);
         self.resize.resize(cols, rows);
     }
@@ -6254,6 +6260,38 @@ mod tests {
         assert_eq!(h.resized.lock().unwrap().as_slice(), &[(cols, rows)]);
         let term = h.terminal.read();
         assert_eq!((term.cols(), term.rows()), (cols as usize, rows as usize));
+    }
+
+    #[test]
+    fn a_drag_inside_one_cell_pushes_no_resize_to_the_pane() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let (w0, h0) = (800u32, 600u32);
+        h.engine.push_grid(&h.renderer, w0, h0);
+        let first = h.renderer.cells_for_window_phys(w0, h0);
+        let mut expected = vec![first];
+        for w in w0..w0 + 120 {
+            h.engine.push_grid(&h.renderer, w, h0);
+            let cells = h.renderer.cells_for_window_phys(w, h0);
+            if expected.last() != Some(&cells) {
+                expected.push(cells);
+            }
+        }
+        let pushed = h.resized.lock().unwrap().clone();
+        assert_eq!(pushed, expected);
+        assert!(
+            pushed.len() < 40,
+            "one push per cell change, not per pixel: {pushed:?}"
+        );
+        assert_eq!(
+            usize::from(pushed.last().unwrap().0 - first.0) + 1,
+            pushed.len()
+        );
+        let last = *pushed.last().unwrap();
+        let term = h.terminal.read();
+        assert_eq!(
+            (term.cols(), term.rows()),
+            (last.0 as usize, last.1 as usize)
+        );
     }
 
     // ── Ported `apply_tear_action` seam invariants ───────────────

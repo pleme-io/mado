@@ -1946,6 +1946,7 @@ pub struct TerminalRenderer {
     /// inside one statement. The buffers return here right after the builds
     /// consume `snap.rows` (byte-identical frames — determinism tests guard it).
     row_scratch: RefCell<Vec<Vec<Cell>>>,
+    painted_snapshot: Option<Snapshot>,
     /// P28 — last-rendered cursor_on bit. Cursor blink is a 1–4 Hz
     /// animation (period 500 ms default); we'd otherwise wake every
     /// 16 ms vsync just to repaint the SAME cursor state. Skip frames
@@ -2594,6 +2595,7 @@ impl TerminalRenderer {
             last_text_blink_on: false,
             box_draw_templates: RefCell::new(HashMap::new()),
             row_scratch: RefCell::new(Vec::new()),
+            painted_snapshot: None,
             sync_output_deferred_since: std::cell::Cell::new(None),
             last_grid_epoch: 0,
             last_overlay_snapshot: OverlaySnapshot::default(),
@@ -7212,6 +7214,7 @@ impl RenderCallback for TerminalRenderer {
         // While forcing post-reset frames, never defer on synchronized
         // output — every swapchain slot must be repainted with the new
         // content regardless of a transient BSU in the replay/stream.
+        let mut held = false;
         if peek_sync_output && self.force_paint_frames == 0 {
             // BSU is in flight — defer. Don't bump last_seqno so the
             // matching ESU triggers the catch-up render on the next
@@ -7222,12 +7225,16 @@ impl RenderCallback for TerminalRenderer {
             self.sync_output_deferred_since.set(Some(since));
             if now.duration_since(since) < SYNC_OUTPUT_MAX_DEFER {
                 self.metrics.declined_after_acquire().inc();
-                return;
+                if self.painted_snapshot.is_none() {
+                    return;
+                }
+                held = true;
+            } else {
+                // Defer cap exceeded — fall through and render whatever
+                // partial state the terminal currently has. Reset the
+                // marker so the next BSU starts a fresh defer window.
+                self.sync_output_deferred_since.set(None);
             }
-            // Defer cap exceeded — fall through and render whatever
-            // partial state the terminal currently has. Reset the
-            // marker so the next BSU starts a fresh defer window.
-            self.sync_output_deferred_since.set(None);
         } else {
             // Not deferring — clear any stale marker from a prior BSU.
             self.sync_output_deferred_since.set(None);
@@ -7358,7 +7365,13 @@ impl RenderCallback for TerminalRenderer {
         let prev_seqno = self.last_seqno;
         let text_blink_flip =
             self.saw_blinking_cell && self.blink_phase_on(ctx.elapsed) != self.last_text_blink_on;
-        let (mut snap, seqno) = self.snapshot();
+        let (mut snap, seqno) = match self.painted_snapshot.take().filter(|_| held) {
+            Some(mut kept) => {
+                kept.rows = std::mem::take(&mut *self.row_scratch.borrow_mut());
+                (kept, self.last_seqno)
+            }
+            None => self.snapshot(),
+        };
         let snapshot_us = snapshot_start.elapsed().as_micros() as u64;
         // Memoise cursor_on for the next-frame peek's flip detection.
         self.last_cursor_on = cursor_on_now;
@@ -8019,8 +8032,11 @@ impl RenderCallback for TerminalRenderer {
         LAST_FRAME_TEXT.store(text_count as u64, Ordering::Relaxed);
         LAST_FRAME_SHAPE_CACHE.store(shape_cache_len as u64, Ordering::Relaxed);
         TOTAL_FRAMES.fetch_add(1, Ordering::Relaxed);
-        self.metrics.paints().inc(paint_reason);
-        self.metrics.presented(snap.arrivals, crate::perf::now_ns());
+        if !held {
+            self.metrics.paints().inc(paint_reason);
+            self.metrics.presented(snap.arrivals, crate::perf::now_ns());
+        }
+        self.painted_snapshot = Some(snap);
 
         tracing::debug!(
             frame_us,
@@ -10146,7 +10162,8 @@ mod render_invariants {
             t.write().feed(b"\x1b]133;A\x1b\\$ \r\n");
         }
         assert!(separator_rects(&r).is_empty());
-        t.write().feed(b"\x1b]133;A\x1b\\$ ls\r\nout\r\n\x1b]133;A\x1b\\$ ");
+        t.write()
+            .feed(b"\x1b]133;A\x1b\\$ ls\r\nout\r\n\x1b]133;A\x1b\\$ ");
         assert_eq!(separator_rects(&r).len(), 1);
     }
 
@@ -12721,6 +12738,44 @@ mod render_gpu_invariants {
                 "forced_scrub={scrub}: a painted change must owe a frame only when the scrub is on"
             );
         }
+    }
+
+    #[test]
+    fn a_frame_acquired_inside_synchronized_output_repaints_the_last_painted_frame() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 4);
+        r.cursor_blink = false;
+        let metrics = fresh_metrics(&mut r);
+        t.write().feed(b"settled frame");
+        let first = HeadlessTarget::new(&gpu, 96, 32, SURFACE_FORMAT);
+        let painted = render_one_frame_headless(&gpu, &mut r, &mut text, &first);
+
+        t.write().feed(b"\x1b[?2026h\x1b[2J\x1b[Hhalf-drawn tui");
+        let fresh = HeadlessTarget::new(&gpu, 96, 32, SURFACE_FORMAT);
+        let held = render_one_frame_headless(&gpu, &mut r, &mut text, &fresh);
+        assert_eq!(metrics.declined_after_acquire().get(), 1);
+        assert!(
+            held.iter().any(|&b| b != 0),
+            "a held frame must not present an unpainted drawable"
+        );
+        assert_eq!(
+            held, painted,
+            "a held frame shows the last painted state, not the half-drawn one"
+        );
+
+        let grown = HeadlessTarget::new(&gpu, 128, 48, SURFACE_FORMAT);
+        let resized = render_one_frame_headless(&gpu, &mut r, &mut text, &grown);
+        assert!(
+            resized.iter().any(|&b| b != 0),
+            "a resize frame inside a held update is painted"
+        );
+
+        t.write().feed(b"\x1b[?2026l");
+        let after = render_one_frame_headless(&gpu, &mut r, &mut text, &first);
+        assert_ne!(
+            after, painted,
+            "the update shows once synchronized output ends"
+        );
     }
 
     fn fresh_metrics(r: &mut TerminalRenderer) -> &'static crate::perf::RenderMetrics {
