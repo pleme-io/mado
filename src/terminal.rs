@@ -2019,6 +2019,7 @@ pub struct Terminal {
     // Active 256-entry ANSI palette (M2): 0..16 settable by theme,
     // any entry settable by OSC 4 / resettable by OSC 104.
     ansi_colors: [Color; 256],
+    theme_ansi: [Color; 16],
 
     // Scroll region (0-based, inclusive)
     scroll_top: usize,
@@ -2407,6 +2408,7 @@ impl Terminal {
             default_fg: Color::WHITE,
             default_bg: Color::BLACK,
             ansi_colors: default_palette_256(),
+            theme_ansi: default_ansi_palette(),
             scroll_top: 0,
             scroll_bottom: rows.saturating_sub(1),
             auto_wrap: true,
@@ -2491,7 +2493,15 @@ impl Terminal {
         self.pen_fg = fg;
         self.pen_bg = bg;
         self.ansi_colors[..16].copy_from_slice(&ansi);
+        self.theme_ansi = ansi;
         self.dirty();
+    }
+
+    #[must_use]
+    fn configured_palette(&self) -> [Color; 256] {
+        let mut palette = default_palette_256();
+        palette[..16].copy_from_slice(&self.theme_ansi);
+        palette
     }
 
     /// The active 256-entry ANSI palette (base 16 may be overridden by
@@ -3411,7 +3421,7 @@ impl Terminal {
     /// the compiled default palette; out-of-range entries are ignored.
     fn handle_osc_104_palette_reset(&mut self, params: &[&[u8]]) {
         if params.len() == 1 {
-            self.ansi_colors = default_palette_256();
+            self.ansi_colors = self.configured_palette();
             self.dirty();
             return;
         }
@@ -3420,7 +3430,7 @@ impl Terminal {
                 && let Ok(idx) = idx_str.parse::<usize>()
                 && idx < 256
             {
-                self.ansi_colors[idx] = default_palette_256()[idx];
+                self.ansi_colors[idx] = self.configured_palette()[idx];
                 self.dirty();
             }
         }
@@ -4198,8 +4208,8 @@ impl Terminal {
         // palette cannot outlive `reset` (xterm/kitty restore the
         // configured palette on RIS; an operator's `reset` after a
         // crashed app must actually restore colors).
-        let mut ansi_colors = default_palette_256();
-        ansi_colors[..16].copy_from_slice(&self.ansi_colors[..16]);
+        let ansi_colors = self.configured_palette();
+        let theme_ansi = self.theme_ansi;
         // Operator config, not VT state — survives RIS like the
         // scrollback cap does (M2: behavior.reflow_on_resize).
         let reflow_on_resize = self.reflow_on_resize;
@@ -4218,6 +4228,7 @@ impl Terminal {
         self.pen_fg = default_fg;
         self.pen_bg = default_bg;
         self.ansi_colors = ansi_colors;
+        self.theme_ansi = theme_ansi;
         self.reflow_on_resize = reflow_on_resize;
         self.set_kitty_keyboard(kitty_enabled, kitty_reset);
         self.clock_unix_ms = clock_unix_ms;
@@ -11699,16 +11710,16 @@ mod tests {
     #[test]
     fn test_osc_104_resets_specific_palette_index() {
         let mut term = Terminal::new(80, 24);
-        // Override palette index 1 to something unusual.
-        let mut ansi = default_ansi_palette();
-        let original = ansi[1];
-        ansi[1] = Color::new(0xaa, 0xbb, 0xcc);
-        term.apply_theme(term.pen_fg, term.default_bg, ansi);
-        assert_eq!(term.ansi_palette()[1], Color::new(0xaa, 0xbb, 0xcc));
+        let mut theme = default_ansi_palette();
+        theme[1] = Color::new(0xaa, 0xbb, 0xcc);
+        term.apply_theme(term.pen_fg, term.default_bg, theme);
+        term.feed(b"\x1b]4;1;#010203\x1b\\");
+        term.feed(b"\x1b]4;2;#040506\x1b\\");
+        assert_eq!(term.ansi_palette()[1], Color::new(1, 2, 3));
 
-        // OSC 104 with explicit index resets just that one.
         term.feed(b"\x1b]104;1\x07");
-        assert_eq!(term.ansi_palette()[1], original);
+        assert_eq!(term.ansi_palette()[1], Color::new(0xaa, 0xbb, 0xcc));
+        assert_eq!(term.ansi_palette()[2], Color::new(4, 5, 6));
     }
 
     #[test]
@@ -11805,10 +11816,33 @@ mod tests {
         // M2 — extended entries reset too.
         term.feed(b"\x1b]4;200;#445566\x1b\\");
 
+        term.feed(b"\x1b]4;0;#000000\x1b\\");
+
         term.feed(b"\x1b]104\x07");
-        let restored = term.ansi_palette();
-        let defaults = default_palette_256();
-        assert_eq!(restored, &defaults);
+        let mut want = default_palette_256();
+        want[..16].copy_from_slice(&ansi);
+        assert_eq!(term.ansi_palette(), &want);
+    }
+
+    #[test]
+    fn test_ris_restores_the_theme_not_an_app_override() {
+        let mut term = Terminal::new(80, 24);
+        let mut theme = default_ansi_palette();
+        theme[2] = Color::new(0xa3, 0xbe, 0x8c);
+        term.apply_theme(term.pen_fg, term.default_bg, theme);
+        term.feed(b"\x1b]4;2;#ff0000\x1b\\");
+        term.feed(b"\x1bc");
+        assert_eq!(term.ansi_palette()[2], Color::new(0xa3, 0xbe, 0x8c));
+        term.feed(b"\x1b]104;2\x07");
+        assert_eq!(term.ansi_palette()[2], Color::new(0xa3, 0xbe, 0x8c));
+    }
+
+    #[test]
+    fn test_a_reset_with_no_theme_falls_back_to_the_built_in_palette() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]4;2;#ff0000\x1b\\");
+        term.feed(b"\x1b]104\x07");
+        assert_eq!(term.ansi_palette(), &default_palette_256());
     }
 
     // ── M2 — wide interned Attrs / Cell shrink / SGR wire / palette ──
@@ -13152,8 +13186,8 @@ mod tests {
         );
         assert_eq!(
             term.ansi_palette()[1],
-            Color::new(0x44, 0x55, 0x66),
-            "base-16 slot carries across RIS as-is"
+            default_ansi_palette()[1],
+            "an app's base-16 override does not outlive RIS; the configured slot returns"
         );
     }
 
