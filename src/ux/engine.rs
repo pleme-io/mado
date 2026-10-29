@@ -300,6 +300,19 @@ pub struct InputEngine {
     recovery_request: Option<(crate::recovery::RecoveryAction, crate::recovery::PaneFault)>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BoardPlacement {
+    Top,
+    FollowRow,
+    HoldIndex,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct BoardShift {
+    vanished: bool,
+    top_changed: bool,
+}
+
 impl InputEngine {
     /// The ONLY constructor path. Wires the renderer's selection AND
     /// search AND dir-picker hooks internally so a consumer cannot
@@ -1415,16 +1428,36 @@ impl InputEngine {
     /// the shared body of the operator-initiated recompute and the
     /// autonomous refresh.
     fn session_picker_relist(&mut self) {
+        self.session_picker_reload(BoardPlacement::Top);
+    }
+
+    fn session_picker_reload(&self, placement: BoardPlacement) -> BoardShift {
         let Some(bridge) = self.session_picker_bridge.as_ref() else {
-            return;
+            return BoardShift::default();
         };
         let query = self.session_picker.lock().unwrap().query.clone();
         let now = crate::auto_attach::now_unix_seconds();
         let rows = bridge.list(&query, now);
         let footer = bridge.health_footer();
         let mut sp = self.session_picker.lock().unwrap();
-        sp.set_results(rows);
+        let prev_top = sp.results.first().map(|r| r.kind.clone());
+        let vanished = match placement {
+            BoardPlacement::Top => {
+                sp.set_results(rows);
+                false
+            }
+            BoardPlacement::FollowRow => sp.set_results_preserving(rows, |r| r.kind.clone()),
+            BoardPlacement::HoldIndex => {
+                sp.set_results_holding_position(rows);
+                false
+            }
+        };
         sp.footer = footer;
+        let top_changed = prev_top != sp.results.first().map(|r| r.kind.clone());
+        BoardShift {
+            vanished,
+            top_changed,
+        }
     }
 
     /// AUTONOMOUS whole-board refresh while the picker sits open + resting:
@@ -1437,24 +1470,15 @@ impl InputEngine {
         let Some(bridge) = self.session_picker_bridge.as_ref() else {
             return;
         };
-        let now = crate::auto_attach::now_unix_seconds();
-        bridge.refresh(now);
-        let query = self.session_picker.lock().unwrap().query.clone();
-        let rows = bridge.list(&query, now);
-        let footer = bridge.health_footer();
-        let mut sp = self.session_picker.lock().unwrap();
-        let prev_top = sp.results.first().map(|r| r.kind.clone());
+        bridge.refresh(crate::auto_attach::now_unix_seconds());
         // Keep the cursor on its row by identity so the board can KEEP FLOWING
         // while the operator navigates the filtered set (drive across problems
         // live) — never yanking the highlight to the top on every re-list.
-        let vanished = sp.set_results_preserving(rows, |r| r.kind.clone());
-        sp.footer = footer;
-        let new_top = sp.results.first().map(|r| r.kind.clone());
-        drop(sp);
+        let shift = self.session_picker_reload(BoardPlacement::FollowRow);
         // Stamp the positional-stability window when the operator's highlighted
         // row vanished (cursor clamped to a row they did not choose) or the top
         // row's identity changed — so a same-instant Enter is swallowed.
-        if vanished || prev_top != new_top {
+        if shift.vanished || shift.top_changed {
             self.board_shift_at = Some(Instant::now());
         }
     }
@@ -1624,21 +1648,6 @@ impl InputEngine {
         self.session_picker_recompute();
     }
 
-    /// Ctrl-D: delete what the highlighted row stands for, then re-list IN
-    /// PLACE — the cursor holds its index, so it lands on the row that slid
-    /// into the deleted one's place and a run of Ctrl-Ds walks down the list.
-    ///
-    /// * a live session (`Switch`) → [`SessionPickerBridge::delete_session`]:
-    ///   killed, and scrubbed from the owner's registry and both praça stores.
-    ///   If it is the session this window is SHOWING, the window moves on the
-    ///   way it does when a session ends (next live pane, or it closes) — see
-    ///   `gui_tear_attach::displayed_pane_fate`; the picker does not special-
-    ///   case it.
-    /// * a latent preset (`Instantiate`) → [`SessionPickerBridge::delete_preset`].
-    /// * a suggestion or a create row is not a session: nothing to delete, and
-    ///   the notice says so rather than doing nothing silently.
-    ///
-    /// No bridge (switching disabled) → inert, like every other picker verb.
     fn session_picker_reattach(&mut self) {
         use crate::session_picker::RowKind;
         let Some(bridge) = self.session_picker_bridge.as_ref() else {
@@ -1661,6 +1670,21 @@ impl InputEngine {
         }
     }
 
+    /// Ctrl-D: delete what the highlighted row stands for, then re-list IN
+    /// PLACE — the cursor holds its index, so it lands on the row that slid
+    /// into the deleted one's place and a run of Ctrl-Ds walks down the list.
+    ///
+    /// * a live session (`Switch`) → [`SessionPickerBridge::delete_session`]:
+    ///   killed, and scrubbed from the owner's registry and both praça stores.
+    ///   If it is the session this window is SHOWING, the window moves on the
+    ///   way it does when a session ends (next live pane, or it closes) — see
+    ///   `gui_tear_attach::displayed_pane_fate`; the picker does not special-
+    ///   case it.
+    /// * a latent preset (`Instantiate`) → [`SessionPickerBridge::delete_preset`].
+    /// * a suggestion or a create row is not a session: nothing to delete, and
+    ///   the notice says so rather than doing nothing silently.
+    ///
+    /// No bridge (switching disabled) → inert, like every other picker verb.
     fn session_picker_delete(&mut self) {
         use crate::session_picker::RowKind;
         let Some(bridge) = self.session_picker_bridge.as_ref() else {
@@ -1697,14 +1721,8 @@ impl InputEngine {
         // Re-list whatever the outcome: a refusal can still mean the row went
         // stale (a preset already deleted elsewhere), and the board must show
         // the world as it is now.
-        let query = self.session_picker.lock().unwrap().query.clone();
-        let now = crate::auto_attach::now_unix_seconds();
-        let rows = bridge.list(&query, now);
-        let footer = bridge.health_footer();
-        let mut sp = self.session_picker.lock().unwrap();
-        sp.set_results_holding_position(rows);
-        sp.footer = footer;
-        sp.notice = Some(notice);
+        self.session_picker_reload(BoardPlacement::HoldIndex);
+        self.session_picker.lock().unwrap().notice = Some(notice);
     }
 
     /// Escape: discard the rename buffer, target unchanged.
@@ -5640,6 +5658,35 @@ mod tests {
             2,
             "the consumed broadcast does not re-fire every frame"
         );
+    }
+
+    #[test]
+    fn one_board_reload_places_the_cursor_per_placement() {
+        let row = |s: &str| SessionPickerRow {
+            label: s.into(),
+            kind: RowKind::Switch(sid(s)),
+            urgency: None,
+        };
+        let (bridge, rows, _count, _tx) = StreamBridge::new();
+        *rows.lock().unwrap() = vec![row("a"), row("b"), row("c")];
+        let mut h = Harness::new_with_bridge(SinkKind::Closure, Some(Box::new(bridge)));
+        let mut reload = |placement: BoardPlacement| {
+            h.engine
+                .apply_action(Action::SessionPickerOpen, &mut h.renderer);
+            h.engine.session_picker.lock().unwrap().selected = 2;
+            *rows.lock().unwrap() = vec![row("x"), row("a"), row("b"), row("c")];
+            let shift = h.engine.session_picker_reload(placement);
+            *rows.lock().unwrap() = vec![row("a"), row("b"), row("c")];
+            let sp = h.engine.session_picker.lock().unwrap();
+            (sp.selected_row().and_then(row_switch_id), shift)
+        };
+        let shifted = BoardShift {
+            vanished: false,
+            top_changed: true,
+        };
+        assert_eq!(reload(BoardPlacement::Top), (Some(sid("x")), shifted));
+        assert_eq!(reload(BoardPlacement::FollowRow), (Some(sid("c")), shifted));
+        assert_eq!(reload(BoardPlacement::HoldIndex), (Some(sid("b")), shifted));
     }
 
     /// Arrow / Ctrl-N navigation moves the highlight; Enter switches to
