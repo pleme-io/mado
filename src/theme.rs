@@ -231,6 +231,7 @@ pub fn apply_config_theme(
         panel,
         border: bright_blue,
         selected_bg,
+        matched: theme.ansi[6],
     });
     // Theme bg through the typed Srgb → Linear path (no gamma confusion).
     let theme_bg: wgpu::Color =

@@ -424,7 +424,7 @@ fn centered_panel_geom(
 struct OverlayShapeKey {
     text: String,
     highlights: Vec<usize>,
-    accent_alpha: u8,
+    accent: [u8; 4],
     family: String,
     size_bits: u32,
     line_bits: u32,
@@ -434,21 +434,22 @@ impl OverlayShapeKey {
     fn new(
         line: &crate::picker::component::OverlayLine,
         max_chars: usize,
+        accent: Color,
         accent_alpha: u8,
         family: &str,
         size: f32,
         line_h: f32,
     ) -> Self {
         let (text, highlights) = truncate_overlay_text(&line.text, &line.highlights, max_chars);
-        let accent_alpha = if highlights.is_empty() {
-            0
+        let accent = if highlights.is_empty() {
+            [0; 4]
         } else {
-            accent_alpha
+            [accent.r, accent.g, accent.b, accent_alpha]
         };
         Self {
             text,
             highlights,
-            accent_alpha,
+            accent,
             family: family.to_owned(),
             size_bits: size.to_bits(),
             line_bits: line_h.to_bits(),
@@ -3400,6 +3401,7 @@ impl TerminalRenderer {
                 OverlayShapeKey::new(
                     line,
                     max_chars,
+                    self.overlay_style.matched,
                     ((f32::from(line.alpha)) * progress) as u8,
                     &self.font_family,
                     fs,
@@ -3426,7 +3428,8 @@ impl TerminalRenderer {
                     // the row's shade-in); unmatched runs carry no colour so they
                     // fall back to default_color (the role / urgency tint). This is
                     // the fzf-style "here's why this row matched" highlight.
-                    let accent = GlyphonColor::rgba(0x88, 0xC0, 0xD0, key.accent_alpha);
+                    let [r, g, b, a] = key.accent;
+                    let accent = GlyphonColor::rgba(r, g, b, a);
                     let runs = crate::picker::component::highlight_runs(text, highlights);
                     let spans: Vec<(&str, Attrs)> = runs
                         .iter()
@@ -8649,7 +8652,15 @@ mod render_invariants {
         use crate::picker::component::{LineRole, OverlayLine};
         let plain = OverlayLine::new("  alpha", LineRole::Row);
         let key = |line: &OverlayLine, alpha: u8, size: f32| {
-            OverlayShapeKey::new(line, 80, alpha, "mono", size, size * 1.2)
+            OverlayShapeKey::new(
+                line,
+                80,
+                crate::picker::component::OverlayStyle::nord_default().matched,
+                alpha,
+                "mono",
+                size,
+                size * 1.2,
+            )
         };
         assert_eq!(
             key(&plain, 255, 14.0),
@@ -8668,6 +8679,31 @@ mod render_invariants {
             "highlight spans carry their alpha, so a fading match re-shapes and fades with the card"
         );
         assert_ne!(key(&plain, 255, 14.0), key(&matched, 255, 14.0));
+    }
+
+    #[test]
+    fn the_query_match_tint_follows_the_theme_not_a_nord_literal() {
+        use crate::picker::component::{LineRole, OverlayLine};
+        let (mut r, t) = harness(20, 3);
+        crate::theme::apply_config_theme(&mut r, &t, "dracula", 1.0);
+        let cyan = crate::theme::Theme::by_name("dracula")
+            .expect("dracula is a built-in theme")
+            .ansi[6];
+        assert_eq!(r.overlay_style.matched, cyan);
+        assert_ne!(cyan, Color::new(0x88, 0xC0, 0xD0));
+        let line = OverlayLine::new("  alpha", LineRole::Row).with_highlights(vec![2]);
+        let key = OverlayShapeKey::new(&line, 80, r.overlay_style.matched, 200, "mono", 14.0, 16.8);
+        assert_eq!(key.accent, [cyan.r, cyan.g, cyan.b, 200]);
+        let other = OverlayShapeKey::new(
+            &line,
+            80,
+            crate::picker::component::OverlayStyle::nord_default().matched,
+            200,
+            "mono",
+            14.0,
+            16.8,
+        );
+        assert_ne!(key, other, "a theme swap re-shapes the matched spans");
     }
 
     #[test]

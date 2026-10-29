@@ -43,6 +43,7 @@ pub struct OverlayStyle {
     /// The highlight bar behind the selected row (the moving cursor of the
     /// list — what makes juggling sessions feel sleek).
     pub selected_bg: Color,
+    pub matched: Color,
 }
 
 impl OverlayStyle {
@@ -60,6 +61,7 @@ impl OverlayStyle {
             panel: Color::new(0x2E, 0x34, 0x40),       // Nord polar night (card)
             border: Color::new(0x88, 0xC0, 0xD0),      // Nord frost (edge)
             selected_bg: Color::new(0x43, 0x4C, 0x5E), // Nord polar 2 (highlight bar)
+            matched: Color::new(0x88, 0xC0, 0xD0),
         }
     }
 }
