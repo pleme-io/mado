@@ -3,9 +3,25 @@ use std::cell::{Cell, RefCell};
 use crate::motion::{Curve, EasingKind, Glide, secs};
 use crate::picker::component::OverlaySpec;
 
-const BAR_SECS: f32 = 0.11;
-const CARD_SECS: f32 = 0.14;
-const CLOSE_SECS: f32 = 0.12;
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct OverlayTimings {
+    pub bar: f32,
+    pub card: f32,
+    pub close: f32,
+}
+
+impl OverlayTimings {
+    #[must_use]
+    pub fn from_tokens() -> Self {
+        let d = ishou_tokens::motion::Motion::default().duration;
+        let ms = |v: u16| f32::from(v) / 1000.0;
+        Self {
+            bar: ms(d.instant_ms),
+            card: ms(d.fast_ms),
+            close: ms(d.fast_ms),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct OverlayMotion {
@@ -18,6 +34,7 @@ pub struct OverlayMotion {
     was_open: Cell<bool>,
     closed_at: Cell<Option<f32>>,
     ghost: RefCell<Option<OverlaySpec>>,
+    timings: OverlayTimings,
 }
 
 impl Default for OverlayMotion {
@@ -29,16 +46,18 @@ impl Default for OverlayMotion {
 impl OverlayMotion {
     #[must_use]
     pub fn new() -> Self {
+        let timings = OverlayTimings::from_tokens();
         Self {
             clock: Cell::new(0.0),
             enabled: Cell::new(true),
             settled: Cell::new(false),
-            bar: Cell::new(glide(BAR_SECS)),
-            card_w: Cell::new(glide(CARD_SECS)),
-            card_h: Cell::new(glide(CARD_SECS)),
+            bar: Cell::new(glide(timings.bar)),
+            card_w: Cell::new(glide(timings.card)),
+            card_h: Cell::new(glide(timings.card)),
             was_open: Cell::new(false),
             closed_at: Cell::new(None),
             ghost: RefCell::new(None),
+            timings,
         }
     }
 
@@ -67,7 +86,7 @@ impl OverlayMotion {
     pub fn ghost(&self) -> Option<(OverlaySpec, f32)> {
         let closed = self.closed_at.get()?;
         let now = self.clock.get();
-        let t = (now - closed) / CLOSE_SECS;
+        let t = (now - closed) / self.timings.close;
         if t >= 1.0 {
             self.closed_at.set(None);
             *self.ghost.borrow_mut() = None;
@@ -234,6 +253,22 @@ mod tests {
             "a search bar closing must not replay an old picker"
         );
         assert!(m.ghost().is_none());
+    }
+
+    #[test]
+    fn every_overlay_duration_is_a_shared_motion_token() {
+        let d = ishou_tokens::motion::Motion::default().duration;
+        let tokens: Vec<f32> = [d.instant_ms, d.fast_ms, d.base_ms, d.slow_ms, d.hero_ms]
+            .iter()
+            .map(|v| f32::from(*v) / 1000.0)
+            .collect();
+        let t = OverlayMotion::new().timings;
+        for (name, secs) in [("bar", t.bar), ("card", t.card), ("close", t.close)] {
+            assert!(
+                tokens.iter().any(|tok| (tok - secs).abs() < 1e-6),
+                "{name} = {secs}s is not an ishou motion token"
+            );
+        }
     }
 
     #[test]
