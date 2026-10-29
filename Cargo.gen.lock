@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "a7ff1929a95fff231f3ffdba0477c88f9a72f3958af1219c328b31a54b9d2b73",
+  "cargo_lock_sha256": "6eeb37637eedf5ea0385797aec7203da07349dc6d0b44bbd504cda870797e21a",
   "manifest_sha256": {
-    "Cargo.toml": "def072a2b2d58de8aa4cb36f6c0a9e97419a02539a58b8c438a1e7e49ab0aca0"
+    "Cargo.toml": "7f309ba924f38346e6da84353640d78cd059ac23ab30264f1953ec4501a254ef"
   },
   "target_resolves": {
     "base": {
@@ -930,7 +930,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.10",
+            "package_key": "tatara-lisp-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -956,7 +956,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.10",
+            "package_key": "tatara-lisp-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1022,7 +1022,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.10",
+            "package_key": "tatara-lisp-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1032,7 +1032,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.10",
+            "package_key": "tatara-lisp-eval-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1181,7 +1181,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.10",
+            "package_key": "tatara-lisp-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1191,7 +1191,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.10",
+            "package_key": "tatara-lisp-eval-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1239,7 +1239,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.10",
+            "package_key": "tatara-lisp-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1249,7 +1249,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.10",
+            "package_key": "tatara-lisp-eval-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1384,7 +1384,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.10",
+            "package_key": "tatara-lisp-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1394,7 +1394,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.10",
+            "package_key": "tatara-lisp-eval-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1420,7 +1420,7 @@
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.10",
+            "package_key": "tatara-lisp-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1446,7 +1446,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.10",
+            "package_key": "tatara-lisp-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1552,7 +1552,7 @@
           "schema"
         ]
       },
-      "brotli-9.1.0": {
+      "brotli-9.1.1": {
         "runtime_dependencies": [
           {
             "name": "alloc_no_stdlib",
@@ -2103,7 +2103,7 @@
           },
           {
             "name": "unicode_width",
-            "package_key": "unicode-width-0.2.2",
+            "package_key": "unicode-width-0.2.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2127,7 +2127,7 @@
         "runtime_dependencies": [
           {
             "name": "brotli",
-            "package_key": "brotli-9.1.0",
+            "package_key": "brotli-9.1.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3850,7 +3850,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.21",
+            "package_key": "ishou-tokens-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3922,7 +3922,7 @@
           },
           {
             "name": "unicode_width",
-            "package_key": "unicode-width-0.2.2",
+            "package_key": "unicode-width-0.2.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4432,16 +4432,6 @@
             "tree": "target"
           },
           {
-            "name": "serde_yaml",
-            "package_key": "serde_yaml-0.9.34+deprecated",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
             "name": "toml",
             "package_key": "toml-0.8.23",
             "kind": "normal",
@@ -4478,9 +4468,7 @@
           "env",
           "parse-value",
           "pear",
-          "serde_yaml",
-          "toml",
-          "yaml"
+          "toml"
         ]
       },
       "filedescriptor-0.8.3": {
@@ -5223,7 +5211,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.54": {
+      "gen-macros-0.1.55": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -5262,11 +5250,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.54": {
+      "gen-platform-0.1.55": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.54",
+            "package_key": "gen-macros-0.1.55",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5276,7 +5264,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.54",
+            "package_key": "gen-types-0.1.55",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5330,7 +5318,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.54": {
+      "gen-types-0.1.55": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -7831,7 +7819,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "irodzuki-0.1.12": {
+      "irodzuki-0.1.13": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -7878,8 +7866,8 @@
             "tree": "target"
           },
           {
-            "name": "serde_yaml",
-            "package_key": "serde_yaml-0.9.34+deprecated",
+            "name": "serde_norway",
+            "package_key": "serde_norway-0.9.42",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7934,7 +7922,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.21": {
+      "ishou-tokens-0.1.22": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -8010,7 +7998,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-0.1.25": {
+      "izumi-0.1.26": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -8054,7 +8042,7 @@
           },
           {
             "name": "samba",
-            "package_key": "samba-0.1.4",
+            "package_key": "samba-0.1.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -8086,7 +8074,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.10",
+            "package_key": "todoku-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8139,7 +8127,7 @@
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.25",
+            "package_key": "izumi-0.1.26",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8161,7 +8149,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1083",
+            "package_key": "shikumi-0.1.1084",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8173,11 +8161,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-sources-0.1.25": {
+      "izumi-sources-0.1.26": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.25",
+            "package_key": "izumi-0.1.26",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9467,7 +9455,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "kukaku-0.1.52": {
+      "kukaku-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -10238,7 +10226,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "monosashi-0.4.10": {
+      "monosashi-0.4.11": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -10680,7 +10668,7 @@
           "socket"
         ]
       },
-      "notify-types-2.1.0": {
+      "notify-types-2.2.0": {
         "runtime_dependencies": [
           {
             "name": "bitflags",
@@ -12682,7 +12670,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.21",
+            "package_key": "ishou-tokens-0.1.22",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -12778,7 +12766,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.827",
+            "package_key": "tatara-eval-0.2.830",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12808,7 +12796,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.10",
+            "package_key": "todoku-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13055,11 +13043,11 @@
           "std"
         ]
       },
-      "praca-0.1.52": {
+      "praca-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.21",
+            "package_key": "ishou-tokens-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13091,7 +13079,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.52",
+            "package_key": "tear-types-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15851,7 +15839,7 @@
           "default"
         ]
       },
-      "samba-0.1.4": {
+      "samba-0.1.5": {
         "runtime_dependencies": [
           {
             "name": "rand",
@@ -17488,6 +17476,62 @@
           "std"
         ]
       },
+      "serde_norway-0.9.42": {
+        "runtime_dependencies": [
+          {
+            "name": "indexmap",
+            "package_key": "indexmap-2.14.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "itoa",
+            "package_key": "itoa-1.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "ryu",
+            "package_key": "ryu-1.0.23",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "unsafe_libyaml_norway",
+            "package_key": "unsafe-libyaml-norway-0.2.15",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "serde_spanned-0.6.9": {
         "runtime_dependencies": [
           {
@@ -17797,7 +17841,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shidou-0.1.10": {
+      "shidou-0.1.11": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -17835,7 +17879,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1083",
+            "package_key": "shikumi-0.1.1084",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17882,7 +17926,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.1083": {
+      "shikumi-0.1.1084": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17922,8 +17966,7 @@
             "kind": "normal",
             "features": [
               "env",
-              "toml",
-              "yaml"
+              "toml"
             ],
             "uses_default_features": true,
             "optional": false,
@@ -17932,7 +17975,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.54",
+            "package_key": "gen-platform-0.1.55",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17942,7 +17985,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.54",
+            "package_key": "gen-types-0.1.55",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18005,8 +18048,8 @@
             "tree": "target"
           },
           {
-            "name": "serde_yaml",
-            "package_key": "serde_yaml-0.9.34+deprecated",
+            "name": "serde_norway",
+            "package_key": "serde_norway-0.9.42",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20659,11 +20702,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.4.10": {
+      "tatara-closed-set-0.4.11": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.4.10",
+            "package_key": "tatara-closed-set-derive-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20713,7 +20756,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.4.10": {
+      "tatara-closed-set-derive-0.4.11": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20751,7 +20794,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.827": {
+      "tatara-core-0.2.830": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20862,7 +20905,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1083",
+            "package_key": "shikumi-0.1.1084",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20917,7 +20960,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.827": {
+      "tatara-eval-0.2.830": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20987,7 +21030,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.827": {
+      "tatara-lattice-0.2.830": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -21015,7 +21058,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.827",
+            "package_key": "tatara-core-0.2.830",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21107,7 +21150,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.4.10": {
+      "tatara-lisp-0.4.11": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -21143,7 +21186,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.10",
+            "package_key": "tatara-closed-set-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21153,7 +21196,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.4.10",
+            "package_key": "tatara-lisp-derive-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21215,7 +21258,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.4.10": {
+      "tatara-lisp-derive-0.4.11": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -21299,7 +21342,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.4.10": {
+      "tatara-lisp-eval-0.4.11": {
         "runtime_dependencies": [
           {
             "name": "imbl",
@@ -21313,7 +21356,7 @@
           },
           {
             "name": "monosashi",
-            "package_key": "monosashi-0.4.10",
+            "package_key": "monosashi-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21333,7 +21376,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.10",
+            "package_key": "tatara-closed-set-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21343,7 +21386,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.10",
+            "package_key": "tatara-lisp-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21411,7 +21454,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.827",
+            "package_key": "tatara-lattice-0.2.830",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21609,7 +21652,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.827",
+            "package_key": "tatara-core-0.2.830",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21651,7 +21694,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.52": {
+      "tear-client-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -21684,8 +21727,8 @@
             "tree": "target"
           },
           {
-            "name": "serde_yaml_ng",
-            "package_key": "serde_yaml_ng-0.10.0",
+            "name": "serde_norway",
+            "package_key": "serde_norway-0.9.42",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21695,7 +21738,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.52",
+            "package_key": "tear-config-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21705,7 +21748,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.52",
+            "package_key": "tear-types-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21720,7 +21763,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.52": {
+      "tear-config-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21744,7 +21787,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.21",
+            "package_key": "ishou-tokens-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21797,8 +21840,8 @@
             "tree": "target"
           },
           {
-            "name": "serde_yaml_ng",
-            "package_key": "serde_yaml_ng-0.10.0",
+            "name": "serde_norway",
+            "package_key": "serde_norway-0.9.42",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21808,7 +21851,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1083",
+            "package_key": "shikumi-0.1.1084",
             "kind": "normal",
             "features": [
               "cli"
@@ -21820,7 +21863,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.52",
+            "package_key": "tear-types-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21852,7 +21895,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.52": {
+      "tear-core-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21896,7 +21939,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.21",
+            "package_key": "ishou-tokens-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21968,7 +22011,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.52",
+            "package_key": "tear-config-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21978,7 +22021,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.52",
+            "package_key": "tear-makimono-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21988,7 +22031,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.52",
+            "package_key": "tear-tamotsu-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21998,7 +22041,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.52",
+            "package_key": "tear-types-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22028,7 +22071,7 @@
           },
           {
             "name": "unicode_width",
-            "package_key": "unicode-width-0.2.2",
+            "package_key": "unicode-width-0.2.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22053,7 +22096,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.52": {
+      "tear-daemon-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -22122,7 +22165,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.52",
+            "package_key": "praca-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22153,8 +22196,8 @@
             "tree": "target"
           },
           {
-            "name": "serde_yaml_ng",
-            "package_key": "serde_yaml_ng-0.10.0",
+            "name": "serde_norway",
+            "package_key": "serde_norway-0.9.42",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22164,7 +22207,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.52",
+            "package_key": "tear-config-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22174,7 +22217,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.52",
+            "package_key": "tear-core-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22184,7 +22227,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.52",
+            "package_key": "tear-makimono-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22194,7 +22237,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.52",
+            "package_key": "tear-tamotsu-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22204,7 +22247,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.52",
+            "package_key": "tear-types-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22242,7 +22285,7 @@
           "default"
         ]
       },
-      "tear-makimono-0.1.52": {
+      "tear-makimono-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -22268,7 +22311,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.52",
+            "package_key": "tear-types-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22302,11 +22345,11 @@
           "default"
         ]
       },
-      "tear-picker-0.1.52": {
+      "tear-picker-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.21",
+            "package_key": "ishou-tokens-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22316,7 +22359,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.52",
+            "package_key": "praca-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22350,7 +22393,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.52",
+            "package_key": "tear-types-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22376,7 +22419,7 @@
           "testing"
         ]
       },
-      "tear-tamotsu-0.1.52": {
+      "tear-tamotsu-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -22447,7 +22490,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.52",
+            "package_key": "tear-makimono-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22471,7 +22514,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.52": {
+      "tear-types-0.1.53": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -22515,7 +22558,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.21",
+            "package_key": "ishou-tokens-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22525,7 +22568,7 @@
           },
           {
             "name": "kukaku",
-            "package_key": "kukaku-0.1.52",
+            "package_key": "kukaku-0.1.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22628,7 +22671,7 @@
           },
           {
             "name": "rustix",
-            "package_key": "rustix-1.1.5",
+            "package_key": "rustix-1.1.6",
             "kind": "normal",
             "features": [
               "fs"
@@ -23058,7 +23101,7 @@
           "std"
         ]
       },
-      "todoku-0.1.10": {
+      "todoku-0.1.11": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -24625,7 +24668,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "unicode-width-0.2.2": {
+      "unicode-width-0.2.3": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -24641,6 +24684,11 @@
         ]
       },
       "unsafe-libyaml-0.2.11": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
+      "unsafe-libyaml-norway-0.2.15": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -25037,7 +25085,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.10",
+            "package_key": "tatara-lisp-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25047,7 +25095,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.10",
+            "package_key": "tatara-lisp-eval-0.4.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -27647,7 +27695,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.216": {
+          "mado-0.1.217": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27851,7 +27899,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.12",
+                "package_key": "irodzuki-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27861,7 +27909,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -27873,7 +27921,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.25",
+                "package_key": "izumi-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27893,7 +27941,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.25",
+                "package_key": "izumi-sources-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27973,7 +28021,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.26",
+                "package_key": "madori-0.1.27",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28147,7 +28195,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.52",
+                "package_key": "praca-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28238,7 +28286,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.10",
+                "package_key": "shidou-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28248,7 +28296,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -28300,7 +28348,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.52",
+                "package_key": "tear-client-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -28312,7 +28360,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.52",
+                "package_key": "tear-config-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28322,7 +28370,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.52",
+                "package_key": "tear-core-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -28334,7 +28382,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.52",
+                "package_key": "tear-picker-0.1.53",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -28346,7 +28394,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.52",
+                "package_key": "tear-types-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -28418,7 +28466,7 @@
               },
               {
                 "name": "unicode_width",
-                "package_key": "unicode-width-0.2.2",
+                "package_key": "unicode-width-0.2.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28484,7 +28532,7 @@
               "default"
             ]
           },
-          "madori-0.1.26": {
+          "madori-0.1.27": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -28508,7 +28556,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -28562,7 +28610,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28743,7 +28791,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.1.0",
+                "package_key": "notify-types-2.2.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30821,7 +30869,7 @@
               "wasm32_unknown_unknown_js"
             ]
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -32645,7 +32693,7 @@
             "runtime_dependencies": [
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "system"
@@ -32996,7 +33044,7 @@
               "system"
             ]
           },
-          "mado-0.1.216": {
+          "mado-0.1.217": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -33190,7 +33238,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.12",
+                "package_key": "irodzuki-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33200,7 +33248,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -33212,7 +33260,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.25",
+                "package_key": "izumi-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33232,7 +33280,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.25",
+                "package_key": "izumi-sources-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33312,7 +33360,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.26",
+                "package_key": "madori-0.1.27",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33426,7 +33474,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.52",
+                "package_key": "praca-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33517,7 +33565,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.10",
+                "package_key": "shidou-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33527,7 +33575,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -33579,7 +33627,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.52",
+                "package_key": "tear-client-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -33591,7 +33639,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.52",
+                "package_key": "tear-config-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33601,7 +33649,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.52",
+                "package_key": "tear-core-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -33613,7 +33661,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.52",
+                "package_key": "tear-picker-0.1.53",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -33625,7 +33673,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.52",
+                "package_key": "tear-types-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -33697,7 +33745,7 @@
               },
               {
                 "name": "unicode_width",
-                "package_key": "unicode-width-0.2.2",
+                "package_key": "unicode-width-0.2.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33763,7 +33811,7 @@
               "default"
             ]
           },
-          "madori-0.1.26": {
+          "madori-0.1.27": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -33787,7 +33835,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -33831,7 +33879,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33941,7 +33989,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.1.0",
+                "package_key": "notify-types-2.2.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34037,7 +34085,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -34264,7 +34312,7 @@
               "use-libc-auxv"
             ]
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -34845,7 +34893,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -34924,7 +34972,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event"
@@ -34998,7 +35046,7 @@
             "runtime_dependencies": [
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "shm"
@@ -36201,7 +36249,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -36988,7 +37036,7 @@
             "runtime_dependencies": [
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "system"
@@ -37339,7 +37387,7 @@
               "system"
             ]
           },
-          "mado-0.1.216": {
+          "mado-0.1.217": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -37533,7 +37581,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.12",
+                "package_key": "irodzuki-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37543,7 +37591,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -37555,7 +37603,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.25",
+                "package_key": "izumi-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37575,7 +37623,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.25",
+                "package_key": "izumi-sources-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37655,7 +37703,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.26",
+                "package_key": "madori-0.1.27",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37769,7 +37817,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.52",
+                "package_key": "praca-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37860,7 +37908,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.10",
+                "package_key": "shidou-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37870,7 +37918,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -37922,7 +37970,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.52",
+                "package_key": "tear-client-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -37934,7 +37982,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.52",
+                "package_key": "tear-config-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37944,7 +37992,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.52",
+                "package_key": "tear-core-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -37956,7 +38004,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.52",
+                "package_key": "tear-picker-0.1.53",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -37968,7 +38016,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.52",
+                "package_key": "tear-types-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -38040,7 +38088,7 @@
               },
               {
                 "name": "unicode_width",
-                "package_key": "unicode-width-0.2.2",
+                "package_key": "unicode-width-0.2.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38106,7 +38154,7 @@
               "default"
             ]
           },
-          "madori-0.1.26": {
+          "madori-0.1.27": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -38130,7 +38178,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -38174,7 +38222,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38284,7 +38332,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.1.0",
+                "package_key": "notify-types-2.2.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38380,7 +38428,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -38607,7 +38655,7 @@
               "use-libc-auxv"
             ]
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -39188,7 +39236,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -39267,7 +39315,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event"
@@ -39341,7 +39389,7 @@
             "runtime_dependencies": [
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "shm"
@@ -40544,7 +40592,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -41847,7 +41895,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.216": {
+          "mado-0.1.217": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -42051,7 +42099,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.12",
+                "package_key": "irodzuki-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42061,7 +42109,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -42073,7 +42121,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.25",
+                "package_key": "izumi-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42093,7 +42141,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.25",
+                "package_key": "izumi-sources-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42173,7 +42221,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.26",
+                "package_key": "madori-0.1.27",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42347,7 +42395,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.52",
+                "package_key": "praca-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42438,7 +42486,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.10",
+                "package_key": "shidou-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42448,7 +42496,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -42500,7 +42548,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.52",
+                "package_key": "tear-client-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -42512,7 +42560,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.52",
+                "package_key": "tear-config-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42522,7 +42570,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.52",
+                "package_key": "tear-core-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -42534,7 +42582,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.52",
+                "package_key": "tear-picker-0.1.53",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -42546,7 +42594,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.52",
+                "package_key": "tear-types-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -42618,7 +42666,7 @@
               },
               {
                 "name": "unicode_width",
-                "package_key": "unicode-width-0.2.2",
+                "package_key": "unicode-width-0.2.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42684,7 +42732,7 @@
               "default"
             ]
           },
-          "madori-0.1.26": {
+          "madori-0.1.27": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -42708,7 +42756,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -42762,7 +42810,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42943,7 +42991,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.1.0",
+                "package_key": "notify-types-2.2.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45001,7 +45049,7 @@
               "wasm32_unknown_unknown_js"
             ]
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -46920,7 +46968,7 @@
             "runtime_dependencies": [
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "system"
@@ -47271,7 +47319,7 @@
               "system"
             ]
           },
-          "mado-0.1.216": {
+          "mado-0.1.217": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -47465,7 +47513,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.12",
+                "package_key": "irodzuki-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47475,7 +47523,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -47487,7 +47535,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.25",
+                "package_key": "izumi-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47507,7 +47555,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.25",
+                "package_key": "izumi-sources-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47587,7 +47635,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.26",
+                "package_key": "madori-0.1.27",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47701,7 +47749,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.52",
+                "package_key": "praca-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47792,7 +47840,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.10",
+                "package_key": "shidou-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47802,7 +47850,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -47854,7 +47902,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.52",
+                "package_key": "tear-client-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -47866,7 +47914,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.52",
+                "package_key": "tear-config-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47876,7 +47924,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.52",
+                "package_key": "tear-core-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -47888,7 +47936,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.52",
+                "package_key": "tear-picker-0.1.53",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -47900,7 +47948,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.52",
+                "package_key": "tear-types-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -47972,7 +48020,7 @@
               },
               {
                 "name": "unicode_width",
-                "package_key": "unicode-width-0.2.2",
+                "package_key": "unicode-width-0.2.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48038,7 +48086,7 @@
               "default"
             ]
           },
-          "madori-0.1.26": {
+          "madori-0.1.27": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -48062,7 +48110,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -48106,7 +48154,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48216,7 +48264,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.1.0",
+                "package_key": "notify-types-2.2.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48312,7 +48360,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -48519,7 +48567,7 @@
               "use-libc-auxv"
             ]
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -49119,7 +49167,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -49198,7 +49246,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event"
@@ -49272,7 +49320,7 @@
             "runtime_dependencies": [
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "shm"
@@ -50499,7 +50547,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -51338,7 +51386,7 @@
             "runtime_dependencies": [
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "system"
@@ -51689,7 +51737,7 @@
               "system"
             ]
           },
-          "mado-0.1.216": {
+          "mado-0.1.217": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -51883,7 +51931,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.12",
+                "package_key": "irodzuki-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51893,7 +51941,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -51905,7 +51953,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.25",
+                "package_key": "izumi-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51925,7 +51973,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.25",
+                "package_key": "izumi-sources-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52005,7 +52053,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.26",
+                "package_key": "madori-0.1.27",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52119,7 +52167,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.52",
+                "package_key": "praca-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52210,7 +52258,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.10",
+                "package_key": "shidou-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52220,7 +52268,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -52272,7 +52320,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.52",
+                "package_key": "tear-client-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -52284,7 +52332,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.52",
+                "package_key": "tear-config-0.1.53",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52294,7 +52342,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.52",
+                "package_key": "tear-core-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -52306,7 +52354,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.52",
+                "package_key": "tear-picker-0.1.53",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -52318,7 +52366,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.52",
+                "package_key": "tear-types-0.1.53",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -52390,7 +52438,7 @@
               },
               {
                 "name": "unicode_width",
-                "package_key": "unicode-width-0.2.2",
+                "package_key": "unicode-width-0.2.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52456,7 +52504,7 @@
               "default"
             ]
           },
-          "madori-0.1.26": {
+          "madori-0.1.27": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -52480,7 +52528,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.21",
+                "package_key": "ishou-tokens-0.1.22",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -52524,7 +52572,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1083",
+                "package_key": "shikumi-0.1.1084",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52634,7 +52682,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.1.0",
+                "package_key": "notify-types-2.2.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52730,7 +52778,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -52937,7 +52985,7 @@
               "use-libc-auxv"
             ]
           },
-          "rustix-1.1.5": {
+          "rustix-1.1.6": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -53537,7 +53585,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -53616,7 +53664,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event"
@@ -53690,7 +53738,7 @@
             "runtime_dependencies": [
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "shm"
@@ -54917,7 +54965,7 @@
               },
               {
                 "name": "rustix",
-                "package_key": "rustix-1.1.5",
+                "package_key": "rustix-1.1.6",
                 "kind": "normal",
                 "features": [
                   "event",
@@ -55266,7 +55314,7 @@
       "edition": "2018",
       "proc_macro": true
     },
-    "brotli-9.1.0": {
+    "brotli-9.1.1": {
       "edition": "2015",
       "binaries": [
         {
@@ -55754,14 +55802,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.54": {
+    "gen-macros-0.1.55": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.54": {
+    "gen-platform-0.1.55": {
       "edition": "2024"
     },
-    "gen-types-0.1.54": {
+    "gen-types-0.1.55": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -55976,7 +56024,7 @@
     "irodori-0.1.1": {
       "edition": "2024"
     },
-    "irodzuki-0.1.12": {
+    "irodzuki-0.1.13": {
       "edition": "2024"
     },
     "is-docker-0.2.0": {
@@ -55991,7 +56039,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.21": {
+    "ishou-tokens-0.1.22": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -56000,13 +56048,13 @@
     "itoa-1.0.18": {
       "edition": "2021"
     },
-    "izumi-0.1.25": {
+    "izumi-0.1.26": {
       "edition": "2024"
     },
     "izumi-config-0.1.25": {
       "edition": "2024"
     },
-    "izumi-sources-0.1.25": {
+    "izumi-sources-0.1.26": {
       "edition": "2024"
     },
     "jobserver-0.1.35": {
@@ -56062,7 +56110,7 @@
     "kube-runtime-0.99.0": {
       "edition": "2021"
     },
-    "kukaku-0.1.52": {
+    "kukaku-0.1.53": {
       "edition": "2024"
     },
     "lazy_static-1.5.1": {
@@ -56135,7 +56183,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.216": {
+    "mado-0.1.217": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -56148,7 +56196,7 @@
         }
       ]
     },
-    "madori-0.1.26": {
+    "madori-0.1.27": {
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {
@@ -56213,7 +56261,7 @@
     "monosashi-0.3.64": {
       "edition": "2021"
     },
-    "monosashi-0.4.10": {
+    "monosashi-0.4.11": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -56249,8 +56297,8 @@
     "notify-8.2.1": {
       "edition": "2021"
     },
-    "notify-types-2.1.0": {
-      "edition": "2021"
+    "notify-types-2.2.0": {
+      "edition": "2024"
     },
     "nu-ansi-term-0.50.3": {
       "edition": "2021"
@@ -56607,7 +56655,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.52": {
+    "praca-0.1.53": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -56790,7 +56838,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "rustix-1.1.5": {
+    "rustix-1.1.6": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -56831,7 +56879,7 @@
     "safe_arch-1.2.0": {
       "edition": "2024"
     },
-    "samba-0.1.4": {
+    "samba-0.1.5": {
       "edition": "2024"
     },
     "same-file-1.0.6": {
@@ -56956,6 +57004,9 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
+    "serde_norway-0.9.42": {
+      "edition": "2021"
+    },
     "serde_spanned-0.6.9": {
       "edition": "2021"
     },
@@ -56986,10 +57037,10 @@
     "shibori-0.1.1": {
       "edition": "2024"
     },
-    "shidou-0.1.10": {
+    "shidou-0.1.11": {
       "edition": "2024"
     },
-    "shikumi-0.1.1083": {
+    "shikumi-0.1.1084": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -57148,44 +57199,44 @@
     "tatara-closed-set-0.3.64": {
       "edition": "2021"
     },
-    "tatara-closed-set-0.4.10": {
+    "tatara-closed-set-0.4.11": {
       "edition": "2021"
     },
     "tatara-closed-set-derive-0.3.64": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-closed-set-derive-0.4.10": {
+    "tatara-closed-set-derive-0.4.11": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.827": {
+    "tatara-core-0.2.830": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.827": {
+    "tatara-eval-0.2.830": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.827": {
+    "tatara-lattice-0.2.830": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-0.4.10": {
+    "tatara-lisp-0.4.11": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.3.52": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.4.10": {
+    "tatara-lisp-derive-0.4.11": {
       "edition": "2021",
       "proc_macro": true
     },
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-eval-0.4.10": {
+    "tatara-lisp-eval-0.4.11": {
       "edition": "2021"
     },
     "tatara-nix-0.2.568": {
@@ -57200,29 +57251,29 @@
         }
       ]
     },
-    "tear-client-0.1.52": {
+    "tear-client-0.1.53": {
       "edition": "2024"
     },
-    "tear-config-0.1.52": {
+    "tear-config-0.1.53": {
       "edition": "2024"
     },
-    "tear-core-0.1.52": {
+    "tear-core-0.1.53": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.52": {
+    "tear-daemon-0.1.53": {
       "edition": "2024"
     },
-    "tear-makimono-0.1.52": {
+    "tear-makimono-0.1.53": {
       "edition": "2024",
       "lib_target": {
         "name": "makimono",
         "path": "src/lib.rs"
       }
     },
-    "tear-picker-0.1.52": {
+    "tear-picker-0.1.53": {
       "edition": "2024"
     },
-    "tear-tamotsu-0.1.52": {
+    "tear-tamotsu-0.1.53": {
       "edition": "2024",
       "lib_target": {
         "name": "tamotsu",
@@ -57235,7 +57286,7 @@
         }
       ]
     },
-    "tear-types-0.1.52": {
+    "tear-types-0.1.53": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
@@ -57297,7 +57348,7 @@
     "tinyvec-1.13.3": {
       "edition": "2018"
     },
-    "todoku-0.1.10": {
+    "todoku-0.1.11": {
       "edition": "2024",
       "binaries": [
         {
@@ -57439,13 +57490,26 @@
     "unicode-segmentation-1.13.3": {
       "edition": "2018"
     },
-    "unicode-width-0.2.2": {
+    "unicode-width-0.2.3": {
       "edition": "2021"
     },
     "unicode-xid-0.2.6": {
       "edition": "2015"
     },
     "unsafe-libyaml-0.2.11": {
+      "edition": "2021",
+      "binaries": [
+        {
+          "name": "run-emitter-test-suite",
+          "path": "src/bin/run-emitter-test-suite.rs"
+        },
+        {
+          "name": "run-parser-test-suite",
+          "path": "src/bin/run-parser-test-suite.rs"
+        }
+      ]
+    },
+    "unsafe-libyaml-norway-0.2.15": {
       "edition": "2021",
       "binaries": [
         {
