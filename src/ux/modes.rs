@@ -322,6 +322,33 @@ fn overlay_step(
 }
 
 impl Overlay {
+    fn switch_to(self, target: Overlay) -> OverlayStep {
+        let mut effects = Vec::with_capacity(5);
+        if self == Overlay::SessionRename {
+            effects.push(OverlayEffect::SessionPickerRenameCancel);
+        }
+        for (overlay, close) in [
+            (Overlay::Search, OverlayEffect::SearchClose),
+            (Overlay::DirPicker, OverlayEffect::DirPickerClose),
+            (Overlay::SessionPicker, OverlayEffect::SessionPickerClose),
+            (Overlay::Recovery, OverlayEffect::RecoveryClose),
+        ] {
+            if overlay != target {
+                effects.push(close);
+            }
+        }
+        effects.push(match target {
+            Overlay::Search => OverlayEffect::SearchOpen,
+            Overlay::DirPicker => OverlayEffect::DirPickerOpen,
+            Overlay::SessionPicker => OverlayEffect::SessionPickerOpen,
+            Overlay::Recovery => OverlayEffect::RecoveryOpen,
+            Overlay::None | Overlay::SessionRename => {
+                unreachable!("only a top-level overlay is opened")
+            }
+        });
+        overlay_step(target, OverlayRouting::Consumed, effects)
+    }
+
     /// Total registry size — DERIVED from the AllVariants-emitted
     /// `ALL`, never a hand const (M3 review 2026-06-12: a hand const
     /// let a new variant land with a fresh `ordinal` arm but no
@@ -377,46 +404,10 @@ impl Overlay {
             // makes that double-draw unrepresentable from the open path,
             // independent of how `None` was reached.
             Overlay::None => match event {
-                OverlayEvent::OpenSearch => overlay_step(
-                    Overlay::Search,
-                    Consumed,
-                    vec![
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SearchOpen,
-                    ],
-                ),
-                OverlayEvent::OpenDirPicker => overlay_step(
-                    Overlay::DirPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::DirPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenSessionPicker => overlay_step(
-                    Overlay::SessionPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SessionPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenRecovery => overlay_step(
-                    Overlay::Recovery,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryOpen,
-                    ],
-                ),
+                OverlayEvent::OpenSearch => self.switch_to(Overlay::Search),
+                OverlayEvent::OpenDirPicker => self.switch_to(Overlay::DirPicker),
+                OverlayEvent::OpenSessionPicker => self.switch_to(Overlay::SessionPicker),
+                OverlayEvent::OpenRecovery => self.switch_to(Overlay::Recovery),
                 OverlayEvent::Key(_) => overlay_step(Overlay::None, FallThrough, vec![]),
             },
 
@@ -425,16 +416,7 @@ impl Overlay {
                 // Every open closes BOTH siblings first (idempotent on a
                 // closed mirror), so at most one render mirror is ever set
                 // — see the single-mirror LAW + `opening_an_overlay_*` test.
-                OverlayEvent::OpenSearch => overlay_step(
-                    Overlay::Search,
-                    Consumed,
-                    vec![
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SearchOpen,
-                    ],
-                ),
+                OverlayEvent::OpenSearch => self.switch_to(Overlay::Search),
                 // Switch semantics (decision 2026-06-12): pre-FSM an
                 // injected DirPickerOpen set both shared bools; the
                 // search bar kept the keyboard and the picker drew
@@ -442,36 +424,9 @@ impl Overlay {
                 // consumed the chord before action dispatch). The
                 // single-enum machine cannot represent both-open, so
                 // the dead arrangement becomes a switch.
-                OverlayEvent::OpenDirPicker => overlay_step(
-                    Overlay::DirPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::DirPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenSessionPicker => overlay_step(
-                    Overlay::SessionPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SessionPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenRecovery => overlay_step(
-                    Overlay::Recovery,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryOpen,
-                    ],
-                ),
+                OverlayEvent::OpenDirPicker => self.switch_to(Overlay::DirPicker),
+                OverlayEvent::OpenSessionPicker => self.switch_to(Overlay::SessionPicker),
+                OverlayEvent::OpenRecovery => self.switch_to(Overlay::Recovery),
                 OverlayEvent::Key(k) => match k.nav {
                     Some(SearchNav::Close) => {
                         overlay_step(Overlay::None, Consumed, vec![OverlayEffect::SearchClose])
@@ -516,46 +471,10 @@ impl Overlay {
             Overlay::DirPicker => match event {
                 // Switch semantics — same decision note as the
                 // Search → DirPicker arm above.
-                OverlayEvent::OpenSearch => overlay_step(
-                    Overlay::Search,
-                    Consumed,
-                    vec![
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SearchOpen,
-                    ],
-                ),
-                OverlayEvent::OpenDirPicker => overlay_step(
-                    Overlay::DirPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::DirPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenSessionPicker => overlay_step(
-                    Overlay::SessionPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SessionPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenRecovery => overlay_step(
-                    Overlay::Recovery,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryOpen,
-                    ],
-                ),
+                OverlayEvent::OpenSearch => self.switch_to(Overlay::Search),
+                OverlayEvent::OpenDirPicker => self.switch_to(Overlay::DirPicker),
+                OverlayEvent::OpenSessionPicker => self.switch_to(Overlay::SessionPicker),
+                OverlayEvent::OpenRecovery => self.switch_to(Overlay::Recovery),
                 OverlayEvent::Key(k) => match k.key {
                     OverlayKeyClass::Escape => {
                         overlay_step(Overlay::None, Consumed, vec![OverlayEffect::DirPickerClose])
@@ -618,46 +537,10 @@ impl Overlay {
             Overlay::SessionPicker => match event {
                 // Switch semantics — same decision note as the
                 // Search ⇄ DirPicker arms above.
-                OverlayEvent::OpenSearch => overlay_step(
-                    Overlay::Search,
-                    Consumed,
-                    vec![
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SearchOpen,
-                    ],
-                ),
-                OverlayEvent::OpenDirPicker => overlay_step(
-                    Overlay::DirPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::DirPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenSessionPicker => overlay_step(
-                    Overlay::SessionPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SessionPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenRecovery => overlay_step(
-                    Overlay::Recovery,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryOpen,
-                    ],
-                ),
+                OverlayEvent::OpenSearch => self.switch_to(Overlay::Search),
+                OverlayEvent::OpenDirPicker => self.switch_to(Overlay::DirPicker),
+                OverlayEvent::OpenSessionPicker => self.switch_to(Overlay::SessionPicker),
+                OverlayEvent::OpenRecovery => self.switch_to(Overlay::Recovery),
                 OverlayEvent::Key(k) => {
                     use tear_picker::PickerAction;
                     match tear_picker::picker_action(&k.into_picker_key()) {
@@ -719,50 +602,10 @@ impl Overlay {
             // Navigation keys are inert — the rename target is fixed on the
             // row Ctrl-E was pressed. ──
             Overlay::SessionRename => match event {
-                OverlayEvent::OpenSearch => overlay_step(
-                    Overlay::Search,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SessionPickerRenameCancel,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SearchOpen,
-                    ],
-                ),
-                OverlayEvent::OpenDirPicker => overlay_step(
-                    Overlay::DirPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SessionPickerRenameCancel,
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::DirPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenSessionPicker => overlay_step(
-                    Overlay::SessionPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SessionPickerRenameCancel,
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SessionPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenRecovery => overlay_step(
-                    Overlay::Recovery,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SessionPickerRenameCancel,
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryOpen,
-                    ],
-                ),
+                OverlayEvent::OpenSearch => self.switch_to(Overlay::Search),
+                OverlayEvent::OpenDirPicker => self.switch_to(Overlay::DirPicker),
+                OverlayEvent::OpenSessionPicker => self.switch_to(Overlay::SessionPicker),
+                OverlayEvent::OpenRecovery => self.switch_to(Overlay::Recovery),
                 OverlayEvent::Key(k) => {
                     use tear_picker::RenameAction;
                     match tear_picker::rename_action(&k.into_picker_key()) {
@@ -793,46 +636,10 @@ impl Overlay {
                 }
             },
             Overlay::Recovery => match event {
-                OverlayEvent::OpenSearch => overlay_step(
-                    Overlay::Search,
-                    Consumed,
-                    vec![
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SearchOpen,
-                    ],
-                ),
-                OverlayEvent::OpenDirPicker => overlay_step(
-                    Overlay::DirPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::DirPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenSessionPicker => overlay_step(
-                    Overlay::SessionPicker,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::RecoveryClose,
-                        OverlayEffect::SessionPickerOpen,
-                    ],
-                ),
-                OverlayEvent::OpenRecovery => overlay_step(
-                    Overlay::Recovery,
-                    Consumed,
-                    vec![
-                        OverlayEffect::SearchClose,
-                        OverlayEffect::DirPickerClose,
-                        OverlayEffect::SessionPickerClose,
-                        OverlayEffect::RecoveryOpen,
-                    ],
-                ),
+                OverlayEvent::OpenSearch => self.switch_to(Overlay::Search),
+                OverlayEvent::OpenDirPicker => self.switch_to(Overlay::DirPicker),
+                OverlayEvent::OpenSessionPicker => self.switch_to(Overlay::SessionPicker),
+                OverlayEvent::OpenRecovery => self.switch_to(Overlay::Recovery),
                 OverlayEvent::Key(k) => {
                     use tear_picker::PickerAction;
                     match tear_picker::picker_action(&k.into_picker_key()) {
@@ -1727,6 +1534,58 @@ mod tests {
             assert_eq!(step.state, Overlay::Recovery, "{class:?}");
             assert_eq!(step.routing, OverlayRouting::Consumed, "{class:?}");
             assert!(step.effects.is_empty(), "{class:?} must be inert");
+        }
+    }
+
+    #[test]
+    fn every_open_from_every_state_closes_each_sibling_in_order_then_opens_the_target() {
+        use OverlayEffect as E;
+        let opens = [
+            (OverlayEvent::OpenSearch, Overlay::Search, E::SearchOpen),
+            (
+                OverlayEvent::OpenDirPicker,
+                Overlay::DirPicker,
+                E::DirPickerOpen,
+            ),
+            (
+                OverlayEvent::OpenSessionPicker,
+                Overlay::SessionPicker,
+                E::SessionPickerOpen,
+            ),
+            (
+                OverlayEvent::OpenRecovery,
+                Overlay::Recovery,
+                E::RecoveryOpen,
+            ),
+        ];
+        let closes = [
+            (Overlay::Search, E::SearchClose),
+            (Overlay::DirPicker, E::DirPickerClose),
+            (Overlay::SessionPicker, E::SessionPickerClose),
+            (Overlay::Recovery, E::RecoveryClose),
+        ];
+        for state in Overlay::ALL.iter().copied() {
+            for (event, target, open) in opens.clone() {
+                let mut want = Vec::new();
+                if state == Overlay::SessionRename {
+                    want.push(E::SessionPickerRenameCancel);
+                }
+                want.extend(
+                    closes
+                        .iter()
+                        .filter(|(o, _)| *o != target)
+                        .map(|(_, c)| c.clone()),
+                );
+                want.push(open);
+                let step = state.on_event(event.clone());
+                assert_eq!(step.state, target, "{state:?} + {event:?}");
+                assert_eq!(
+                    step.routing,
+                    OverlayRouting::Consumed,
+                    "{state:?} + {event:?}"
+                );
+                assert_eq!(step.effects, want, "{state:?} + {event:?}");
+            }
         }
     }
 
