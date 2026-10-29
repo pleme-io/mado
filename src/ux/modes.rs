@@ -117,10 +117,25 @@ pub(crate) enum OverlayKeyClass {
     /// bare Ctrl-D still falls through to the PTY as EOF.
     CtrlD,
     CtrlR,
+    Home,
+    End,
+    PageUp,
+    PageDown,
     Other,
 }
 
 impl OverlayKeyClass {
+    fn jump(self) -> Option<crate::picker::jump::PickerJump> {
+        use crate::picker::jump::PickerJump;
+        match self {
+            Self::Home => Some(PickerJump::First),
+            Self::End => Some(PickerJump::Last),
+            Self::PageUp => Some(PickerJump::PageUp),
+            Self::PageDown => Some(PickerJump::PageDown),
+            _ => None,
+        }
+    }
+
     fn picker_class(self) -> tear_picker::PickerKeyClass {
         use tear_picker::PickerKeyClass as P;
         match self {
@@ -134,7 +149,7 @@ impl OverlayKeyClass {
             Self::CtrlE => P::CtrlE,
             Self::CtrlD => P::CtrlD,
             Self::CtrlR => P::CtrlR,
-            Self::Other => P::Other,
+            Self::Home | Self::End | Self::PageUp | Self::PageDown | Self::Other => P::Other,
         }
     }
 }
@@ -199,6 +214,10 @@ impl OverlayKey {
             KeyCode::Up => OverlayKeyClass::Up,
             KeyCode::Down => OverlayKeyClass::Down,
             KeyCode::Backspace => OverlayKeyClass::Backspace,
+            KeyCode::Home => OverlayKeyClass::Home,
+            KeyCode::End => OverlayKeyClass::End,
+            KeyCode::PageUp => OverlayKeyClass::PageUp,
+            KeyCode::PageDown => OverlayKeyClass::PageDown,
             _ => OverlayKeyClass::Other,
         };
         Self {
@@ -262,6 +281,7 @@ pub(crate) enum OverlayEffect {
     SessionPickerAccept,
     SessionPickerMoveUp,
     SessionPickerMoveDown,
+    SessionPickerJump(crate::picker::jump::PickerJump),
     SessionPickerBackspace,
     SessionPickerPush(String),
     /// Begin inline rename of the highlighted session — capture the target
@@ -509,7 +529,13 @@ impl Overlay {
                     // gestures only — inert in the dir picker, and consumed so
                     // they cannot leak to the PTY (a Ctrl-D here was an inert
                     // consume before it had a class, too).
-                    OverlayKeyClass::CtrlE | OverlayKeyClass::CtrlD | OverlayKeyClass::CtrlR => {
+                    OverlayKeyClass::CtrlE
+                    | OverlayKeyClass::CtrlD
+                    | OverlayKeyClass::CtrlR
+                    | OverlayKeyClass::Home
+                    | OverlayKeyClass::End
+                    | OverlayKeyClass::PageUp
+                    | OverlayKeyClass::PageDown => {
                         overlay_step(Overlay::DirPicker, Consumed, vec![])
                     }
                     OverlayKeyClass::Other => {
@@ -543,6 +569,13 @@ impl Overlay {
                 OverlayEvent::OpenRecovery => self.switch_to(Overlay::Recovery),
                 OverlayEvent::Key(k) => {
                     use tear_picker::PickerAction;
+                    if let Some(jump) = k.key.jump() {
+                        return overlay_step(
+                            Overlay::SessionPicker,
+                            Consumed,
+                            vec![OverlayEffect::SessionPickerJump(jump)],
+                        );
+                    }
                     match tear_picker::picker_action(&k.into_picker_key()) {
                         PickerAction::Close => overlay_step(
                             Overlay::None,

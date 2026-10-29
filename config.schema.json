@@ -1292,6 +1292,11 @@
         "always"
       ]
     },
+    "session_picker_jump_keys": {
+      "default": true,
+      "description": "Home, End, PageUp and PageDown move the Ctrl-S board highlight to the first row, the last row, or one visible page up or down; a page past either end wraps. false leaves those keys inert on the board, the previous behaviour.",
+      "type": "bool"
+    },
     "session_picker_surface_presets": {
       "default": true,
       "description": "Whether the Ctrl-S picker surfaces LATENT presets (saved/authored\n`(defsession)` definitions with no live instance) as ○ Instantiate\nrows, interleaved with the live sessions. **Prescribed default\n`true`** — but the catalog is empty until a preset is saved, so the\npicker is unchanged until then. The bare tier sets `false`: the\npicker is strictly live-sessions-only (the stripped legacy flow),\neven if presets exist. A partial yaml gets `true` via [`default_true`].",

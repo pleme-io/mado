@@ -69,6 +69,7 @@ pub struct UxBehavior {
     /// Selection auto-scroll overshoot cap (lines).
     pub selection_autoscroll_max_overshoot: f32,
     pub attachment_pill: bool,
+    pub session_picker_jump_keys: bool,
 }
 
 impl UxBehavior {
@@ -138,6 +139,7 @@ impl From<&MadoConfig> for UxBehavior {
             selection_autoscroll_speed: config.behavior.selection_autoscroll_speed,
             selection_autoscroll_max_overshoot: config.behavior.selection_autoscroll_max_overshoot,
             attachment_pill: config.attachments.pill,
+            session_picker_jump_keys: config.tear.session_picker_jump_keys,
         }
     }
 }
@@ -169,6 +171,15 @@ mod tests {
     fn the_attachment_pill_follows_its_config_switch() {
         assert!(UxBehavior::from(&MadoConfig::default()).attachment_pill);
         assert!(!UxBehavior::from(&MadoConfig::bare()).attachment_pill);
+    }
+
+    #[test]
+    fn the_board_jump_keys_follow_their_config_switch() {
+        assert!(UxBehavior::from(&MadoConfig::default()).session_picker_jump_keys);
+        assert!(!UxBehavior::from(&MadoConfig::bare()).session_picker_jump_keys);
+        let mut config = MadoConfig::default();
+        config.tear.session_picker_jump_keys = false;
+        assert!(!UxBehavior::from(&config).session_picker_jump_keys);
     }
 
     #[test]

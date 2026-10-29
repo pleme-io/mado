@@ -26,6 +26,7 @@
 //! pickers, Ctrl-R history, skim-tab, tend) consume the same way.
 
 pub mod component;
+pub mod jump;
 pub mod motion;
 pub mod pointer;
 pub use tear_picker::{reconcile, state};

@@ -855,6 +855,11 @@ pub struct MadoTearConfig {
     /// every row (● live / ○ latent). The bare tier sets `Off`.
     #[serde(default)]
     pub session_picker_badges: BadgeMode,
+    #[serde(default = "default_true")]
+    #[schemars(
+        description = "Home, End, PageUp and PageDown move the Ctrl-S board highlight to the first row, the last row, or one visible page up or down; a page past either end wraps. false leaves those keys inert on the board, the previous behaviour."
+    )]
+    pub session_picker_jump_keys: bool,
     #[serde(default)]
     #[schemars(
         description = "When the window reads the displayed pane's fate (exited, deleted or running). edge reads it when the pane's byte stream ends, which tear signals on exit and on kill, plus a backstop every fate_backstop_secs; poll reads it on every idle event-loop tick, one get_pane RPC per tick, as before tear PERFORMANCE R10."
@@ -2513,6 +2518,7 @@ impl Default for MadoTearConfig {
             // (only when the list mixes live + latent → minimal impact).
             session_picker_surface_presets: true,
             session_picker_badges: BadgeMode::Auto,
+            session_picker_jump_keys: true,
             pane_fate: PaneFate::default(),
             fate_backstop_secs: default_fate_backstop_secs(),
             switch_sizing: SwitchSizing::default(),
@@ -4187,6 +4193,7 @@ impl MadoConfig {
                 // but set explicitly so the bare tier is self-describing.)
                 session_picker_surface_presets: false,
                 session_picker_badges: BadgeMode::Off,
+                session_picker_jump_keys: false,
                 pane_fate: PaneFate::default(),
                 fate_backstop_secs: default_fate_backstop_secs(),
                 switch_sizing: SwitchSizing::default(),
@@ -8181,6 +8188,7 @@ mod coverage {
         "tear.session_naming",
         "tear.session_picker_anchor",
         "tear.session_picker_badges",
+        "tear.session_picker_jump_keys",
         "tear.session_picker_surface_presets",
         "tear.session_switching",
         "tear.socket",

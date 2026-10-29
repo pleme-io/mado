@@ -1049,6 +1049,7 @@ impl InputEngine {
                 OverlayEffect::SessionPickerMoveDown => {
                     self.session_picker.lock().unwrap().move_down();
                 }
+                OverlayEffect::SessionPickerJump(jump) => self.session_picker_jump(jump),
                 OverlayEffect::SessionPickerBackspace => self.session_picker_backspace(),
                 OverlayEffect::SessionPickerPush(text) => self.session_picker_push(&text),
                 OverlayEffect::SessionPickerRenameBegin => self.session_picker_rename_begin(),
@@ -1427,6 +1428,15 @@ impl InputEngine {
     /// Re-list through the bridge without touching the stability stamp —
     /// the shared body of the operator-initiated recompute and the
     /// autonomous refresh.
+    fn session_picker_jump(&mut self, jump: crate::picker::jump::PickerJump) {
+        if !self.behavior.session_picker_jump_keys {
+            return;
+        }
+        let page = self.overlay_hits.lock().unwrap().rows.len();
+        let mut sp = self.session_picker.lock().unwrap();
+        sp.selected = jump.target(sp.selected, sp.results.len(), page);
+    }
+
     fn session_picker_relist(&mut self) {
         self.session_picker_reload(BoardPlacement::Top);
     }
@@ -3681,6 +3691,7 @@ mod tests {
                         selection_autoscroll_speed: 18.0,
                         selection_autoscroll_max_overshoot: 6.0,
                         attachment_pill: true,
+                        session_picker_jump_keys: true,
                     },
                     // Links on in the harness so the click/hover paths are exercised.
                     links: crate::config::MadoLinksConfig::prescribed(),
@@ -5687,6 +5698,54 @@ mod tests {
         assert_eq!(reload(BoardPlacement::Top), (Some(sid("x")), shifted));
         assert_eq!(reload(BoardPlacement::FollowRow), (Some(sid("c")), shifted));
         assert_eq!(reload(BoardPlacement::HoldIndex), (Some(sid("b")), shifted));
+    }
+
+    #[test]
+    fn home_end_and_page_keys_jump_the_board_highlight_and_switch_off_cleanly() {
+        let roster: Vec<(SessionId, &str)> = ["a", "b", "c", "d", "e", "f", "g"]
+            .iter()
+            .map(|s| (sid(s), *s))
+            .collect();
+        let (bridge, _switched) = RecordingBridge::new(roster.clone());
+        let mut h = Harness::new_with_bridge(SinkKind::Closure, Some(Box::new(bridge)));
+        h.engine
+            .apply_action(Action::SessionPickerOpen, &mut h.renderer);
+        *h.engine.overlay_hits.lock().unwrap() = three_row_hits();
+        let press = |h: &mut Harness, key: KeyCode| {
+            h.key(key, None, no_mods());
+            h.engine.session_picker.lock().unwrap().selected
+        };
+        assert_eq!(press(&mut h, KeyCode::End), 6);
+        assert_eq!(press(&mut h, KeyCode::Home), 0);
+        assert_eq!(press(&mut h, KeyCode::PageDown), 3);
+        assert_eq!(press(&mut h, KeyCode::PageDown), 6);
+        assert_eq!(
+            press(&mut h, KeyCode::PageDown),
+            0,
+            "a page past the end wraps"
+        );
+        assert_eq!(
+            press(&mut h, KeyCode::PageUp),
+            6,
+            "a page past the top wraps"
+        );
+        assert!(h.engine.session_picker.lock().unwrap().open);
+        assert_eq!(h.engine.overlay, Overlay::SessionPicker);
+
+        let (bridge, _switched) = RecordingBridge::new(roster);
+        let mut off = Harness::new_with_bridge(SinkKind::Closure, Some(Box::new(bridge)));
+        off.engine.behavior.session_picker_jump_keys = false;
+        off.engine
+            .apply_action(Action::SessionPickerOpen, &mut off.renderer);
+        *off.engine.overlay_hits.lock().unwrap() = three_row_hits();
+        for key in [KeyCode::End, KeyCode::PageDown, KeyCode::PageUp] {
+            assert_eq!(
+                press(&mut off, key),
+                0,
+                "{key:?} is inert when switched off"
+            );
+        }
+        assert_eq!(off.engine.overlay, Overlay::SessionPicker);
     }
 
     /// Arrow / Ctrl-N navigation moves the highlight; Enter switches to
