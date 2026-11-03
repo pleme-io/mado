@@ -816,9 +816,9 @@ rec {
       };
       "async-compression" = rec {
         crateName = "async-compression";
-        version = "0.4.51";
+        version = "0.4.52";
         edition = "2018";
-        sha256 = "0w39jjbw7j882lbcmbp80h6pwksa5s4ha7i3z1hlkci005j5amwx";
+        sha256 = "0nclk4a8m84zjdlbvbmzyw01clg2zpavds4iv3yzy1mr1xs7mm3a";
         libName = "async_compression";
         authors = [
           "Wim Looman <wim@nemo157.com>"
@@ -1553,7 +1553,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.11";
+            packageId = "tatara-lisp 0.4.13";
           }
         ];
 
@@ -1574,7 +1574,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.11";
+            packageId = "tatara-lisp 0.4.13";
           }
           {
             name = "thiserror";
@@ -1611,11 +1611,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.11";
+            packageId = "tatara-lisp 0.4.13";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.11";
+            packageId = "tatara-lisp-eval 0.4.13";
           }
           {
             name = "thiserror";
@@ -1700,11 +1700,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.11";
+            packageId = "tatara-lisp 0.4.13";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.11";
+            packageId = "tatara-lisp-eval 0.4.13";
           }
           {
             name = "thiserror";
@@ -1735,11 +1735,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.11";
+            packageId = "tatara-lisp 0.4.13";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.11";
+            packageId = "tatara-lisp-eval 0.4.13";
           }
         ];
         devDependencies = [
@@ -1812,11 +1812,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.11";
+            packageId = "tatara-lisp 0.4.13";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.11";
+            packageId = "tatara-lisp-eval 0.4.13";
           }
           {
             name = "thiserror";
@@ -1838,7 +1838,7 @@ rec {
         dependencies = [
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.11";
+            packageId = "tatara-lisp 0.4.13";
           }
         ];
 
@@ -1859,7 +1859,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.11";
+            packageId = "tatara-lisp 0.4.13";
           }
         ];
 
@@ -2291,9 +2291,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.10.0";
+        version = "1.11.0";
         edition = "2021";
-        sha256 = "185yfn6np0m5x7hz1q7qf595sqzbbs2vc9dshxhssh1ydvx5bq46";
+        sha256 = "0ssz5frnjb3x873yhp2790xf9v8jz8hdbgj28i1gm861rvg8jn9p";
         dependencies = [
           {
             name = "find-msvc-tools";
@@ -2762,9 +2762,9 @@ rec {
       };
       "compression-codecs" = rec {
         crateName = "compression-codecs";
-        version = "0.4.46";
+        version = "0.4.47";
         edition = "2018";
-        sha256 = "1zm8kfqdlwvf14izzcg3i1hkadwlhfwqs7ykigs9ja0v221ndqya";
+        sha256 = "0hyskjyyhlhlljr0jar1f6g6kbyh6hwh4q74c190h42dz37l1y44";
         libName = "compression_codecs";
         authors = [
           "Wim Looman <wim@nemo157.com>"
@@ -3400,9 +3400,9 @@ rec {
       };
       "crc32fast" = rec {
         crateName = "crc32fast";
-        version = "1.5.3";
+        version = "1.5.4";
         edition = "2021";
-        sha256 = "0m907hccpnpmr4x87ggcq8n5zd3w1d5sqs07q81dqp848kl0d88b";
+        sha256 = "017g8wq37261s7i21v2p7wacl8pr3p4why0d9dfd2dskdm0x75sz";
         authors = [
           "Sam Rijs <srijs@airpost.net>"
           "Alex Crichton <alex@alexcrichton.com>"
@@ -4896,9 +4896,9 @@ rec {
       };
       "encoding_rs" = rec {
         crateName = "encoding_rs";
-        version = "0.8.42";
+        version = "0.8.44";
         edition = "2024";
-        sha256 = "0ycnbndly2jw5j69jl1r1lm512h2w9vb1dnjp0px46l7a425x64f";
+        sha256 = "1xb9w64hibnyh68sfh9qll8h43k3716j5nzr0jdqdaq4wxsk29c9";
         authors = [
           "Henri Sivonen <hsivonen@hsivonen.fi>"
         ];
@@ -6135,9 +6135,10 @@ rec {
       };
       "garasu" = rec {
         crateName = "garasu";
-        version = "0.1.17";
+        version = "0.1.19";
         edition = "2024";
-        sha256 = "06d4yvz2nsv09sipw4x93aciyj1653vcjgcn4b43cf1ijc1zpigm";
+        crateBin = [];
+        sha256 = "08n839l79nnlag67h25kv620blvacxffsc68wakar3jh1qsr8kqg";
         dependencies = [
           {
             name = "bincode";
@@ -6184,6 +6185,10 @@ rec {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
           }
           {
             name = "thiserror";
@@ -8982,9 +8987,9 @@ rec {
       };
       "ishou-tokens" = rec {
         crateName = "ishou-tokens";
-        version = "0.1.22";
+        version = "0.1.24";
         edition = "2024";
-        sha256 = "1hqzpnq8dc7v8f4p3837h3ikv8ahqqmar7l0jybnbbhqa5qadsbm";
+        sha256 = "1s3aqkjs6kq16hgqh2mqhjh9p3p2b2fklz24li13lrc87mjbp07b";
         libName = "ishou_tokens";
         dependencies = [
           {
@@ -9114,9 +9119,9 @@ rec {
       };
       "izumi-config" = rec {
         crateName = "izumi-config";
-        version = "0.1.25";
+        version = "0.1.26";
         edition = "2024";
-        sha256 = "0wwvfl7mrqdmwl2z1kgv7z1hv0xyhwa8a2b9669cqv6xrkrr8mcm";
+        sha256 = "1wja3jl1w4rmv3pq5iy3f36kllhpm8sm0vrl97iz686lxq1hdb3g";
         libName = "izumi_config";
         authors = [
           "pleme-io"
@@ -9338,9 +9343,9 @@ rec {
       };
       "js-sys" = rec {
         crateName = "js-sys";
-        version = "0.3.106";
+        version = "0.3.107";
         edition = "2021";
-        sha256 = "1icwmpjw54lb7vg5926k5y4y5jbiih0zxhwgjwnzn475v90xk0vq";
+        sha256 = "0fjdb084avbdxqb6n14lzszwn91wg88npasfym7bz2q9ahhrvh4d";
         libName = "js_sys";
         authors = [
           "The wasm-bindgen Developers"
@@ -10783,9 +10788,9 @@ rec {
       };
       "log" = rec {
         crateName = "log";
-        version = "0.4.34";
+        version = "0.4.35";
         edition = "2021";
-        sha256 = "1ihkzn0m33ab79fcl4mkb04n5iwqzbxzyw7l7hazqkffaqzbvy7r";
+        sha256 = "0p002750b2hab9bnlxxrvk5g9dvyaf23kiy39s6wsi6s29nzh5ax";
         authors = [
           "The Rust Project Developers"
         ];
@@ -10884,7 +10889,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.218";
+        version = "0.1.219";
         edition = "2024";
         crateBin = [
           {
@@ -11745,11 +11750,11 @@ rec {
         ];
 
       };
-      "monosashi 0.4.11" = rec {
+      "monosashi 0.4.13" = rec {
         crateName = "monosashi";
-        version = "0.4.11";
+        version = "0.4.13";
         edition = "2021";
-        sha256 = "0fp3126s97i70padkkiq40vfsn07vrp64h9w5sspwnv4vmx0bzbm";
+        sha256 = "1ydhbxmb78b6m56i44ghmd5bj9fqm5cfw40842hr6q9syybnqm14";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
@@ -16696,9 +16701,9 @@ rec {
       };
       "pest" = rec {
         crateName = "pest";
-        version = "2.9.2";
+        version = "2.9.5";
         edition = "2021";
-        sha256 = "1a11k95dyrpfrn2ql5lprdh4k31k4hksg83w67vfdlps62iarls5";
+        sha256 = "0q3nkmv7947j750m63adihzynqn8mn6g096rdsriq0066lapbnx8";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -16706,6 +16711,11 @@ rec {
           {
             name = "memchr";
             packageId = "memchr";
+            optional = true;
+          }
+          {
+            name = "pest_stack_guard";
+            packageId = "pest_stack_guard";
             optional = true;
           }
           {
@@ -16719,15 +16729,16 @@ rec {
           "memchr" = [ "dep:memchr" ];
           "miette-error" = [ "std" "pretty-print" "dep:miette" ];
           "pretty-print" = [ "dep:serde" "dep:serde_json" ];
-          "std" = [ "ucd-trie/std" ];
+          "stack-guard" = [ "std" "pest_stack_guard/stack-guard" ];
+          "std" = [ "ucd-trie/std" "dep:pest_stack_guard" ];
         };
         resolvedDefaultFeatures = [ "default" "memchr" "std" ];
       };
       "pest_derive" = rec {
         crateName = "pest_derive";
-        version = "2.9.2";
+        version = "2.9.5";
         edition = "2021";
-        sha256 = "1ky22vlsbqha1jhx5l31d95gm8l54va38b9zmmr2wjicgxan0jr8";
+        sha256 = "1d1kv4khnw50xgb57v5n679618spmjps052jgnv68mmk3zhigai0";
         procMacro = true;
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
@@ -16753,9 +16764,9 @@ rec {
       };
       "pest_generator" = rec {
         crateName = "pest_generator";
-        version = "2.9.2";
+        version = "2.9.5";
         edition = "2021";
-        sha256 = "029igkh6nsw62bn4325gkjm5c3lf4bjqbkv8jblrwc0ml441z78x";
+        sha256 = "17gyswbjnzdh1z5sz4fq6jzv8mdv21jk2cmjnbzcnk7lrjpwavk2";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -16779,7 +16790,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.119";
+            packageId = "syn 3.0.9";
           }
         ];
         features = {
@@ -16791,9 +16802,9 @@ rec {
       };
       "pest_meta" = rec {
         crateName = "pest_meta";
-        version = "2.9.2";
+        version = "2.9.5";
         edition = "2021";
-        sha256 = "1jxd8gbm328lsl3m0z2b1pq9ri60h4f7122i189k5jpwkwdbm4zd";
+        sha256 = "0p8gf9lm82b887s7n2il8r0rja95khala9w3hs0v1hb5m9n5px5k";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -16806,6 +16817,90 @@ rec {
         features = {
         };
         resolvedDefaultFeatures = [ "default" ];
+      };
+      "pest_stack_guard" = rec {
+        crateName = "pest_stack_guard";
+        version = "1.0.1";
+        edition = "2021";
+        sha256 = "0f9lff1gsw9rrvl87j34kajrqgrhdz15jb2kh85qz2s1si7ibils";
+        authors = [
+          "Tomas Tauber <me@tomtau.be>"
+        ];
+        dependencies = [
+          {
+            name = "psm";
+            packageId = "psm";
+            optional = true;
+          }
+          {
+            name = "psm";
+            packageId = "psm";
+            target = { target, features }: (target.name == "aarch64-apple-darwin");
+          }
+          {
+            name = "psm";
+            packageId = "psm";
+            target = { target, features }: (target.name == "aarch64-pc-windows-msvc");
+          }
+          {
+            name = "psm";
+            packageId = "psm";
+            target = { target, features }: (target.name == "aarch64-unknown-linux-gnu");
+          }
+          {
+            name = "psm";
+            packageId = "psm";
+            target = { target, features }: (target.name == "x86_64-apple-darwin");
+          }
+          {
+            name = "psm";
+            packageId = "psm";
+            target = { target, features }: (target.name == "x86_64-pc-windows-msvc");
+          }
+          {
+            name = "psm";
+            packageId = "psm";
+            target = { target, features }: (target.name == "x86_64-unknown-linux-gnu");
+          }
+          {
+            name = "stacker";
+            packageId = "stacker";
+            optional = true;
+          }
+          {
+            name = "stacker";
+            packageId = "stacker";
+            target = { target, features }: (target.name == "aarch64-apple-darwin");
+          }
+          {
+            name = "stacker";
+            packageId = "stacker";
+            target = { target, features }: (target.name == "aarch64-pc-windows-msvc");
+          }
+          {
+            name = "stacker";
+            packageId = "stacker";
+            target = { target, features }: (target.name == "aarch64-unknown-linux-gnu");
+          }
+          {
+            name = "stacker";
+            packageId = "stacker";
+            target = { target, features }: (target.name == "x86_64-apple-darwin");
+          }
+          {
+            name = "stacker";
+            packageId = "stacker";
+            target = { target, features }: (target.name == "x86_64-pc-windows-msvc");
+          }
+          {
+            name = "stacker";
+            packageId = "stacker";
+            target = { target, features }: (target.name == "x86_64-unknown-linux-gnu");
+          }
+        ];
+        features = {
+          "stack-guard" = [ "dep:stacker" "dep:psm" ];
+        };
       };
       "pgvector" = rec {
         crateName = "pgvector";
@@ -24848,11 +24943,11 @@ rec {
         ];
 
       };
-      "tatara-closed-set 0.4.11" = rec {
+      "tatara-closed-set 0.4.13" = rec {
         crateName = "tatara-closed-set";
-        version = "0.4.11";
+        version = "0.4.13";
         edition = "2021";
-        sha256 = "03ba43kgf766xwcxvfh4wpzrzcws285xaf1g1576sm90kcxi7qzb";
+        sha256 = "0acp1fn97bdb4xn9vl4xvfk0x4xq7if8adypw7w80jhyqzbmyc6a";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24860,7 +24955,7 @@ rec {
         dependencies = [
           {
             name = "tatara-closed-set-derive";
-            packageId = "tatara-closed-set-derive 0.4.11";
+            packageId = "tatara-closed-set-derive 0.4.13";
           }
         ];
 
@@ -24892,11 +24987,11 @@ rec {
         ];
 
       };
-      "tatara-closed-set-derive 0.4.11" = rec {
+      "tatara-closed-set-derive 0.4.13" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.4.11";
+        version = "0.4.13";
         edition = "2021";
-        sha256 = "0fnprdp2wfmqfq0gk0i7ycmwgzs3pdslaldpk8saygh5adamgjxx";
+        sha256 = "0wv1a94gmgdvm57fsdri9mrsdc8i4fwavyiqihkdnbmy24i6ljh7";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -25106,11 +25201,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "tatara-lisp 0.4.11" = rec {
+      "tatara-lisp 0.4.13" = rec {
         crateName = "tatara-lisp";
-        version = "0.4.11";
+        version = "0.4.13";
         edition = "2021";
-        sha256 = "0bhzf2wq4iabg2mp3bx92f8iyz150havhrhd30dj3m60xw1kyngv";
+        sha256 = "0p069w5v9794az0zl1rd3baqr8bg7qlzk08psi1kixfbxr7kryf1";
         libName = "tatara_lisp";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -25131,11 +25226,11 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set 0.4.11";
+            packageId = "tatara-closed-set 0.4.13";
           }
           {
             name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive 0.4.11";
+            packageId = "tatara-lisp-derive 0.4.13";
           }
           {
             name = "thiserror";
@@ -25173,11 +25268,11 @@ rec {
         ];
 
       };
-      "tatara-lisp-derive 0.4.11" = rec {
+      "tatara-lisp-derive 0.4.13" = rec {
         crateName = "tatara-lisp-derive";
-        version = "0.4.11";
+        version = "0.4.13";
         edition = "2021";
-        sha256 = "04m4jak9m9x89q20aykq1dc9p7qp6kcjsf2scix4v1g0mpb3hkr8";
+        sha256 = "00q0jsjs0kz3pwjgbq16vpj1prpz338lf1ynk0x2r8vv4bvnwqmp";
         procMacro = true;
         libName = "tatara_lisp_derive";
         authors = [
@@ -25229,23 +25324,32 @@ rec {
         ];
 
       };
-      "tatara-lisp-eval 0.4.11" = rec {
+      "tatara-lisp-eval 0.4.13" = rec {
         crateName = "tatara-lisp-eval";
-        version = "0.4.11";
+        version = "0.4.13";
         edition = "2021";
-        sha256 = "1379a1zp4n2dmxmm7si6iwjcg31dd8qc7m16bw234wipy8y2c49r";
+        sha256 = "0a23jb7fkhjqcjqax5d0m949bbd3hhadmvsw6qwdl1p1cs5pdh9v";
         libName = "tatara_lisp_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
         dependencies = [
           {
+            name = "blake3";
+            packageId = "blake3";
+          }
+          {
             name = "imbl";
             packageId = "imbl";
           }
           {
             name = "monosashi";
-            packageId = "monosashi 0.4.11";
+            packageId = "monosashi 0.4.13";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
           }
           {
             name = "stacker";
@@ -25254,11 +25358,11 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set 0.4.11";
+            packageId = "tatara-closed-set 0.4.13";
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.11";
+            packageId = "tatara-lisp 0.4.13";
           }
           {
             name = "thiserror";
@@ -27900,9 +28004,9 @@ rec {
       };
       "unicode-properties" = rec {
         crateName = "unicode-properties";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2021";
-        sha256 = "07fpm3sqq7lm9gmgpxa93z31q933h3c3ypfwy4cdh6l42g3miw3x";
+        sha256 = "0cqq9jq11jnxr8x8cxa0c1fz5q0k2kz1r00jadsvms10xf3x4flr";
         libName = "unicode_properties";
         authors = [
           "Charles Lew <crlf0710@gmail.com>"
@@ -27915,9 +28019,9 @@ rec {
       };
       "unicode-script" = rec {
         crateName = "unicode-script";
-        version = "0.5.8";
+        version = "0.5.9";
         edition = "2018";
-        sha256 = "1vmifpgd0map3frmvhszhl96k82crcry083prv05wii7p45x8fiq";
+        sha256 = "1gyaarvyy34wgxsc7943wxk1hzk7xv0rbm3l9i39shh5vdawj15a";
         libName = "unicode_script";
         authors = [
           "Manish Goregaokar <manishsmail@gmail.com>"
@@ -28090,11 +28194,17 @@ rec {
       };
       "utf8_iter" = rec {
         crateName = "utf8_iter";
-        version = "1.0.4";
+        version = "1.1.0";
         edition = "2021";
-        sha256 = "1gmna9flnj8dbyd8ba17zigrp9c4c3zclngf5lnb5yvz1ri41hdn";
+        sha256 = "1w7d0f7xc46qfmb7m6zy5y6in1mblmzbhcyhx766zhkiwp9xjfxg";
         authors = [
           "Henri Sivonen <hsivonen@hsivonen.fi>"
+        ];
+        dependencies = [
+          {
+            name = "utf_types";
+            packageId = "utf_types";
+          }
         ];
 
       };
@@ -28110,6 +28220,16 @@ rec {
         features = {
         };
         resolvedDefaultFeatures = [ "default" ];
+      };
+      "utf_types" = rec {
+        crateName = "utf_types";
+        version = "1.0.0";
+        edition = "2021";
+        sha256 = "1dhbsnxfxxbg9a13anjfax5i7jyd51nkngs5g1r3c2lqhr944frs";
+        authors = [
+          "Henri Sivonen <hsivonen@hsivonen.fi>"
+        ];
+
       };
       "utoipa" = rec {
         crateName = "utoipa";
@@ -28416,11 +28536,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.11";
+            packageId = "tatara-lisp 0.4.13";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.11";
+            packageId = "tatara-lisp-eval 0.4.13";
           }
           {
             name = "thiserror";
@@ -28830,9 +28950,9 @@ rec {
       };
       "wasm-bindgen" = rec {
         crateName = "wasm-bindgen";
-        version = "0.2.129";
+        version = "0.2.130";
         edition = "2021";
-        sha256 = "02flhqld01jqb6vbfyx1gb8s78g1pnq2164daxad93y6mhrlzdcv";
+        sha256 = "071xi9mqha1vdrxsjgndjgcf0azkl8g5yahkn2qbiiynvla1q650";
         libName = "wasm_bindgen";
         authors = [
           "The wasm-bindgen Developers"
@@ -28841,11 +28961,6 @@ rec {
           {
             name = "cfg-if";
             packageId = "cfg-if";
-          }
-          {
-            name = "once_cell";
-            packageId = "once_cell";
-            usesDefaultFeatures = false;
           }
           {
             name = "serde";
@@ -28880,9 +28995,9 @@ rec {
       };
       "wasm-bindgen-futures" = rec {
         crateName = "wasm-bindgen-futures";
-        version = "0.4.79";
+        version = "0.4.80";
         edition = "2021";
-        sha256 = "03k1wcg5j3wqk6vgy6gzcq868vsa9k81dlhqissfk0nrw96v7fiw";
+        sha256 = "00f5mq5rx8wzbq98svcjbb4r79i7k15d08nb1kb8ldmmghrf052y";
         libName = "wasm_bindgen_futures";
         authors = [
           "The wasm-bindgen Developers"
@@ -28915,9 +29030,9 @@ rec {
       };
       "wasm-bindgen-macro" = rec {
         crateName = "wasm-bindgen-macro";
-        version = "0.2.129";
+        version = "0.2.130";
         edition = "2021";
-        sha256 = "0dc5xq09sy1v9ns1fhb0cnyqz5p1wcjjvkdmxskj9qhnbg1x0a9f";
+        sha256 = "1ncfybmdiczbsjz8a257a13k8n7dnl15khvgjrkbzgcslc11m4vf";
         procMacro = true;
         libName = "wasm_bindgen_macro";
         authors = [
@@ -28939,9 +29054,9 @@ rec {
       };
       "wasm-bindgen-macro-support" = rec {
         crateName = "wasm-bindgen-macro-support";
-        version = "0.2.129";
+        version = "0.2.130";
         edition = "2021";
-        sha256 = "1dx6w90f14avmhri7ss9lyz03060g6475r4axy3bm7biqf5ill3g";
+        sha256 = "0fm58fh6gkhlmi15rhzvcgz35x5s6kkvi9ik3s1vsmg4h11bb91c";
         libName = "wasm_bindgen_macro_support";
         authors = [
           "The wasm-bindgen Developers"
@@ -28975,10 +29090,10 @@ rec {
       };
       "wasm-bindgen-shared" = rec {
         crateName = "wasm-bindgen-shared";
-        version = "0.2.129";
+        version = "0.2.130";
         edition = "2021";
         links = "wasm_bindgen";
-        sha256 = "1ilmp5d3sl8lrq9djhcs90gk66yvk8mgwk4sfrvpvkd75b2wkw13";
+        sha256 = "17iq85zyk1z7hq533c0apj5ix0y0ks35fbszxv31cl3jk0vrq7rv";
         libName = "wasm_bindgen_shared";
         authors = [
           "The wasm-bindgen Developers"
@@ -29326,9 +29441,9 @@ rec {
       };
       "web-sys" = rec {
         crateName = "web-sys";
-        version = "0.3.106";
+        version = "0.3.107";
         edition = "2021";
-        sha256 = "195bd1m14w3hsw5fg3sr938mh7y4cb260d0sq6a6brffxjfin9l8";
+        sha256 = "125b0y934gyfwjkd60wnqjf2irmx250dar6vwinhzv7mdxcpklfp";
         libName = "web_sys";
         authors = [
           "The wasm-bindgen Developers"
@@ -34568,9 +34683,9 @@ rec {
       };
       "yazi" = rec {
         crateName = "yazi";
-        version = "0.2.1";
+        version = "0.2.2";
         edition = "2021";
-        sha256 = "1dgv0dd0329dcbs57z2wj03daz8y1axgprw3pf5yf5jsbcjkh5z0";
+        sha256 = "11pch7fbmgjzmg13cbvhd572ip5i4njxxjffjalyd3ps6ajnwdmc";
         authors = [
           "Chad Brokaw <cbrokaw@gmail.com>"
         ];
