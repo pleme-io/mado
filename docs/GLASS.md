@@ -9,6 +9,11 @@ renders the same bytes as before.
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `appearance.opacity` | f32 | 1.0 | Below 1.0 asks for a composited surface when the window is created. Live across values below 1.0; crossing 1.0 needs a restart. |
+| `appearance.glass.frost.enabled` | bool | false | Faint rime from the corners and edges. Active only on a composited surface. |
+| `appearance.glass.frost.intensity` | f32 | 0.16 | Peak opacity of a hairline at the window edge, 0 to 1. |
+| `appearance.glass.frost.reach` | f32 | 28.0 | How far in from the edge, logical px. |
+| `appearance.glass.frost.color` | string | `#D8DEE9` | sRGB hex. One colour. |
+| `appearance.glass.frost.seed` | u32 | 1 | The same seed grows the same rime. |
 | `window.corner_radius` | f32 | 0.0 | Logical px. Corners go fully transparent. |
 | `window.rim.width` | f32 | 0.0 | Logical px, inside the edge. 0 draws no rim. |
 | `window.rim.color` | string | `#ECEFF4` | sRGB hex. |
@@ -61,6 +66,21 @@ composites as premultiplied, so mado treats it as premultiplied there.
 - Grain and aurora scale with the pane's alpha, and window depth tints with the
   premultiplied background. Every catalog effect passes alpha through, so the
   pane stays see-through.
+
+## Frost
+
+`frost.rs` grows hairlines from a seed: fronds fan in from each corner and sit
+sparsely along each side, and side branches fork at 60 degrees, the axes of an
+ice crystal. A line stops at `reach` from the nearest edge and at the terminal
+area, which is the grid plus 2 logical px, so frost lives in the margin: the
+padding and the band. Give it room with `window.padding`. Alpha fades from the
+edge inward. The at most 2048 segments render once into a single-channel mask,
+where the strongest line wins, so a crossing never brightens past `intensity`.
+The mask is regrown only when the window, the grid or a key changes.
+
+A pass after the clear lays the mask on the pane, shading only the four margin
+strips, so everything else paints over it, and the resolve applies the rounded
+shape. There is no clock and no frame demand: an idle window stays parked.
 
 ## The band
 

@@ -1898,6 +1898,8 @@ pub struct TerminalRenderer {
     glass_encoding: Option<crate::glass::GlassEncoding>,
     glass_shape: crate::glass::GlassShape,
     glass_pipeline: Option<crate::glass::GlassPipeline>,
+    frost_style: crate::frost::FrostStyle,
+    frost_pipeline: Option<crate::frost::FrostPipeline>,
     chrome_style: crate::window_chrome::ChromeStyle,
     window_state: madori::WindowState,
     chrome_hover: Arc<Mutex<Option<madori::ChromeButton>>>,
@@ -2693,6 +2695,8 @@ impl TerminalRenderer {
             glass_encoding: None,
             glass_shape: crate::glass::GlassShape::default(),
             glass_pipeline: None,
+            frost_style: crate::frost::FrostStyle::default(),
+            frost_pipeline: None,
             chrome_style: crate::window_chrome::ChromeStyle::default(),
             window_state: madori::WindowState::default(),
             chrome_hover: Arc::new(Mutex::new(None)),
@@ -2710,6 +2714,9 @@ impl TerminalRenderer {
     /// effects in tear windows.
     pub fn apply_effects_and_accessibility(&mut self, config: &crate::config::MadoConfig) {
         self.set_glass_shape(crate::glass::GlassShape::from_window(&config.window));
+        self.set_frost_style(crate::frost::FrostStyle::from_config(
+            &config.appearance.glass.frost,
+        ));
         self.set_chrome_style(crate::window_chrome::ChromeStyle::from_config(
             &config.window.chrome,
         ));
@@ -2967,6 +2974,31 @@ impl TerminalRenderer {
     pub fn set_glass_shape(&mut self, shape: crate::glass::GlassShape) {
         self.glass_shape = shape;
         self.last_seqno = 0;
+    }
+
+    pub fn set_frost_style(&mut self, style: crate::frost::FrostStyle) {
+        self.frost_style = style;
+        self.last_seqno = 0;
+    }
+
+    fn frost_field(&self, width: u32, height: u32) -> crate::frost::FrostField {
+        let grid = self.grid_for_window_phys(width, height);
+        let clearance = 2.0 * self.scale_factor;
+        let (left, top) = (self.padding_px(), self.grid_top_px());
+        crate::frost::FrostField {
+            width: width as f32,
+            height: height as f32,
+            reach: self.frost_style.reach * self.scale_factor,
+            clear: Some([
+                left - clearance,
+                top - clearance,
+                left + f32::from(grid.cols()) * self.cell_width + clearance,
+                top + f32::from(grid.rows()) * self.cell_height + clearance,
+            ]),
+            scale: self.scale_factor,
+            intensity: self.frost_style.intensity,
+            seed: self.frost_style.seed,
+        }
     }
 
     pub fn set_chrome_style(&mut self, style: crate::window_chrome::ChromeStyle) {
@@ -7988,6 +8020,16 @@ impl RenderCallback for TerminalRenderer {
             });
         }
 
+        if self.glass_encoding.is_some() && self.frost_style.active() {
+            let field = self.frost_field(ctx.width, ctx.height);
+            let color = self.frost_style.color;
+            self.frost_pipeline
+                .get_or_insert_with(|| {
+                    crate::frost::FrostPipeline::new(&ctx.gpu.device, SURFACE_FORMAT)
+                })
+                .draw(ctx.gpu, &mut encoder, scene_view, field, color);
+        }
+
         // The grid's confinement, resolved ONCE for this frame and read by
         // both consumers below: the GPU scissor on the rect pass and the
         // glyph bounds on the text pass. Two clips that must agree, so they
@@ -8600,6 +8642,27 @@ mod render_invariants {
     /// Drive the renderer to the settled state a real one reaches after its
     /// first paint: `last_seqno` matching the terminal, epoch matching, no
     /// forced repaint outstanding.
+    #[test]
+    fn frost_asks_for_no_frame_on_a_quiet_screen() {
+        let (mut r, term) = harness(20, 5);
+        r.surface_configured(madori::SurfaceAlpha {
+            mode: wgpu::CompositeAlphaMode::PreMultiplied,
+            transparent: true,
+        });
+        r.set_frost_style(crate::frost::FrostStyle {
+            enabled: true,
+            ..crate::frost::FrostStyle::default()
+        });
+        assert!(r.frost_style.active());
+        assert!(r.needs_frame(Q0), "turning it on owes one frame");
+        settled(&mut r, &term);
+        assert!(
+            !r.needs_frame(Q0),
+            "and then none: rime is static, so a quiet screen stays parked"
+        );
+        assert_eq!(r.frame_demand(Q0), madori::FrameDemand::Idle);
+    }
+
     fn settled(r: &mut TerminalRenderer, term: &SharedTerminal) {
         // ★ FEED SOMETHING FIRST. A fresh `Terminal` sits at seqno 0, and 0 is
         // ALSO the "nothing has ever been painted" sentinel `needs_frame`
@@ -12429,6 +12492,95 @@ mod render_gpu_invariants {
         }
     }
 
+    fn frost_on() -> crate::frost::FrostStyle {
+        crate::frost::FrostStyle {
+            enabled: true,
+            ..crate::frost::FrostStyle::default()
+        }
+    }
+
+    #[test]
+    fn frost_off_and_frost_on_an_opaque_window_are_pixel_identical() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (320u32, 160u32);
+        let frame = |glass: bool, frost: Option<crate::frost::FrostStyle>| {
+            let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+            let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 6);
+            without_ambience(&mut r);
+            t.write().feed(b"$ echo glass");
+            r.set_bg_fg(pane(if glass { 0.2 } else { 1.0 }), Color::WHITE);
+            if glass {
+                r.surface_configured(translucent());
+            }
+            if let Some(frost) = frost {
+                r.set_frost_style(frost);
+            }
+            render_one_frame_headless(&gpu, &mut r, &mut text, &target)
+        };
+        let off = crate::frost::FrostStyle::default();
+        assert!(frame(true, None) == frame(true, Some(off)), "off on glass");
+        assert!(
+            frame(false, None) == frame(false, Some(frost_on())),
+            "on, but the window is opaque"
+        );
+        assert!(
+            frame(true, None) != frame(true, Some(frost_on())),
+            "control: on glass it does draw"
+        );
+    }
+
+    #[test]
+    fn frost_sits_in_the_margin_clear_of_the_text_area_static_and_faint() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (480u32, 240u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 8);
+        without_ambience(&mut r);
+        r.padding = 24.0;
+        t.write().feed(b"\x1b[?25l$ echo glass\r\nglass");
+        r.set_bg_fg(pane(0.2), Color::WHITE);
+        r.surface_configured(translucent());
+        let bare = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        r.set_frost_style(frost_on());
+        let frosted = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let later = render_one_frame_headless_at(&gpu, &mut r, &mut text, &target, 90.0);
+        assert!(
+            frosted == later,
+            "no sparkle: the rime does not move with the clock"
+        );
+
+        let grid = r.grid_for_window_phys(w, h);
+        let (x0, y0) = (r.padding_px(), r.grid_top_px());
+        let x1 = x0 + f32::from(grid.cols()) * r.cell_width;
+        let y1 = y0 + f32::from(grid.rows()) * r.cell_height;
+        let (mut touched, mut brightest) = (0u32, 0u8);
+        for y in 0..h {
+            for x in 0..w {
+                let (a, b) = (rgba(&frosted, w, x, y), rgba(&bare, w, x, y));
+                if a == b {
+                    continue;
+                }
+                let (fx, fy) = (x as f32 + 0.5, y as f32 + 0.5);
+                assert!(
+                    fx < x0 || fx > x1 || fy < y0 || fy > y1,
+                    "frost inside the terminal area at {x},{y}: {a:?} over {b:?}"
+                );
+                touched += 1;
+                brightest = brightest.max(a[3].saturating_sub(b[3]));
+            }
+        }
+        assert!(touched > 40, "the margin carries rime: {touched} pixels");
+        assert!(
+            f32::from(brightest) <= 255.0 * r.frost_style.intensity + 2.0,
+            "faint: alpha rises by at most the intensity, got {brightest}"
+        );
+        let pixels = u64::from(w) * u64::from(h);
+        assert!(
+            u64::from(touched) * 5 < pixels,
+            "hairlines, not a wash: {touched} of {pixels}"
+        );
+    }
+
     #[test]
     fn the_band_shows_a_clean_title_and_never_a_stray_mark() {
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
@@ -15875,6 +16027,32 @@ mod glass_invariants {
             madori::WindowRegion::Interior,
             "and has no resize edges"
         );
+    }
+
+    #[test]
+    fn frost_keeps_the_grid_clear_and_leaves_the_band_hit_testing_alone() {
+        let (mut r, _term) = renderer(80, 24);
+        r.cell_width = 10.0;
+        r.cell_height = 20.0;
+        r.padding = 14.0;
+        banded(&mut r);
+        let layout = r.chrome_layout();
+        r.surface_configured(translucent());
+        r.set_frost_style(crate::frost::FrostStyle {
+            enabled: true,
+            ..crate::frost::FrostStyle::default()
+        });
+        assert_eq!(
+            r.chrome_layout(),
+            layout,
+            "frost has no say in the hit test"
+        );
+        let [x0, y0, x1, y1] = r.frost_field(800, 600).clear.unwrap();
+        let grid = r.grid_for_window_phys(800, 600);
+        assert!(x0 < r.padding_px(), "clear of the first column");
+        assert!(y0 < r.grid_top_px(), "clear of the first row");
+        assert!(x1 > r.padding_px() + f32::from(grid.cols()) * r.cell_width);
+        assert!(y1 > r.grid_top_px() + f32::from(grid.rows()) * r.cell_height);
     }
 
     #[test]

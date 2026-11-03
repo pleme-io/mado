@@ -89,6 +89,7 @@ pub enum SetterCall {
     Histograms(crate::config::HistogramMode),
     GlassShape(crate::glass::GlassShape),
     ChromeStyle(crate::window_chrome::ChromeStyle),
+    FrostStyle(crate::frost::FrostStyle),
 }
 
 /// The executor seam: every setter the config diff can decide to
@@ -115,6 +116,7 @@ pub trait ConfigSetters {
     fn set_histograms(&mut self, v: crate::config::HistogramMode);
     fn set_glass_shape(&mut self, v: crate::glass::GlassShape);
     fn set_chrome_style(&mut self, v: crate::window_chrome::ChromeStyle);
+    fn set_frost_style(&mut self, v: crate::frost::FrostStyle);
 }
 
 impl ConfigSetters for TerminalRenderer {
@@ -178,6 +180,9 @@ impl ConfigSetters for TerminalRenderer {
     fn set_chrome_style(&mut self, v: crate::window_chrome::ChromeStyle) {
         TerminalRenderer::set_chrome_style(self, v);
     }
+    fn set_frost_style(&mut self, v: crate::frost::FrostStyle) {
+        TerminalRenderer::set_frost_style(self, v);
+    }
 }
 
 /// The render-facing values a config resolves to — the same
@@ -220,6 +225,7 @@ struct Resolved {
     histograms: crate::config::HistogramMode,
     glass_shape: crate::glass::GlassShape,
     chrome_style: crate::window_chrome::ChromeStyle,
+    frost_style: crate::frost::FrostStyle,
 }
 
 // `u32 → f32` padding: operator padding is single-digit logical px;
@@ -275,6 +281,7 @@ fn resolve(config: &MadoConfig) -> Resolved {
         histograms: config.performance.histograms,
         glass_shape: crate::glass::GlassShape::from_window(&config.window),
         chrome_style: crate::window_chrome::ChromeStyle::from_config(&config.window.chrome),
+        frost_style: crate::frost::FrostStyle::from_config(&config.appearance.glass.frost),
     }
 }
 
@@ -379,6 +386,9 @@ pub fn diff(old: &MadoConfig, new: &MadoConfig) -> Vec<SetterCall> {
     if o.chrome_style != n.chrome_style {
         calls.push(SetterCall::ChromeStyle(n.chrome_style));
     }
+    if o.frost_style != n.frost_style {
+        calls.push(SetterCall::FrostStyle(n.frost_style));
+    }
     calls
 }
 
@@ -407,6 +417,7 @@ pub fn execute<T: ConfigSetters>(target: &mut T, calls: Vec<SetterCall>) {
             SetterCall::Histograms(v) => target.set_histograms(v),
             SetterCall::GlassShape(v) => target.set_glass_shape(v),
             SetterCall::ChromeStyle(v) => target.set_chrome_style(v),
+            SetterCall::FrostStyle(v) => target.set_frost_style(v),
         }
     }
 }
@@ -624,6 +635,9 @@ mod tests {
         fn set_chrome_style(&mut self, _: crate::window_chrome::ChromeStyle) {
             self.calls.push("set_chrome_style");
         }
+        fn set_frost_style(&mut self, _: crate::frost::FrostStyle) {
+            self.calls.push("set_frost_style");
+        }
     }
 
     fn call_kind(c: &SetterCall) -> &'static str {
@@ -647,6 +661,7 @@ mod tests {
             SetterCall::Histograms(_) => "Histograms",
             SetterCall::GlassShape(_) => "GlassShape",
             SetterCall::ChromeStyle(_) => "ChromeStyle",
+            SetterCall::FrostStyle(_) => "FrostStyle",
         }
     }
 
@@ -671,6 +686,25 @@ mod tests {
         let mut counter = CountingSetters::default();
         applier.apply_delta(&rounded, &mut counter);
         assert_eq!(counter.calls, vec!["set_glass_shape"]);
+    }
+
+    #[test]
+    fn each_frost_key_is_one_setter_call() {
+        let base = MadoConfig::default();
+        let edits: [fn(&mut crate::config::GlassFrostConfig); 5] = [
+            |f| f.enabled = true,
+            |f| f.intensity = 0.4,
+            |f| f.reach = 60.0,
+            |f| f.color = "#FFFFFF".into(),
+            |f| f.seed = 99,
+        ];
+        for edit in edits {
+            let mut changed = base.clone();
+            edit(&mut changed.appearance.glass.frost);
+            let calls = diff(&base, &changed);
+            assert_eq!(calls.len(), 1, "{calls:?}");
+            assert_eq!(call_kind(&calls[0]), "FrostStyle");
+        }
     }
 
     #[test]

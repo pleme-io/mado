@@ -451,7 +451,9 @@ Glass and window chrome (`docs/GLASS.md`): `appearance.opacity` below 1.0 asks f
 composited surface at window creation. `window.corner_radius` and `window.rim`
 {`width`, `color`, `opacity`} shape it, and `window.chrome` {`enabled`, `height`,
 `edge_width`, `button_width`, `tint`, `title`} is mado's own band, used with
-`window.decorations: false`. Each default changes nothing.
+`window.decorations: false`. `appearance.glass.frost` {`enabled`, `intensity`,
+`reach`, `color`, `seed`} is faint rime in the margin. Each default changes
+nothing.
 
 Link knobs (under `links`): `enabled`, `highlight` (always-on tint and
 underline for URLs and OSC 8 cells), `open_on_click` (a plain click opens;

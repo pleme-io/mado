@@ -3127,6 +3127,43 @@ pub struct AppearanceConfig {
     pub background_blur: bool,
     #[serde(default)]
     pub unfocused_split_fill: Option<String>,
+    #[serde(default)]
+    pub glass: AppearanceGlassConfig,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(default)]
+pub struct AppearanceGlassConfig {
+    pub frost: GlassFrostConfig,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(default)]
+pub struct GlassFrostConfig {
+    #[schemars(
+        description = "Faint rime growing in from the window's corners and edges, behind the text and clear of the terminal area. Active only when appearance.opacity is below 1.0. Static: it adds no frames."
+    )]
+    pub enabled: bool,
+    #[schemars(description = "Peak opacity of a hairline at the window edge, 0 to 1.")]
+    pub intensity: f32,
+    #[schemars(description = "How far in from the window edge the rime grows, in logical pixels.")]
+    pub reach: f32,
+    #[schemars(description = "Rime colour as sRGB hex.")]
+    pub color: String,
+    #[schemars(description = "Seed of the growth. The same seed grows the same rime.")]
+    pub seed: u32,
+}
+
+impl Default for GlassFrostConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            intensity: 0.16,
+            reach: 28.0,
+            color: "#D8DEE9".to_owned(),
+            seed: 1,
+        }
+    }
 }
 
 impl AppearanceConfig {
@@ -4152,6 +4189,7 @@ impl MadoConfig {
                 minimum_contrast: 0.0, // no contrast enforcement
                 background_blur: false,
                 unfocused_split_fill: None,
+                glass: AppearanceGlassConfig::default(),
             },
             // ── Cursor ───────────────────────────────────────────
             cursor: CursorConfig {
@@ -4794,6 +4832,7 @@ impl Default for AppearanceConfig {
             minimum_contrast: default_minimum_contrast(),
             background_blur: false,
             unfocused_split_fill: None,
+            glass: AppearanceGlassConfig::default(),
         }
     }
 }
@@ -8089,6 +8128,11 @@ mod coverage {
         "appearance.background",
         "appearance.bold_is_bright",
         "appearance.foreground",
+        "appearance.glass.frost.color",
+        "appearance.glass.frost.enabled",
+        "appearance.glass.frost.intensity",
+        "appearance.glass.frost.reach",
+        "appearance.glass.frost.seed",
         "appearance.opacity",
         "attachments.pill",
         "attachments.temp_ttl_secs",
@@ -8719,6 +8763,29 @@ mod glass_config_tests {
             assert_eq!(window.rim.width, 0.0);
             assert!(!window.chrome.enabled);
         }
+    }
+
+    #[test]
+    fn frost_is_off_in_every_tier_and_each_key_reads_from_yaml() {
+        for appearance in [
+            MadoConfig::default().appearance,
+            MadoConfig::bare().appearance,
+        ] {
+            assert!(!appearance.glass.frost.enabled);
+        }
+        let appearance: AppearanceConfig = serde_yaml_ng::from_str(
+            "glass: { frost: { enabled: true, intensity: 0.2, reach: 40, color: '#FFFFFF', seed: 7 } }\n",
+        )
+        .expect("appearance parses");
+        let frost = appearance.glass.frost;
+        assert!(frost.enabled);
+        assert_eq!(frost.intensity, 0.2);
+        assert_eq!(frost.reach, 40.0);
+        assert_eq!(frost.color, "#FFFFFF");
+        assert_eq!(frost.seed, 7);
+        let partial: AppearanceConfig =
+            serde_yaml_ng::from_str("glass: { frost: { enabled: true } }\n").expect("parses");
+        assert_eq!(partial.glass.frost.reach, GlassFrostConfig::default().reach);
     }
 
     #[test]

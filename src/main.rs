@@ -33,6 +33,7 @@ mod engate_consumer;
 mod fibers;
 mod file_drop;
 mod font_size;
+mod frost;
 mod glass;
 mod glyph_class;
 mod grid_col;

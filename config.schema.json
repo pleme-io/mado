@@ -47,6 +47,19 @@
       "description": "",
       "type": "str"
     },
+    "glass": {
+      "default": {
+        "frost": {
+          "color": "#D8DEE9",
+          "enabled": false,
+          "intensity": 0.1599999964237213,
+          "reach": 28.0,
+          "seed": 1
+        }
+      },
+      "description": "",
+      "type": "object"
+    },
     "minimum_contrast": {
       "default": 1.0,
       "description": "",
