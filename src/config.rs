@@ -2906,6 +2906,76 @@ pub struct WindowConfig {
     /// When a window drag's new cell grid reaches the shell and the mirror.
     #[serde(default)]
     pub resize: ResizeConfig,
+    #[serde(default)]
+    #[schemars(
+        description = "Corner radius in logical pixels. Corners go fully transparent. Active only when appearance.opacity is below 1.0, and not while maximized or fullscreen."
+    )]
+    pub corner_radius: f32,
+    #[serde(default)]
+    pub rim: WindowRimConfig,
+    #[serde(default)]
+    pub chrome: WindowChromeConfig,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(default)]
+pub struct WindowRimConfig {
+    #[schemars(
+        description = "Rim width in logical pixels, drawn inside the window edge. 0 draws no rim. Active only when appearance.opacity is below 1.0, and not while maximized or fullscreen."
+    )]
+    pub width: f32,
+    #[schemars(description = "Rim colour as sRGB hex.")]
+    pub color: String,
+    #[schemars(description = "Rim opacity, 0 to 1.")]
+    pub opacity: f32,
+}
+
+impl Default for WindowRimConfig {
+    fn default() -> Self {
+        Self {
+            width: 0.0,
+            color: "#ECEFF4".to_owned(),
+            opacity: 0.22,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(default)]
+pub struct WindowChromeConfig {
+    #[schemars(
+        description = "Draw mado's own window band: drag to move, double-click to maximize, close, maximize and minimize buttons, resize from every edge and corner. Used with window.decorations false. Stays off whenever anything else decorates the window, including a compositor's server-side bar."
+    )]
+    pub enabled: bool,
+    #[schemars(description = "Band height in logical pixels.")]
+    pub height: f32,
+    #[schemars(
+        description = "Resize grab width in logical pixels along every window edge. 0 turns client-side resizing off."
+    )]
+    pub edge_width: f32,
+    #[schemars(description = "Width of each band button in logical pixels.")]
+    pub button_width: f32,
+    #[schemars(
+        description = "Peak opacity of the band's tint at the window's top edge, fading to nothing at the terminal. 0 leaves the band as bare glass."
+    )]
+    pub tint: f32,
+    #[schemars(
+        description = "Show the terminal title in the band. A title with no letters or digits, or with a glyph no font can draw, is not shown."
+    )]
+    pub title: bool,
+}
+
+impl Default for WindowChromeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            height: 30.0,
+            edge_width: 6.0,
+            button_width: 40.0,
+            tint: 0.18,
+            title: true,
+        }
+    }
 }
 
 #[derive(
@@ -3057,6 +3127,13 @@ pub struct AppearanceConfig {
     pub background_blur: bool,
     #[serde(default)]
     pub unfocused_split_fill: Option<String>,
+}
+
+impl AppearanceConfig {
+    #[must_use]
+    pub fn transparent(&self) -> bool {
+        self.opacity < 1.0
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq)]
@@ -3654,6 +3731,23 @@ fn default_quick_terminal_animation_ms() -> u64 {
 
 impl MadoConfig {
     #[must_use]
+    pub fn window_app_config(&self, title: &str) -> madori::AppConfig {
+        madori::AppConfig {
+            title: title.to_owned(),
+            width: self.window.width,
+            height: self.window.height,
+            resizable: true,
+            vsync: self.performance.vsync,
+            transparent: self.appearance.transparent(),
+            decorations: self.window.decorations,
+            // mado installs its own menubar (About / Hide / Quit) instead of
+            // winit's — see `platform::install_app_menu`. Declining winit's
+            // default is the ONLY way to not ship its Services submenu, which
+            // mado can never serve.
+            menu_policy: madori::MenuPolicy::AppOwned,
+        }
+    }
+    #[must_use]
     #[allow(clippy::cast_precision_loss)]
     pub fn estimated_grid(&self) -> madori::grid::Grid {
         madori::grid::Grid::fit(
@@ -4036,6 +4130,9 @@ impl MadoConfig {
                     commit: ResizeCommit::Live, // bare = legacy commit per cell change
                     ..ResizeConfig::default()
                 },
+                corner_radius: 0.0,
+                rim: WindowRimConfig::default(),
+                chrome: WindowChromeConfig::default(),
             },
             // ── Shell ────────────────────────────────────────────
             shell: ShellConfig {
@@ -4656,6 +4753,9 @@ impl Default for WindowConfig {
             padding_balance: true,
             macos: MacosWindowConfig::default(),
             resize: ResizeConfig::default(),
+            corner_radius: 0.0,
+            rim: WindowRimConfig::default(),
+            chrome: WindowChromeConfig::default(),
         }
     }
 }
@@ -8196,6 +8296,13 @@ mod coverage {
         "tear.switch_sizing",
         "theme",
         "vigy.enabled",
+        "window.chrome.button_width",
+        "window.chrome.edge_width",
+        "window.chrome.enabled",
+        "window.chrome.height",
+        "window.chrome.tint",
+        "window.chrome.title",
+        "window.corner_radius",
         "window.decorations",
         "window.height",
         "window.inherit_working_directory",
@@ -8206,6 +8313,9 @@ mod coverage {
         "window.resize.commit",
         "window.resize.max_wait_ms",
         "window.resize.quiet_ms",
+        "window.rim.color",
+        "window.rim.opacity",
+        "window.rim.width",
         "window.width",
     ];
 
@@ -8552,5 +8662,75 @@ mod coverage {
             !leaves.iter().any(|p| p.starts_with("profiles.")),
             "profiles.* became visible; extend the coverage lists"
         );
+    }
+}
+
+#[cfg(test)]
+mod glass_config_tests {
+    use super::*;
+
+    #[test]
+    fn transparent_follows_opacity_below_one() {
+        let mut config = MadoConfig::default();
+        assert!(
+            !config.window_app_config("t").transparent,
+            "the default stays opaque"
+        );
+        config.appearance.opacity = 0.5;
+        assert!(config.window_app_config("t").transparent);
+        config.appearance.opacity = 0.0;
+        assert!(config.window_app_config("t").transparent);
+        config.appearance.opacity = 1.0;
+        assert!(!config.window_app_config("t").transparent);
+        config.appearance.opacity = f32::NAN;
+        assert!(
+            !config.window_app_config("t").transparent,
+            "NaN is not a wish for glass"
+        );
+    }
+
+    #[test]
+    fn the_app_config_carries_the_window_settings_both_builders_shared() {
+        let mut config = MadoConfig::default();
+        config.window.decorations = false;
+        config.performance.vsync = false;
+        let app = config.window_app_config("❄");
+        assert_eq!(app.title, "❄");
+        assert!(!app.decorations);
+        assert!(!app.vsync);
+        assert!(app.resizable);
+        assert_eq!(app.width, config.window.width);
+        assert_eq!(app.height, config.window.height);
+        assert!(matches!(app.menu_policy, madori::MenuPolicy::AppOwned));
+    }
+
+    #[test]
+    fn neither_builder_hand_writes_the_window_config_any_more() {
+        for source in [include_str!("main.rs"), include_str!("gui_tear_attach.rs")] {
+            assert!(source.contains(".window_app_config("), "the shared builder");
+            assert!(!source.contains(concat!("transparent", ": false")));
+        }
+    }
+
+    #[test]
+    fn every_new_window_default_changes_nothing() {
+        for window in [MadoConfig::default().window, MadoConfig::bare().window] {
+            assert_eq!(window.corner_radius, 0.0);
+            assert_eq!(window.rim.width, 0.0);
+            assert!(!window.chrome.enabled);
+        }
+    }
+
+    #[test]
+    fn the_new_keys_read_from_yaml_and_a_partial_section_keeps_its_defaults() {
+        let config: WindowConfig = serde_yaml_ng::from_str(
+            "corner_radius: 14\nrim: { width: 1 }\nchrome: { enabled: true }\n",
+        )
+        .expect("window config parses");
+        assert_eq!(config.corner_radius, 14.0);
+        assert_eq!(config.rim.width, 1.0);
+        assert_eq!(config.rim.color, WindowRimConfig::default().color);
+        assert!(config.chrome.enabled);
+        assert_eq!(config.chrome.height, WindowChromeConfig::default().height);
     }
 }

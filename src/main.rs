@@ -33,6 +33,7 @@ mod engate_consumer;
 mod fibers;
 mod file_drop;
 mod font_size;
+mod glass;
 mod glyph_class;
 mod grid_col;
 mod grid_damage;
@@ -102,6 +103,7 @@ mod shell_resolve;
 mod single_writer;
 mod suggest;
 mod vt;
+mod window_chrome;
 // mod tab removed at Phase 4 — single-pane mado.
 mod links;
 mod term_spec;
@@ -1130,20 +1132,7 @@ fn main() -> anyhow::Result<()> {
         },
     );
 
-    let app_config = madori::AppConfig {
-        title: "mado".into(),
-        width: config.window.width,
-        height: config.window.height,
-        resizable: true,
-        vsync: config.performance.vsync,
-        transparent: false,
-        decorations: config.window.decorations,
-        // mado installs its own menubar (About / Hide / Quit) instead of
-        // winit's — see `platform::install_app_menu`. Declining winit's
-        // default is the ONLY way to not ship its Services submenu, which
-        // mado can never serve.
-        menu_policy: madori::MenuPolicy::AppOwned,
-    };
+    let app_config = config.window_app_config("mado");
     // Must precede `run()`: winit installs (or, here, declines) its menu
     // during event-loop construction, and a menubar set afterwards would
     // race the first frame.
@@ -1246,6 +1235,11 @@ fn main() -> anyhow::Result<()> {
                     // on the near-layer flakes.
                     renderer.snow_set_cursor(*x as f32, *y as f32);
                     engine.on_mouse_moved(*x, *y, renderer).into()
+                }
+                AppEvent::PointerLeft => engine.on_pointer_left().into(),
+                AppEvent::WindowState(state) => {
+                    renderer.set_window_state(*state);
+                    EventResponse::ignored()
                 }
                 AppEvent::Mouse(MouseEvent::Scroll { delta, .. }) => {
                     engine.on_mouse_scroll((*delta).into(), renderer).into()

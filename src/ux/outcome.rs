@@ -28,6 +28,7 @@ pub struct EventOutcome {
     /// shape the application asked for. Forwarded as madori's
     /// `set_cursor_icon`.
     pub set_pointer_shape: Option<crate::pointer_shape::PointerShape>,
+    pub window_op: Option<madori::WindowOp>,
 }
 
 impl EventOutcome {
@@ -72,6 +73,7 @@ impl From<EventOutcome> for madori::EventResponse {
             set_cursor_icon: o
                 .set_pointer_shape
                 .map(crate::pointer_shape::PointerShape::icon),
+            window_op: o.window_op,
         }
     }
 }
@@ -93,6 +95,7 @@ mod tests {
             toggle_fullscreen: true,
             set_cursor_visible: Some(false),
             set_pointer_shape: Some(crate::pointer_shape::PointerShape::Pointer),
+            window_op: Some(madori::WindowOp::Close),
         };
         let resp: madori::EventResponse = outcome.clone().into();
         assert_eq!(resp.consumed, outcome.consumed);
@@ -101,6 +104,7 @@ mod tests {
         assert_eq!(resp.toggle_fullscreen, outcome.toggle_fullscreen);
         assert_eq!(resp.set_cursor_visible, outcome.set_cursor_visible);
         assert_eq!(resp.set_cursor_icon, Some(madori::PointerIcon::Pointer));
+        assert_eq!(resp.window_op, outcome.window_op);
     }
 
     #[test]

@@ -169,6 +169,9 @@ pub struct InputEngine {
     /// plain-click-to-open). The highlight half is the renderer's.
     links: crate::config::MadoLinksConfig,
     hover_link: Arc<Mutex<Option<crate::links::HoverLink>>>,
+    chrome_hover: Arc<Mutex<Option<madori::ChromeButton>>>,
+    chrome_press: Option<madori::ChromeButton>,
+    last_band_press: Option<Instant>,
     link_press: Option<crate::links::LinkTarget>,
     link_opener: Box<dyn Fn(&crate::links::OpenPlan) -> std::io::Result<()> + Send + Sync>,
     pointer_shape: crate::pointer_shape::PointerShape,
@@ -338,6 +341,8 @@ impl InputEngine {
         renderer.set_float_panels(Arc::clone(&float_panels));
         let hover_link = Arc::new(Mutex::new(None));
         renderer.set_hover_link(Arc::clone(&hover_link));
+        let chrome_hover = Arc::new(Mutex::new(None));
+        renderer.set_chrome_hover(Arc::clone(&chrome_hover));
         let attach_pill = Arc::new(Mutex::new(crate::attach_pill::AttachPill::new(
             params.behavior.attachment_pill,
         )));
@@ -375,6 +380,9 @@ impl InputEngine {
             behavior: params.behavior,
             links: params.links,
             hover_link,
+            chrome_hover,
+            chrome_press: None,
+            last_band_press: None,
             link_press: None,
             link_opener: Box::new(crate::links::OpenPlan::spawn),
             pointer_shape: crate::pointer_shape::PointerShape::Default,
@@ -1976,7 +1984,7 @@ impl InputEngine {
         let ch = metrics.cell_height();
         let pad_phys = self.padding * metrics.scale_factor();
         let col = ((x as f32 - pad_phys) / cw).max(0.0) as usize;
-        let row = ((y as f32 - pad_phys) / ch).max(0.0) as usize;
+        let row = ((y as f32 - pad_phys - metrics.grid_inset_top()) / ch).max(0.0) as usize;
         let (mouse_mode, sgr, term_cols, term_rows) = {
             let term = self.terminal.read();
             (
@@ -1992,6 +2000,115 @@ impl InputEngine {
             mouse_mode,
             sgr,
         )
+    }
+
+    fn reveal_mouse(&mut self) -> Option<bool> {
+        let was_hidden = !self.mouse_visible;
+        self.mouse_visible = true;
+        let show_cursor = self.behavior.mouse_hide_while_typing && was_hidden;
+        show_cursor.then_some(true)
+    }
+
+    fn set_chrome_hover(&mut self, hover: Option<madori::ChromeButton>) {
+        *self.chrome_hover.lock().unwrap() = hover;
+    }
+
+    pub fn on_pointer_left(&mut self) -> EventOutcome {
+        self.set_chrome_hover(None);
+        EventOutcome::ignored()
+    }
+
+    fn on_chrome_button(
+        &mut self,
+        button: MouseButton,
+        pressed: bool,
+        x: f64,
+        y: f64,
+        metrics: &dyn FontZoomTarget,
+    ) -> Option<EventOutcome> {
+        use madori::{WindowOp, WindowRegion};
+        let layout = metrics.chrome_layout()?;
+        #[allow(clippy::cast_possible_truncation)]
+        let region = layout.hit_test(x as f32, y as f32);
+        let with_op = |op: WindowOp| EventOutcome {
+            window_op: Some(op),
+            ..EventOutcome::consumed()
+        };
+        if !pressed {
+            if button == MouseButton::Left
+                && let Some(armed) = self.chrome_press.take()
+            {
+                return Some(if region == WindowRegion::Button(armed) {
+                    with_op(crate::window_chrome::button_op(armed))
+                } else {
+                    EventOutcome::consumed()
+                });
+            }
+            let terminal_owns_the_release = !matches!(self.pointer, Pointer::Up);
+            return (region != WindowRegion::Interior && !terminal_owns_the_release)
+                .then(EventOutcome::consumed);
+        }
+        match (region, button) {
+            (WindowRegion::Interior, _) => None,
+            (WindowRegion::Edge(edge), MouseButton::Left) => Some(with_op(WindowOp::Resize(edge))),
+            (WindowRegion::Band, MouseButton::Left) => {
+                let now = Instant::now();
+                let double = self.last_band_press.is_some_and(|at| {
+                    now.duration_since(at).as_millis() < crate::window_chrome::DOUBLE_CLICK_MS
+                });
+                self.last_band_press = (!double).then_some(now);
+                Some(with_op(if double {
+                    WindowOp::ToggleMaximize
+                } else {
+                    WindowOp::Drag
+                }))
+            }
+            (WindowRegion::Band, MouseButton::Right) =>
+            {
+                #[allow(clippy::cast_possible_truncation)]
+                Some(with_op(WindowOp::ShowMenu {
+                    x: x as i32,
+                    y: y as i32,
+                }))
+            }
+            (WindowRegion::Button(armed), MouseButton::Left) => {
+                self.chrome_press = Some(armed);
+                Some(EventOutcome::consumed())
+            }
+            _ => Some(EventOutcome::consumed()),
+        }
+    }
+
+    fn on_chrome_motion(
+        &mut self,
+        x: f64,
+        y: f64,
+        metrics: &dyn FontZoomTarget,
+    ) -> Option<EventOutcome> {
+        use madori::WindowRegion;
+        let layout = metrics.chrome_layout()?;
+        if !matches!(self.pointer, Pointer::Up) || self.active_drag.is_some() {
+            self.set_chrome_hover(None);
+            return None;
+        }
+        #[allow(clippy::cast_possible_truncation)]
+        let region = layout.hit_test(x as f32, y as f32);
+        if region == WindowRegion::Interior {
+            self.set_chrome_hover(None);
+            return None;
+        }
+        self.set_chrome_hover(match region {
+            WindowRegion::Button(button) => Some(button),
+            _ => None,
+        });
+        let vis = self.reveal_mouse();
+        let shape = crate::window_chrome::region_pointer_shape(region);
+        let mut outcome = EventOutcome::consumed().with_cursor_visibility(vis);
+        outcome.set_pointer_shape = (shape != self.pointer_shape).then(|| {
+            self.pointer_shape = shape;
+            shape
+        });
+        Some(outcome)
     }
 
     /// Mouse button press/release: PTY forwarding when the app
@@ -2019,6 +2136,9 @@ impl InputEngine {
     ) -> EventOutcome {
         self.last_mouse_pos = (x, y);
         self.last_mods = modifiers;
+        if let Some(outcome) = self.on_chrome_button(button, pressed, x, y, metrics) {
+            return outcome;
+        }
         if self.picker_owns_pointer() {
             if button == MouseButton::Left && pressed {
                 self.picker_click(x, y);
@@ -2576,6 +2696,9 @@ impl InputEngine {
     /// `mouse_hide_while_typing`.
     pub fn on_mouse_moved(&mut self, x: f64, y: f64, metrics: &dyn FontZoomTarget) -> EventOutcome {
         self.last_mouse_pos = (x, y);
+        if let Some(outcome) = self.on_chrome_motion(x, y, metrics) {
+            return outcome;
+        }
         if self.picker_owns_pointer() {
             self.picker_hover(x, y);
             return EventOutcome::consumed();
@@ -2602,10 +2725,7 @@ impl InputEngine {
             return EventOutcome::consumed();
         }
 
-        let was_hidden = !self.mouse_visible;
-        self.mouse_visible = true;
-        let show_cursor = self.behavior.mouse_hide_while_typing && was_hidden;
-        let vis = show_cursor.then_some(true);
+        let vis = self.reveal_mouse();
 
         let (col, row, mouse_mode, sgr) = self.mouse_cell(x, y, metrics);
 
@@ -2759,7 +2879,8 @@ impl InputEngine {
         let ch = metrics.cell_height().max(1.0);
         let pad_phys = self.padding * metrics.scale_factor();
         let col = ((self.last_mouse_pos.0 as f32 - pad_phys) / cw).max(0.0) as usize;
-        let row = ((self.last_mouse_pos.1 as f32 - pad_phys) / ch).max(0.0) as usize;
+        let row = ((self.last_mouse_pos.1 as f32 - pad_phys - metrics.grid_inset_top()) / ch)
+            .max(0.0) as usize;
         let (term_cols, term_rows) = {
             let term = self.terminal.read();
             (term.cols(), term.rows())
@@ -3239,7 +3360,7 @@ impl InputEngine {
             // pre-first-frame case.
             let ch = metrics.cell_height().max(1.0);
             let pad_phys = self.padding * metrics.scale_factor();
-            let raw_row = (self.last_mouse_pos.1 as f32 - pad_phys) / ch;
+            let raw_row = (self.last_mouse_pos.1 as f32 - pad_phys - metrics.grid_inset_top()) / ch;
             let rows = self.terminal.read().rows() as f32;
             self.scroll.update_autoscroll(raw_row, rows);
         } else {
@@ -3816,6 +3937,252 @@ mod tests {
         fn drain_sent(&self) -> Vec<Vec<u8>> {
             std::mem::take(&mut *self.sent.lock().unwrap())
         }
+    }
+
+    fn chrome_harness() -> Harness {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.renderer
+            .set_chrome_style(crate::window_chrome::ChromeStyle {
+                enabled: true,
+                ..crate::window_chrome::ChromeStyle::default()
+            });
+        h.renderer.set_surface_size_for_test(800, 600);
+        h
+    }
+
+    fn chrome_press(h: &mut Harness, x: f64, y: f64) -> EventOutcome {
+        h.engine
+            .on_mouse_button(MouseButton::Left, true, x, y, no_mods(), &h.renderer)
+    }
+
+    fn chrome_release(h: &mut Harness, x: f64, y: f64) -> EventOutcome {
+        h.engine
+            .on_mouse_button(MouseButton::Left, false, x, y, no_mods(), &h.renderer)
+    }
+
+    #[test]
+    fn a_band_press_moves_the_window_and_never_reaches_the_terminal() {
+        let mut h = chrome_harness();
+        h.feed(b"\x1b[?1000h\x1b[?1006h");
+        h.clear_sent();
+        let out = chrome_press(&mut h, 100.0, 15.0);
+        assert_eq!(out.window_op, Some(madori::WindowOp::Drag));
+        assert!(out.consumed);
+        assert!(
+            h.sent_bytes().is_empty(),
+            "no mouse report for a band press"
+        );
+        assert!(
+            matches!(h.engine.pointer, Pointer::Up),
+            "no selection begins"
+        );
+        let out = chrome_release(&mut h, 100.0, 15.0);
+        assert_eq!(out.window_op, None);
+        assert!(
+            h.sent_bytes().is_empty(),
+            "a stray release stays out as well"
+        );
+    }
+
+    #[test]
+    fn a_double_click_on_the_band_toggles_maximize_and_a_slow_one_moves_again() {
+        let mut h = chrome_harness();
+        assert_eq!(
+            chrome_press(&mut h, 100.0, 15.0).window_op,
+            Some(madori::WindowOp::Drag)
+        );
+        assert_eq!(
+            chrome_press(&mut h, 100.0, 15.0).window_op,
+            Some(madori::WindowOp::ToggleMaximize)
+        );
+        assert_eq!(
+            chrome_press(&mut h, 100.0, 15.0).window_op,
+            Some(madori::WindowOp::Drag),
+            "a third click starts over"
+        );
+        h.engine.last_band_press = Some(Instant::now() - std::time::Duration::from_millis(500));
+        assert_eq!(
+            chrome_press(&mut h, 100.0, 15.0).window_op,
+            Some(madori::WindowOp::Drag),
+            "past the double-click window it is a new move"
+        );
+    }
+
+    #[test]
+    fn every_edge_and_corner_starts_a_resize_and_selects_nothing() {
+        use madori::ResizeEdge;
+        let cases = [
+            ((400.0, 2.0), ResizeEdge::North),
+            ((400.0, 598.0), ResizeEdge::South),
+            ((2.0, 300.0), ResizeEdge::West),
+            ((798.0, 300.0), ResizeEdge::East),
+            ((2.0, 2.0), ResizeEdge::NorthWest),
+            ((798.0, 2.0), ResizeEdge::NorthEast),
+            ((2.0, 598.0), ResizeEdge::SouthWest),
+            ((798.0, 598.0), ResizeEdge::SouthEast),
+        ];
+        for ((x, y), edge) in cases {
+            let mut h = chrome_harness();
+            h.feed(b"text");
+            let out = chrome_press(&mut h, x, y);
+            assert_eq!(
+                out.window_op,
+                Some(madori::WindowOp::Resize(edge)),
+                "{x},{y}"
+            );
+            assert!(matches!(h.engine.pointer, Pointer::Up), "{x},{y}");
+        }
+    }
+
+    #[test]
+    fn a_control_acts_on_release_over_itself_and_a_slid_off_press_does_nothing() {
+        use madori::{ChromeButton, WindowOp};
+        let mut probe = chrome_harness();
+        let layout = probe.renderer.chrome_layout().unwrap();
+        for (button, op) in [
+            (ChromeButton::Close, WindowOp::Close),
+            (ChromeButton::Maximize, WindowOp::ToggleMaximize),
+            (ChromeButton::Minimize, WindowOp::Minimize),
+        ] {
+            let r = layout.button_rect(button);
+            let (x, y) = (f64::from(r.x + r.width / 2.0), f64::from(r.height / 2.0));
+            let press = chrome_press(&mut probe, x, y);
+            assert_eq!(press.window_op, None, "{button:?} waits for the release");
+            assert!(press.consumed);
+            assert_eq!(chrome_release(&mut probe, x, y).window_op, Some(op));
+
+            chrome_press(&mut probe, x, y);
+            let off = chrome_release(&mut probe, x, 300.0);
+            assert_eq!(off.window_op, None, "{button:?} slid off");
+            assert!(off.consumed, "and the release does not reach the terminal");
+        }
+    }
+
+    #[test]
+    fn a_right_click_on_the_band_opens_the_window_menu() {
+        let mut h = chrome_harness();
+        let out = h.engine.on_mouse_button(
+            MouseButton::Right,
+            true,
+            100.0,
+            15.0,
+            no_mods(),
+            &h.renderer,
+        );
+        assert_eq!(
+            out.window_op,
+            Some(madori::WindowOp::ShowMenu { x: 100, y: 15 })
+        );
+    }
+
+    #[test]
+    fn a_click_in_the_terminal_area_still_reaches_the_terminal_on_the_row_under_it() {
+        let mut h = chrome_harness();
+        h.feed(b"\x1b[?1000h\x1b[?1006h");
+        h.clear_sent();
+        let ch = f64::from(h.renderer.cell_height());
+        let band = f64::from(h.renderer.grid_inset_top());
+        assert!(band > 0.0);
+        let y = band + ch * 2.5;
+        let out = chrome_press(&mut h, 100.0, y);
+        assert_eq!(out.window_op, None);
+        let sent = h.sent_bytes();
+        assert_eq!(sent.len(), 1, "the press reaches the application: {sent:?}");
+        let report = String::from_utf8_lossy(&sent[0]).into_owned();
+        assert!(
+            report.ends_with(";3M"),
+            "row 3 (1-based) under the band, not row 3 + the band's rows: {report:?}"
+        );
+    }
+
+    #[test]
+    fn a_selection_that_ends_over_the_band_still_ends() {
+        let mut h = chrome_harness();
+        h.feed(b"some text to select");
+        let ch = f64::from(h.renderer.cell_height());
+        let band = f64::from(h.renderer.grid_inset_top());
+        chrome_press(&mut h, 40.0, band + ch * 0.5);
+        assert!(!matches!(h.engine.pointer, Pointer::Up), "selecting");
+        let moved = h.engine.on_mouse_moved(100.0, 15.0, &h.renderer);
+        assert_eq!(
+            moved.set_pointer_shape, None,
+            "a drag does not hover the band"
+        );
+        assert_eq!(*h.engine.chrome_hover.lock().unwrap(), None);
+        chrome_release(&mut h, 100.0, 15.0);
+        assert!(
+            matches!(h.engine.pointer, Pointer::Up),
+            "the release reached it"
+        );
+    }
+
+    #[test]
+    fn hovering_tracks_the_control_shows_a_resize_pointer_and_ends_when_the_pointer_leaves() {
+        use crate::pointer_shape::PointerShape;
+        use madori::ChromeButton;
+        let mut h = chrome_harness();
+        let layout = h.renderer.chrome_layout().unwrap();
+        let r = layout.button_rect(ChromeButton::Close);
+        let (x, y) = (f64::from(r.x + r.width / 2.0), f64::from(r.height / 2.0));
+        h.engine.on_mouse_moved(x, y, &h.renderer);
+        assert_eq!(
+            *h.engine.chrome_hover.lock().unwrap(),
+            Some(ChromeButton::Close)
+        );
+        h.engine.on_pointer_left();
+        assert_eq!(*h.engine.chrome_hover.lock().unwrap(), None);
+
+        let edge = h.engine.on_mouse_moved(400.0, 598.0, &h.renderer);
+        assert_eq!(edge.set_pointer_shape, Some(PointerShape::NsResize));
+        let corner = h.engine.on_mouse_moved(798.0, 598.0, &h.renderer);
+        assert_eq!(corner.set_pointer_shape, Some(PointerShape::NwseResize));
+        let band = h.engine.on_mouse_moved(100.0, 15.0, &h.renderer);
+        assert_eq!(band.set_pointer_shape, Some(PointerShape::Default));
+        h.engine.on_mouse_moved(400.0, 598.0, &h.renderer);
+        let inside = h.engine.on_mouse_moved(400.0, 300.0, &h.renderer);
+        assert_eq!(
+            inside.set_pointer_shape,
+            Some(PointerShape::Default),
+            "the terminal's own pointer comes back"
+        );
+    }
+
+    #[test]
+    fn a_modal_board_does_not_take_the_window_controls_away() {
+        let mut h = chrome_harness();
+        h.engine.overlay = Overlay::DirPicker;
+        assert!(h.engine.picker_owns_pointer());
+        assert_eq!(
+            chrome_press(&mut h, 100.0, 15.0).window_op,
+            Some(madori::WindowOp::Drag)
+        );
+    }
+
+    #[test]
+    fn with_chrome_off_the_same_coordinates_reach_the_terminal() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.renderer.set_surface_size_for_test(800, 600);
+        h.feed(b"\x1b[?1000h\x1b[?1006h");
+        h.clear_sent();
+        let out = chrome_press(&mut h, 100.0, 15.0);
+        assert_eq!(out.window_op, None);
+        assert_eq!(h.sent_bytes().len(), 1, "control: no band, no interception");
+        let edge = chrome_press(&mut h, 2.0, 2.0);
+        assert_eq!(edge.window_op, None, "control: no edges either");
+    }
+
+    #[test]
+    fn with_a_compositors_own_bar_the_band_intercepts_nothing() {
+        let mut h = chrome_harness();
+        h.renderer.set_window_state(madori::WindowState {
+            decorated: true,
+            ..madori::WindowState::default()
+        });
+        h.feed(b"\x1b[?1000h\x1b[?1006h");
+        h.clear_sent();
+        let out = chrome_press(&mut h, 100.0, 15.0);
+        assert_eq!(out.window_op, None);
+        assert_eq!(h.sent_bytes().len(), 1);
     }
 
     fn no_mods() -> Modifiers {

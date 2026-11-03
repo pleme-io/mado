@@ -3259,6 +3259,10 @@ impl Terminal {
     /// [`drain_side_effects`](Self::drain_side_effects) instead.
     #[must_use]
     #[allow(dead_code)] // Typed read surface (XTWINOPS title-report + MCP exposure pending); tests exercise it.
+    pub fn default_bg(&self) -> Color {
+        self.default_bg
+    }
+
     pub fn title(&self) -> Option<&str> {
         self.title.as_deref()
     }

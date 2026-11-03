@@ -178,6 +178,7 @@ enum RectMode {
     /// analytic disk SDF anti-aliased at the curved edge. All four tile
     /// edge-to-edge with the next cell's background with zero gap.
     Powerline,
+    WindowGlyph,
 }
 
 impl RectMode {
@@ -189,6 +190,7 @@ impl RectMode {
             Self::Curly => 2,
             Self::RoundedSolid => 3,
             Self::Powerline => 4,
+            Self::WindowGlyph => 5,
         }
     }
 }
@@ -353,6 +355,9 @@ rect_constructors! {
     /// shader needs the cell dims (= `size`) to evaluate the shape over the
     /// rect's own `local`, so they ride in `pattern`.
     powerline(pos, size, color, kind: f32) => Powerline, [kind, size[0], size[1], 0.0];
+
+    window_glyph(pos, size, color, kind: f32, half_stroke: f32)
+        => WindowGlyph, [kind, size[0], size[1], half_stroke];
 }
 
 impl RectInstance {
@@ -714,6 +719,32 @@ fn fs_main(frag: VertexOutput) -> @location(0) vec4<f32> {
         let coverage = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, dist);
         return vec4<f32>(frag.color.rgb, frag.color.a * coverage);
     }
+    if frag.mode == 5u {
+        let half = vec2<f32>(frag.pattern.y, frag.pattern.z) * 0.5;
+        let p = frag.local - half;
+        let e = min(half.x, half.y) - 0.5;
+        let stroke = frag.pattern.w;
+        let kind = frag.pattern.x;
+        var d = 0.0;
+        if kind < 0.5 {
+            let diagonal = min(abs(p.x - p.y), abs(p.x + p.y)) * 0.70710678;
+            d = max(diagonal - stroke, max(abs(p.x), abs(p.y)) - e);
+        } else if kind < 1.5 {
+            d = abs(max(abs(p.x), abs(p.y)) - e) - stroke;
+        } else if kind < 2.5 {
+            let side = e * 0.72;
+            let offset = e - side;
+            let front_p = p - vec2<f32>(-offset, offset);
+            let back_p = p - vec2<f32>(offset, -offset);
+            let front_box = max(abs(front_p.x), abs(front_p.y)) - side;
+            let back_box = max(abs(back_p.x), abs(back_p.y)) - side;
+            d = min(abs(front_box) - stroke, max(abs(back_box) - stroke, -front_box));
+        } else {
+            d = max(abs(p.y - e * 0.6) - stroke, abs(p.x) - e);
+        }
+        let coverage = clamp(0.5 - d, 0.0, 1.0);
+        return vec4<f32>(frag.color.rgb, frag.color.a * coverage);
+    }
     // mode 3 — rounded-corner solid. pattern = [width, height, radius, _].
     // Signed-distance to a rounded box centered on the rect; the corner
     // alpha is the 1px-AA smoothstep over that distance, so the corners
@@ -742,6 +773,7 @@ fn fs_main(frag: VertexOutput) -> @location(0) vec4<f32> {
 /// card is a soft shadow ring (≤6) + border + fill + selected-row bar;
 /// 24 leaves generous headroom and never needs to grow.
 const OVERLAY_RECT_CAPACITY: usize = 24;
+const CHROME_RECT_CAPACITY: usize = crate::window_chrome::FADE_STEPS + 2 * 3 + 2;
 
 const PILL_RECT_CAPACITY: usize = 2;
 
@@ -756,6 +788,7 @@ struct RectPipeline {
     /// [`RectPipeline::draw_overlay`].
     overlay_buffer: wgpu::Buffer,
     pill_buffer: wgpu::Buffer,
+    chrome_buffer: wgpu::Buffer,
 }
 
 impl RectPipeline {
@@ -886,6 +919,13 @@ impl RectPipeline {
             mapped_at_creation: false,
         });
 
+        let chrome_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("rect_chrome"),
+            size: (CHROME_RECT_CAPACITY * std::mem::size_of::<RectInstance>()) as u64,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         let pill_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("rect_pill_instances"),
             size: (PILL_RECT_CAPACITY * std::mem::size_of::<RectInstance>()) as u64,
@@ -901,6 +941,7 @@ impl RectPipeline {
             instance_capacity: initial_capacity,
             overlay_buffer,
             pill_buffer,
+            chrome_buffer,
         }
     }
 
@@ -964,6 +1005,16 @@ impl RectPipeline {
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, &self.bind_group, &[]);
         pass.set_vertex_buffer(0, self.overlay_buffer.slice(..));
+        pass.draw(0..6, 0..count);
+    }
+
+    fn draw_chrome<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>, count: u32) {
+        if count == 0 {
+            return;
+        }
+        pass.set_pipeline(&self.pipeline);
+        pass.set_bind_group(0, &self.bind_group, &[]);
+        pass.set_vertex_buffer(0, self.chrome_buffer.slice(..));
         pass.draw(0..6, 0..count);
     }
 
@@ -1365,6 +1416,8 @@ struct Snapshot {
     /// parse existed and the renderer never read it, so the shell's mode was
     /// invisible in mado while working in every other terminal.
     cursor_presentation: Option<(CursorStyle, bool)>,
+    default_bg: Color,
+    title: Option<String>,
     cols: usize,
     num_rows: usize,
     /// Viewport scroll offset (0 = live tail). Drives the history
@@ -1841,6 +1894,14 @@ pub struct TerminalRenderer {
     overlay_layer: Option<garasu::TextLayerId>,
     search_layer: Option<garasu::TextLayerId>,
     pill_layer: Option<garasu::TextLayerId>,
+    chrome_layer: Option<garasu::TextLayerId>,
+    glass_encoding: Option<crate::glass::GlassEncoding>,
+    glass_shape: crate::glass::GlassShape,
+    glass_pipeline: Option<crate::glass::GlassPipeline>,
+    chrome_style: crate::window_chrome::ChromeStyle,
+    window_state: madori::WindowState,
+    chrome_hover: Arc<Mutex<Option<madori::ChromeButton>>>,
+    last_chrome_hover: Option<madori::ChromeButton>,
     /// Per-suggestion render-clock time (`ctx.elapsed` seconds) of when a row
     /// first appeared on screen, so the shade-in ramps from when the OPERATOR
     /// sees it. Render-clock, NOT wall-clock `Instant` — so two renders at the
@@ -2251,7 +2312,7 @@ use crate::grid_col::{GridCol, glyph_columns};
 /// mints exactly this many layers — so a NEW text surface added without its
 /// own isolated layer (which would reintroduce the cross-pass clobber) fails
 /// the test. Order matches the `add_layer` calls in `ensure_layers`.
-const TEXT_LAYERS: &[&str] = &["terminal", "overlay", "search", "pill"];
+const TEXT_LAYERS: &[&str] = &["terminal", "overlay", "search", "pill", "chrome"];
 
 /// Quantize a cell **height** to a whole device pixel (ceil, floor 1px).
 ///
@@ -2628,6 +2689,14 @@ impl TerminalRenderer {
             overlay_layer: None,
             search_layer: None,
             pill_layer: None,
+            chrome_layer: None,
+            glass_encoding: None,
+            glass_shape: crate::glass::GlassShape::default(),
+            glass_pipeline: None,
+            chrome_style: crate::window_chrome::ChromeStyle::default(),
+            window_state: madori::WindowState::default(),
+            chrome_hover: Arc::new(Mutex::new(None)),
+            last_chrome_hover: None,
         }
     }
 
@@ -2640,6 +2709,10 @@ impl TerminalRenderer {
     /// alias) dead and `reduce_motion` un-gated for the animated
     /// effects in tear windows.
     pub fn apply_effects_and_accessibility(&mut self, config: &crate::config::MadoConfig) {
+        self.set_glass_shape(crate::glass::GlassShape::from_window(&config.window));
+        self.set_chrome_style(crate::window_chrome::ChromeStyle::from_config(
+            &config.window.chrome,
+        ));
         self.set_bold_is_bright(config.appearance.bold_is_bright);
         self.set_reduce_motion(config.accessibility.reduce_motion);
         // Clickable-link highlight gate — frost text + underline on OSC 8
@@ -2848,6 +2921,92 @@ impl TerminalRenderer {
         snap_origin_px(self.padding * self.scale_factor, self.panel_ratio)
     }
 
+    fn chrome_band_px(&self) -> f32 {
+        if !self.chrome_style.enabled || self.window_state.decorated || self.window_state.fullscreen
+        {
+            return 0.0;
+        }
+        snap_origin_px(
+            self.chrome_style.height * self.scale_factor,
+            self.panel_ratio,
+        )
+    }
+
+    fn grid_top_px(&self) -> f32 {
+        self.padding_px() + self.chrome_band_px()
+    }
+
+    #[must_use]
+    pub fn grid_inset_top(&self) -> f32 {
+        self.chrome_band_px()
+    }
+
+    #[must_use]
+    pub fn chrome_layout(&self) -> Option<madori::ChromeLayout> {
+        if !self.chrome_style.enabled || self.last_surface_w == 0 || self.last_surface_h == 0 {
+            return None;
+        }
+        let corner = self.effective_glass_shape().corner_radius;
+        madori::ChromeLayout::for_window(
+            self.last_surface_w as f32,
+            self.last_surface_h as f32,
+            self.chrome_style
+                .metrics(self.chrome_band_px(), self.scale_factor, corner),
+            self.window_state,
+        )
+    }
+
+    fn effective_glass_shape(&self) -> crate::glass::GlassShape {
+        if self.window_state.maximized || self.window_state.fullscreen {
+            self.glass_shape.flat()
+        } else {
+            self.glass_shape
+        }
+    }
+
+    pub fn set_glass_shape(&mut self, shape: crate::glass::GlassShape) {
+        self.glass_shape = shape;
+        self.last_seqno = 0;
+    }
+
+    pub fn set_chrome_style(&mut self, style: crate::window_chrome::ChromeStyle) {
+        self.chrome_style = style;
+        self.last_seqno = 0;
+    }
+
+    pub fn set_window_state(&mut self, state: madori::WindowState) {
+        if self.window_state != state {
+            self.window_state = state;
+            self.last_seqno = 0;
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn set_surface_size_for_test(&mut self, width: u32, height: u32) {
+        self.last_surface_w = width;
+        self.last_surface_h = height;
+    }
+
+    pub fn set_chrome_hover(&mut self, hover: Arc<Mutex<Option<madori::ChromeButton>>>) {
+        self.chrome_hover = hover;
+    }
+
+    fn clear_color(&self) -> wgpu::Color {
+        if self.glass_encoding.is_some() {
+            crate::glass::premultiply(self.bg_color)
+        } else {
+            self.bg_color
+        }
+    }
+
+    fn glass_pane_alpha(&self) -> f32 {
+        if self.glass_encoding.is_some() {
+            self.clear_color().a as f32
+        } else {
+            1.0
+        }
+    }
+
     /// The LOGICAL padding currently in force.
     ///
     /// ★ EXPOSED SO THE MIRROR CAN BE A MIRROR. `InputEngine` kept its own
@@ -2876,7 +3035,12 @@ impl TerminalRenderer {
     fn overlay_row_budget(&self, height: u32) -> crate::row_budget::VisibleRows {
         let line_h = self.font_size_px() * self.line_height;
         let pad = self.padding_px();
-        crate::row_budget::RowBudget::for_viewport(height as f32, line_h, pad, line_h * 0.5)
+        crate::row_budget::RowBudget::for_viewport(
+            height as f32 - self.chrome_band_px(),
+            line_h,
+            pad,
+            line_h * 0.5,
+        )
     }
 
     /// Current HiDPI scale factor. Public so consumers (gui_tear_attach's
@@ -2913,10 +3077,14 @@ impl TerminalRenderer {
 
     #[must_use]
     pub fn grid_for_window_phys(&self, width_phys: u32, height_phys: u32) -> madori::grid::Grid {
+        let pad = self.padding_px();
         madori::grid::Grid::fit(
             madori::grid::SurfaceSize::physical(width_phys, height_phys),
             madori::grid::CellMetrics::new(self.cell_width, self.cell_height),
-            madori::grid::Insets::uniform(self.padding_px()),
+            madori::grid::Insets {
+                top: madori::grid::ExtentPx::new(pad + self.chrome_band_px()),
+                ..madori::grid::Insets::uniform(pad)
+            },
         )
     }
 
@@ -3090,7 +3258,7 @@ impl TerminalRenderer {
         let pw = text_w + pad_x * 2.0;
         let ph = line_h + pad_y * 2.0;
         let px = (width as f32 - pad - self.cell_width - pw).max(pad);
-        let py = pad + self.cell_height * 0.5;
+        let py = self.grid_top_px() + self.cell_height * 0.5;
         let style = self.overlay_style;
         let lin = |c: crate::terminal::Color, a: f32| -> [f32; 4] {
             let l = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
@@ -3175,6 +3343,173 @@ impl TerminalRenderer {
         });
         if let Err(e) = frame.render(token, &mut pass) {
             tracing::warn!("attach pill text render: {e}");
+        }
+    }
+
+    fn chrome_rects(
+        &self,
+        layout: &madori::ChromeLayout,
+        width: f32,
+        hover: Option<madori::ChromeButton>,
+    ) -> Vec<RectInstance> {
+        use crate::window_chrome as chrome;
+        let style = self.overlay_style;
+        let lin = |c: Color, a: f32| -> [f32; 4] {
+            let l = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
+            [l.r, l.g, l.b, a]
+        };
+        let scale = self.scale_factor;
+        let band = layout.band_height();
+        let mut rects: Vec<RectInstance> = chrome::fade_steps(band, self.chrome_style.tint)
+            .into_iter()
+            .map(|(y, h, a)| RectInstance::solid([0.0, y], [width, h], lin(style.panel, a)))
+            .collect();
+        let rest_alpha = if self.focused { 0.78 } else { 0.42 };
+        for button in madori::ChromeButton::ALL {
+            let r = layout.button_rect(button);
+            let (cx, cy) = (r.x + r.width * 0.5, r.y + r.height * 0.5);
+            let hovered = hover == Some(button);
+            if hovered {
+                let side = (chrome::HOVER_PILL_LOGICAL_PX * scale)
+                    .min(band)
+                    .min(r.width);
+                let fill = if button == madori::ChromeButton::Close {
+                    lin(self.ansi_colors[1], 0.9)
+                } else {
+                    lin(style.row, 0.16)
+                };
+                rects.push(RectInstance::rounded(
+                    [cx - side * 0.5, cy - side * 0.5],
+                    [side, side],
+                    fill,
+                    side * 0.5,
+                ));
+            }
+            let ink = match (hovered, button) {
+                (true, madori::ChromeButton::Close) => lin(self.ansi_colors[15], 1.0),
+                (true, _) => lin(style.row, 1.0),
+                (false, _) => lin(style.row, rest_alpha),
+            };
+            let kind = match button {
+                madori::ChromeButton::Close => 0.0,
+                madori::ChromeButton::Maximize if self.window_state.maximized => 2.0,
+                madori::ChromeButton::Maximize => 1.0,
+                madori::ChromeButton::Minimize => 3.0,
+            };
+            let side = chrome::GLYPH_LOGICAL_PX * scale;
+            rects.push(RectInstance::window_glyph(
+                [cx - side * 0.5, cy - side * 0.5],
+                [side, side],
+                ink,
+                kind,
+                chrome::GLYPH_HALF_STROKE_LOGICAL_PX * scale,
+            ));
+        }
+        rects
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn draw_window_chrome(
+        &self,
+        layout: &madori::ChromeLayout,
+        title: Option<&str>,
+        hover: Option<madori::ChromeButton>,
+        frame: &mut garasu::Frame<'_>,
+        gpu: &garasu::GpuContext,
+        view: &wgpu::TextureView,
+        width: u32,
+        height: u32,
+        encoder: &mut wgpu::CommandEncoder,
+    ) {
+        let rects = self.chrome_rects(layout, width as f32, hover);
+        if let Some(ref pipeline) = self.rect_pipeline {
+            pipeline.update_resolution(&gpu.queue, width, height);
+            gpu.queue
+                .write_buffer(&pipeline.chrome_buffer, 0, bytemuck::cast_slice(&rects));
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("mado_window_chrome"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            pipeline.draw_chrome(&mut pass, rects.len() as u32);
+        }
+        let Some(raw) = title else {
+            return;
+        };
+        let margin = crate::window_chrome::TITLE_LEFT_MARGIN_LOGICAL_PX * self.scale_factor;
+        let right = layout.button_rect(madori::ChromeButton::Minimize).x;
+        let avail = (right - margin * 2.0).max(0.0);
+        let fs = self.font_size_px() * 0.9;
+        let line_h = fs * self.line_height;
+        let max_chars = (avail / (self.cell_width * 0.9).max(1.0)) as usize;
+        let Some(text) = crate::window_chrome::clean_title(raw, max_chars) else {
+            return;
+        };
+        let attrs = Attrs::new().family(Family::Name(&self.font_family));
+        let mut buf = frame.create_rich_buffer(&[(text.as_str(), attrs)], fs, line_h);
+        buf.shape_until_scroll(frame.font_system_mut(), false);
+        let clean = crate::window_chrome::glyphs_are_clean(
+            buf.layout_runs()
+                .flat_map(|run| run.glyphs.iter().map(|g| g.glyph_id)),
+        );
+        if !clean {
+            return;
+        }
+        let text_w = buf.layout_runs().fold(0.0_f32, |m, run| m.max(run.line_w));
+        let band = layout.band_height();
+        let left = ((width as f32 - text_w) * 0.5)
+            .max(margin)
+            .min((right - margin - text_w).max(margin));
+        let top = ((band - line_h) * 0.5).max(0.0);
+        let ink = self.overlay_style.row;
+        let alpha = if self.focused { 217 } else { 128 };
+        let text_areas = vec![glyphon::TextArea {
+            buffer: &buf,
+            left,
+            top,
+            scale: 1.0,
+            bounds: card_text_bounds(margin, 0.0, right - margin * 2.0, band),
+            default_color: GlyphonColor::rgba(ink.r, ink.g, ink.b, alpha),
+            custom_glyphs: &[],
+        }];
+        let token = match frame.prepare(
+            self.chrome_layer
+                .expect("ensure_layers minted the chrome layer before any draw"),
+            &gpu.device,
+            &gpu.queue,
+            text_areas,
+        ) {
+            Ok(t) => t,
+            Err(e) => {
+                tracing::warn!("window chrome text prepare: {e}");
+                return;
+            }
+        };
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("mado_window_chrome_title"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+        if let Err(e) = frame.render(token, &mut pass) {
+            tracing::warn!("window chrome text render: {e}");
         }
     }
 
@@ -3474,12 +3809,13 @@ impl TerminalRenderer {
         } else {
             (vis_max_w(), block_h)
         };
+        let grid_top = self.grid_top_px();
         let (left, top0) = match spec.anchor {
-            PickerAnchor::Top => (edge_left, pad + self.cell_height),
-            PickerAnchor::Bottom => (edge_left, (height as f32 - block_h - pad).max(pad)),
+            PickerAnchor::Top => (edge_left, grid_top + self.cell_height),
+            PickerAnchor::Bottom => (edge_left, (height as f32 - block_h - pad).max(grid_top)),
             PickerAnchor::Center => (
                 ((width as f32 - card_w) / 2.0).max(pad),
-                ((height as f32 - card_h) / 2.0).max(pad),
+                ((height as f32 - card_h) / 2.0).max(grid_top),
             ),
         };
         let lift = (1.0 - progress) * line_h * 0.4;
@@ -4030,6 +4366,9 @@ impl TerminalRenderer {
         if self.search_layer.is_none() {
             self.search_layer = Some(text.add_layer(device));
         }
+        if self.chrome_layer.is_none() {
+            self.chrome_layer = Some(text.add_layer(device));
+        }
         if self.pill_layer.is_none() {
             self.pill_layer = Some(text.add_layer(device));
         }
@@ -4147,6 +4486,10 @@ impl TerminalRenderer {
         let arrivals = term.take_arrivals();
         let cursor = *term.cursor();
         let cursor_presentation = term.cursor_presentation();
+        let default_bg = term.default_bg();
+        let title = (self.chrome_band_px() > 0.0 && self.chrome_style.title)
+            .then(|| term.title().map(str::to_owned))
+            .flatten();
         let cols = term.cols();
         let num_rows = term.rows();
         let on_alt = term.on_alt_screen();
@@ -4244,6 +4587,8 @@ impl TerminalRenderer {
                 palette,
                 cursor,
                 cursor_presentation,
+                default_bg,
+                title,
                 cols,
                 num_rows,
                 scroll_offset,
@@ -4305,6 +4650,7 @@ impl TerminalRenderer {
         // rather than as the mangled underline it actually was.
         let mut decoration_instances: Vec<RectInstance> = Vec::new();
         let default_bg = Color::BLACK;
+        let clear_bg = self.glass_encoding.map(|_| snap.default_bg);
 
         // P11 — run-length batch every per-row "single-row, same-color
         // wide span" rect kind: backgrounds, underlines, strikethroughs,
@@ -4444,7 +4790,7 @@ impl TerminalRenderer {
                 let blink_hidden = !blink_on && attrs.flags.contains(AttrFlags::BLINK);
 
                 // ── Background span ─────────────────────────────────
-                if bg != default_bg {
+                if bg != default_bg && Some(bg) != clear_bg {
                     let color = color_to_f32(&bg);
                     match &mut bg_run {
                         Some((_, cells, c)) if *c == color => {
@@ -5179,6 +5525,10 @@ impl TerminalRenderer {
                 // (ShapeKey carries the effective fg).
                 let hidden = cell_attrs.flags.contains(AttrFlags::HIDDEN)
                     || (!blink_on && cell_attrs.flags.contains(AttrFlags::BLINK));
+                if hidden && self.glass_encoding.is_some() {
+                    flush_run(&mut run, &mut row_buffers, text);
+                    continue;
+                }
 
                 let effective_fg = if hidden {
                     if inverse { style.fg } else { style.bg }
@@ -6435,7 +6785,7 @@ impl TerminalRenderer {
         let (green, cyan, violet) = self.aurora_palette();
         AuroraParams::default()
             .with_resolution(res)
-            .with_intensity(intensity)
+            .with_intensity(intensity * self.glass_pane_alpha())
             .with_drift(drift)
             .with_shimmer(shimmer)
             .with_horizon(horizon)
@@ -6528,7 +6878,7 @@ impl TerminalRenderer {
                         catalog::grain::GrainParams::default().opacity
                     };
                     let p = catalog::grain::GrainParams::new(res)
-                        .with_opacity(opacity)
+                        .with_opacity(opacity * self.glass_pane_alpha())
                         .with_scale(1.0)
                         .with_time(self.aurora_state.time);
                     frame.set(catalog::grain::PARAMS_RESOURCE, &p);
@@ -6538,7 +6888,7 @@ impl TerminalRenderer {
                     // deeper shade of the current surface) — theme-portable
                     // depth, no hardcoded colour. `bg_color` is already
                     // linear, so it feeds the effect uniform directly.
-                    let bg = self.bg_color;
+                    let bg = self.clear_color();
                     let darken = 0.35_f64;
                     let color = [
                         (bg.r * darken) as f32,
@@ -6921,6 +7271,9 @@ impl TerminalRenderer {
         if *self.hover_link.lock().unwrap() != self.last_hover_link {
             return FrameDemand::Now;
         }
+        if *self.chrome_hover.lock().unwrap() != self.last_chrome_hover {
+            return FrameDemand::Now;
+        }
 
         later
     }
@@ -6983,6 +7336,10 @@ impl RenderCallback for TerminalRenderer {
             TOTAL_FRAMES_SKIPPED.fetch_add(1, Ordering::Relaxed);
         }
         demand
+    }
+
+    fn surface_configured(&mut self, alpha: madori::SurfaceAlpha) {
+        self.glass_encoding = crate::glass::GlassEncoding::for_surface(alpha);
     }
 
     fn init(&mut self, gpu: &garasu::GpuContext) {
@@ -7454,12 +7811,16 @@ impl RenderCallback for TerminalRenderer {
         let hover_now = self.hover_link.lock().unwrap().clone();
         let hover_changed = hover_now != self.last_hover_link;
         self.last_hover_link = hover_now;
+        let chrome_hover_now = *self.chrome_hover.lock().unwrap();
+        let chrome_hover_changed = chrome_hover_now != self.last_chrome_hover;
+        self.last_chrome_hover = chrome_hover_now;
         let paint_reason = classify_paint(PaintSignals {
             content: prev_seqno == 0 || seqno != prev_seqno,
             overlay: overlay_active_peek
                 || overlay_changed
                 || selection_changed
                 || hover_changed
+                || chrome_hover_changed
                 || search_active_peek
                 || self.overlay_motion.closing(),
             animation: blink_flip || bell_active || text_blink_flip,
@@ -7471,7 +7832,7 @@ impl RenderCallback for TerminalRenderer {
         // at snapshot time — no lock held here.
         let rects_start = Instant::now();
         let mut rect_instances =
-            self.build_rect_instances(&snap, ctx.elapsed, self.padding_px(), self.padding_px());
+            self.build_rect_instances(&snap, ctx.elapsed, self.padding_px(), self.grid_top_px());
         let rects_us = rects_start.elapsed().as_micros() as u64;
         let rects_count = rect_instances.len();
 
@@ -7567,7 +7928,7 @@ impl RenderCallback for TerminalRenderer {
         if snap.cursor.visible && snap.cursor.row < snap.num_rows && snap.cursor.col < snap.cols {
             self.glow_state.params.center_px = [
                 self.padding_px() + (snap.cursor.col as f32 + 0.5) * self.cell_width,
-                self.padding_px() + (snap.cursor.row as f32 + 0.5) * self.cell_height,
+                self.grid_top_px() + (snap.cursor.row as f32 + 0.5) * self.cell_height,
             ];
         }
         let format = SURFACE_FORMAT;
@@ -7594,12 +7955,20 @@ impl RenderCallback for TerminalRenderer {
                 label: Some("mado_render"),
             });
 
+        let glass_lease = self.glass_encoding.map(|_| {
+            self.texture_pool.lease(
+                &ctx.gpu.device,
+                engawa_wgpu::TextureKey::offscreen(ctx.width, ctx.height, format),
+            )
+        });
+        let out_view: &wgpu::TextureView = glass_lease
+            .as_ref()
+            .map_or(ctx.surface_view, |lease| lease.view());
         // The render target for every scene pass: the leased SCENE
         // texture when the effect chain is live, the surface directly
         // otherwise.
-        let scene_view: &wgpu::TextureView = scene_lease
-            .as_ref()
-            .map_or(ctx.surface_view, |lease| lease.view());
+        let scene_view: &wgpu::TextureView =
+            scene_lease.as_ref().map_or(out_view, |lease| lease.view());
         // Pass 1: Clear background
         {
             let view = scene_view;
@@ -7609,7 +7978,7 @@ impl RenderCallback for TerminalRenderer {
                     view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(self.bg_color),
+                        load: wgpu::LoadOp::Clear(self.clear_color()),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -7700,7 +8069,7 @@ impl RenderCallback for TerminalRenderer {
                 view,
                 &images_below,
                 self.padding_px(),
-                self.padding_px(),
+                self.grid_top_px(),
                 // Clip to the grid pane; the full target when none is set, which
                 // is byte-identical to the unclipped behaviour this replaces.
                 self.grid_pane
@@ -7720,8 +8089,9 @@ impl RenderCallback for TerminalRenderer {
         // Pass 3: Text with per-cell colors
         let mut text_areas = Vec::new();
         let pad = self.padding_px();
+        let grid_top = self.grid_top_px();
         for (row_idx, col_start, buffer) in &text_buffers {
-            let y = pad + (*row_idx as f32 * self.cell_height);
+            let y = grid_top + (*row_idx as f32 * self.cell_height);
             // `.idx()` is the single audited bridge from the typed
             // `GridCol` to the raw column the pixel math consumes.
             let x = pad + (col_start.idx() as f32 * self.cell_width);
@@ -7812,7 +8182,7 @@ impl RenderCallback for TerminalRenderer {
                 view,
                 &images_above,
                 self.padding_px(),
-                self.padding_px(),
+                self.grid_top_px(),
                 // Clip to the grid pane; the full target when none is set, which
                 // is byte-identical to the unclipped behaviour this replaces.
                 self.grid_pane
@@ -7830,7 +8200,7 @@ impl RenderCallback for TerminalRenderer {
         if let Some(scene) = scene_lease {
             match self.dispatch_effect_chain(
                 &ctx.gpu.device,
-                ctx.surface_view,
+                out_view,
                 ctx.width,
                 ctx.height,
                 format,
@@ -7870,12 +8240,12 @@ impl RenderCallback for TerminalRenderer {
             ctx.width,
             ctx.height,
             &mut overlay_encoder,
-            ctx.surface_view,
+            out_view,
         );
 
         // Pass 6: modal overlays (session switcher / dir picker / search),
         // reader-only. Renders AFTER snow so it floats on top, onto
-        // ctx.surface_view (post-chain). State is snapshotted (locks
+        // the post-chain target. State is snapshotted (locks
         // dropped) before any GPU work.
         //
         // SINGLE-OVERLAY INVARIANT, structurally. The renderer draws the
@@ -7912,7 +8282,7 @@ impl RenderCallback for TerminalRenderer {
                         &ghost,
                         &mut frame,
                         ctx.gpu,
-                        ctx.surface_view,
+                        out_view,
                         ctx.width,
                         ctx.height,
                         &mut overlay_encoder,
@@ -7945,7 +8315,7 @@ impl RenderCallback for TerminalRenderer {
                     footer.as_deref(),
                     &mut frame,
                     ctx.gpu,
-                    ctx.surface_view,
+                    out_view,
                     ctx.width,
                     ctx.height,
                     &mut overlay_encoder,
@@ -7962,7 +8332,7 @@ impl RenderCallback for TerminalRenderer {
                     sel,
                     &mut frame,
                     ctx.gpu,
-                    ctx.surface_view,
+                    out_view,
                     ctx.width,
                     ctx.height,
                     &mut overlay_encoder,
@@ -7974,7 +8344,7 @@ impl RenderCallback for TerminalRenderer {
                     &menu,
                     &mut frame,
                     ctx.gpu,
-                    ctx.surface_view,
+                    out_view,
                     ctx.width,
                     ctx.height,
                     &mut overlay_encoder,
@@ -7991,7 +8361,7 @@ impl RenderCallback for TerminalRenderer {
                     count,
                     &mut frame,
                     ctx.gpu,
-                    ctx.surface_view,
+                    out_view,
                     ctx.width,
                     ctx.height,
                     &mut overlay_encoder,
@@ -8001,13 +8371,26 @@ impl RenderCallback for TerminalRenderer {
         if !matches!(focus, Overlay::None) {
             self.overlay_motion.end_frame();
         }
+        if let Some(layout) = self.chrome_layout() {
+            self.draw_window_chrome(
+                &layout,
+                snap.title.as_deref(),
+                chrome_hover_now,
+                &mut frame,
+                ctx.gpu,
+                out_view,
+                ctx.width,
+                ctx.height,
+                &mut overlay_encoder,
+            );
+        }
         let pill = self.attach_pill_frame(ctx.elapsed);
         if let Some(pill) = &pill {
             self.draw_attach_pill(
                 pill,
                 &mut frame,
                 ctx.gpu,
-                ctx.surface_view,
+                out_view,
                 ctx.width,
                 ctx.height,
                 &mut overlay_encoder,
@@ -8020,6 +8403,28 @@ impl RenderCallback for TerminalRenderer {
         // trim-then-submit is the correct ordering.
         drop(frame);
         self.pill_painted = pill.is_some();
+        if let Some(lease) = glass_lease {
+            if let Some(encoding) = self.glass_encoding {
+                let uniforms = crate::glass::GlassUniforms::new(
+                    self.effective_glass_shape(),
+                    encoding,
+                    ctx.width,
+                    ctx.height,
+                    ctx.scale_factor as f32,
+                );
+                let pipeline = self.glass_pipeline.get_or_insert_with(|| {
+                    crate::glass::GlassPipeline::new(&ctx.gpu.device, SURFACE_FORMAT)
+                });
+                pipeline.resolve(
+                    ctx.gpu,
+                    &mut overlay_encoder,
+                    lease.view(),
+                    ctx.surface_view,
+                    &uniforms,
+                );
+            }
+            frame_leases.push(lease);
+        }
         command_buffers.push(overlay_encoder.finish());
         ctx.gpu.queue.submit(command_buffers);
         // Leases return to the pool only after the submit that
@@ -11637,6 +12042,472 @@ mod render_gpu_invariants {
         target.read_pixels_rgba8(gpu)
     }
 
+    fn pane(a: f64) -> wgpu::Color {
+        let lin = ishou_tokens::Srgb::new(0x2e, 0x34, 0x40).to_linear();
+        wgpu::Color {
+            r: f64::from(lin.r),
+            g: f64::from(lin.g),
+            b: f64::from(lin.b),
+            a,
+        }
+    }
+
+    fn translucent() -> madori::SurfaceAlpha {
+        madori::SurfaceAlpha {
+            mode: wgpu::CompositeAlphaMode::PreMultiplied,
+            transparent: true,
+        }
+    }
+
+    fn without_ambience(r: &mut TerminalRenderer) {
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.ambience = crate::ambience::AmbiencePreset::Off;
+        r.set_effects_config(effects);
+    }
+
+    fn rgba(pixels: &[u8], w: u32, x: u32, y: u32) -> [u8; 4] {
+        let i = ((y * w + x) * 4) as usize;
+        [pixels[i + 2], pixels[i + 1], pixels[i], pixels[i + 3]]
+    }
+
+    fn near(got: u8, want: f32, tolerance: f32) -> bool {
+        (f32::from(got) - want).abs() <= tolerance
+    }
+
+    #[test]
+    fn glass_clear_is_electrically_premultiplied() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (64u32, 32u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 8, 2);
+        without_ambience(&mut r);
+        r.set_bg_fg(pane(0.5), Color::WHITE);
+        r.surface_configured(translucent());
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let [red, green, blue, a] = rgba(&pixels, w, 40, 20);
+        assert!(near(a, 127.5, 1.0), "alpha {a}");
+        assert!(near(red, 46.0 * 0.5, 1.5), "red {red}");
+        assert!(near(green, 52.0 * 0.5, 1.5), "green {green}");
+        assert!(near(blue, 64.0 * 0.5, 1.5), "blue {blue}");
+        let linear_premultiply = crate::glass::srgb_encode(pane(1.0).r as f32 * 0.5) * 255.0;
+        assert!(
+            !near(red, linear_premultiply, 3.0),
+            "control: the linear premultiply stores {linear_premultiply}, which is too bright"
+        );
+    }
+
+    #[test]
+    fn a_window_that_got_no_alpha_renders_the_same_bytes_as_one_never_told() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (128u32, 64u32);
+        let frame = |alpha: Option<madori::SurfaceAlpha>| {
+            let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+            let (mut r, t, mut text) = build_gpu_renderer(&gpu, 16, 4);
+            r.set_bg_fg(pane(0.5), Color::WHITE);
+            t.write().feed(b"x \x1b[42mgreen\x1b[0m");
+            if let Some(alpha) = alpha {
+                r.surface_configured(alpha);
+            }
+            render_one_frame_headless(&gpu, &mut r, &mut text, &target)
+        };
+        let never_told = frame(None);
+        assert!(
+            never_told
+                == frame(Some(madori::SurfaceAlpha {
+                    mode: wgpu::CompositeAlphaMode::Opaque,
+                    transparent: true,
+                })),
+            "granted Opaque is today's frame"
+        );
+        assert!(
+            never_told
+                == frame(Some(madori::SurfaceAlpha {
+                    mode: wgpu::CompositeAlphaMode::PreMultiplied,
+                    transparent: false,
+                })),
+            "a window that did not ask is today's frame"
+        );
+        assert!(
+            never_told != frame(Some(translucent())),
+            "control: glass does change the frame"
+        );
+    }
+
+    #[test]
+    fn glass_text_keeps_full_strength() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (128u32, 96u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 4, 2);
+        r.set_font_size(64.0);
+        r.set_bg_fg(pane(0.12), Color::WHITE);
+        r.surface_configured(translucent());
+        t.write().feed(b"\x1b[?25l\x1b[97mH");
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let core = (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .map(|(x, y)| rgba(&pixels, w, x, y))
+            .max_by_key(|p| p[3])
+            .unwrap();
+        assert_eq!(core[3], 255, "a glyph core is opaque: {core:?}");
+        assert!(core[0] >= 250, "and carries its colour: {core:?}");
+    }
+
+    #[test]
+    fn glass_default_background_cells_stay_clear_and_coloured_cells_stay_solid() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (128u32, 64u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 16, 4);
+        without_ambience(&mut r);
+        crate::theme::apply_config_theme(&mut r, &t, "nord", 0.5);
+        r.surface_configured(translucent());
+        t.write().feed(b"\x1b[?25lx\r\n\x1b[41m   \x1b[0m");
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let ch = r.cell_height.round() as u32;
+        let cw = r.cell_width.round() as u32;
+        let typed_cell_corner = rgba(&pixels, w, 0, 0);
+        assert!(
+            near(typed_cell_corner[3], 127.5, 1.5),
+            "a typed cell on the default background paints no rect: {typed_cell_corner:?}"
+        );
+        let coloured = rgba(&pixels, w, cw, ch + ch / 2);
+        assert_eq!(
+            coloured[3], 255,
+            "a coloured cell stays solid: {coloured:?}"
+        );
+        let padding_past_the_grid = rgba(&pixels, w, w - 1, h - 1);
+        assert!(near(padding_past_the_grid[3], 127.5, 1.5));
+    }
+
+    #[test]
+    fn glass_hidden_text_paints_nothing() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (128u32, 64u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 8, 2);
+        without_ambience(&mut r);
+        r.set_font_size(32.0);
+        r.set_bg_fg(pane(0.5), Color::WHITE);
+        r.surface_configured(translucent());
+        t.write().feed(b"\x1b[?25l\x1b[8mHHH");
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        for y in 0..h {
+            for x in 0..w {
+                let p = rgba(&pixels, w, x, y);
+                assert!(near(p[3], 127.5, 1.5), "{x},{y}: {p:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn glass_corners_go_clear_and_the_rim_sits_inside_the_edge() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (128u32, 96u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 8, 2);
+        t.write().feed(b"\x1b[?25l");
+        without_ambience(&mut r);
+        r.set_bg_fg(pane(0.5), Color::WHITE);
+        r.surface_configured(translucent());
+        r.set_glass_shape(crate::glass::GlassShape {
+            corner_radius: 16.0,
+            rim_width: 1.0,
+            rim_color: [1.0, 1.0, 1.0, 1.0],
+        });
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        for (x, y) in [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)] {
+            assert_eq!(rgba(&pixels, w, x, y), [0, 0, 0, 0], "corner {x},{y}");
+        }
+        assert_eq!(
+            rgba(&pixels, w, w / 2, 0),
+            [255, 255, 255, 255],
+            "rim at the edge"
+        );
+        assert!(
+            near(rgba(&pixels, w, w / 2, 2)[3], 127.5, 1.5),
+            "clean inside the rim"
+        );
+        r.set_window_state(madori::WindowState {
+            maximized: true,
+            ..madori::WindowState::default()
+        });
+        let flat = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        assert!(
+            near(rgba(&flat, w, 0, 0)[3], 127.5, 1.5),
+            "maximized: no rounded corner"
+        );
+        assert!(
+            near(rgba(&flat, w, w / 2, 0)[3], 127.5, 1.5),
+            "maximized: no rim"
+        );
+    }
+
+    #[test]
+    fn the_resolve_shader_matches_the_pure_maths() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (96u32, 64u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 8, 2);
+        t.write().feed(b"\x1b[?25l");
+        without_ambience(&mut r);
+        r.set_bg_fg(pane(0.3), Color::WHITE);
+        r.surface_configured(translucent());
+        let shape = crate::glass::GlassShape {
+            corner_radius: 12.0,
+            rim_width: 1.5,
+            rim_color: [0.8, 0.8, 0.9, 0.4],
+        };
+        r.set_glass_shape(shape);
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let uniforms = crate::glass::GlassUniforms::new(
+            shape,
+            crate::glass::GlassEncoding::ElectricalPremultiplied,
+            w,
+            h,
+            1.0,
+        );
+        let clear = crate::glass::premultiply(pane(0.3));
+        let scene = [
+            clear.r as f32,
+            clear.g as f32,
+            clear.b as f32,
+            clear.a as f32,
+        ];
+        for y in (0..h).chain([0, 1, 2, 3]) {
+            for x in (0..12).chain(w / 2..w / 2 + 2).chain(w - 12..w) {
+                if y >= 16 && y < h - 16 && x > 2 && x < w - 3 && x != w / 2 {
+                    continue;
+                }
+                let want = uniforms.expected_pixel(scene, x, y);
+                let got = rgba(&pixels, w, x, y);
+                for c in 0..3 {
+                    let stored = crate::glass::srgb_encode(want[c]) * 255.0;
+                    assert!(
+                        near(got[c], stored, 2.5),
+                        "{x},{y} ch{c}: {got:?} vs {want:?}"
+                    );
+                }
+                assert!(
+                    near(got[3], want[3] * 255.0, 2.5),
+                    "{x},{y} a: {got:?} vs {want:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn every_catalog_effect_keeps_the_pane_see_through_and_every_pixel_valid() {
+        use engawa_wgpu::catalog::CatalogEffect;
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (128u32, 96u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        for effect in CatalogEffect::ALL.iter().copied() {
+            let (mut r, t, mut text) = build_gpu_renderer(&gpu, 16, 4);
+            let mut effects = crate::config::MadoEffectsConfig::default();
+            effects.ambience = crate::ambience::AmbiencePreset::Off;
+            match effect {
+                CatalogEffect::Colorblind => effects.colorblind.mode = ColorblindMode::Protanopia,
+                CatalogEffect::Crt => effects.crt.enabled = true,
+                CatalogEffect::Scanlines => effects.scanlines.enabled = true,
+                CatalogEffect::Bloom => effects.bloom.enabled = true,
+                CatalogEffect::GlowOnBell => effects.glow_on_bell.enabled = true,
+                CatalogEffect::Aurora => effects.aurora.enabled = true,
+                CatalogEffect::Snow => effects.snow.enabled = true,
+                CatalogEffect::Grain => effects.grain.enabled = true,
+                CatalogEffect::WindowDepth => effects.window_depth.enabled = true,
+            }
+            r.set_effects_config(effects);
+            r.set_bg_fg(pane(0.3), Color::WHITE);
+            r.surface_configured(translucent());
+            t.write().feed(b"\x1b[?25lglass");
+            let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            let mut alphas: Vec<u8> = pixels.chunks_exact(4).map(|p| p[3]).collect();
+            alphas.sort_unstable();
+            let median = alphas[alphas.len() / 2];
+            assert!(
+                near(median, 0.3 * 255.0, 3.0),
+                "{effect:?} median alpha {median}"
+            );
+            for (i, p) in pixels.chunks_exact(4).enumerate() {
+                let brightest = p[0].max(p[1]).max(p[2]);
+                assert!(
+                    brightest <= p[3].saturating_add(2),
+                    "{effect:?} pixel {i} stores more light than alpha: {p:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn grain_on_glass_scales_with_the_pane_and_does_not_shout_over_the_desktop() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (128u32, 96u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 16, 4);
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.ambience = crate::ambience::AmbiencePreset::Off;
+        effects.grain.enabled = true;
+        r.set_effects_config(effects);
+        r.set_bg_fg(pane(0.12), Color::WHITE);
+        r.surface_configured(translucent());
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let band: Vec<u8> = (40..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .map(|(x, y)| rgba(&pixels, w, x, y)[0])
+            .collect();
+        let spread = band.iter().max().unwrap() - band.iter().min().unwrap();
+        assert!(spread <= 5, "grain spread {spread} of 255 on a 12% pane");
+    }
+
+    #[test]
+    fn modal_overlays_land_under_the_resolve_not_behind_it() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (320u32, 240u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 40, 12);
+        r.set_bg_fg(pane(0.2), Color::WHITE);
+        r.surface_configured(translucent());
+        r.session_picker_anchor = crate::config::PickerAnchor::Center;
+        r.motion_picker_animate = false;
+        *r.overlay_focus.lock().unwrap() = crate::ux::modes::Overlay::SessionPicker;
+        {
+            let mut picker = r.session_picker.lock().unwrap();
+            picker.open = true;
+            picker.disabled = true;
+        }
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let center = (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .map(|(x, y)| rgba(&pixels, w, x, y))
+            .max_by_key(|p| p[3])
+            .unwrap();
+        assert!(center[3] > 200, "the card survives the resolve: {center:?}");
+    }
+
+    #[test]
+    fn the_band_draws_its_controls_on_glass_and_on_an_opaque_window() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (320u32, 120u32);
+        for glass in [true, false] {
+            let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+            let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 4);
+            t.write().feed(b"\x1b[?25l");
+            without_ambience(&mut r);
+            r.set_bg_fg(pane(if glass { 0.3 } else { 1.0 }), Color::WHITE);
+            if glass {
+                r.surface_configured(translucent());
+            }
+            let plain = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            r.set_chrome_style(crate::window_chrome::ChromeStyle {
+                enabled: true,
+                ..crate::window_chrome::ChromeStyle::default()
+            });
+            render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            let banded = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            let layout = r.chrome_layout().expect("the band is active");
+            for button in madori::ChromeButton::ALL {
+                let b = layout.button_rect(button);
+                let (x0, y0) = (b.x as u32, b.y as u32);
+                let (x1, y1) = (x0 + b.width as u32, y0 + b.height as u32);
+                let lit = (y0..y1).any(|y| {
+                    (x0..x1).any(|x| {
+                        let now = rgba(&banded, w, x, y);
+                        let before = rgba(&plain, w, x, y);
+                        now[0].abs_diff(before[0]) > 40
+                    })
+                });
+                assert!(lit, "{button:?} draws a glyph (glass {glass})");
+            }
+            let last_row = layout.band_height() as u32 - 1;
+            let at_seam = rgba(&banded, w, 8, last_row);
+            let under = rgba(&banded, w, 8, last_row + 1);
+            assert!(
+                at_seam[0].abs_diff(under[0]) <= 2 && at_seam[3].abs_diff(under[3]) <= 2,
+                "no hard seam at the band's bottom edge: {at_seam:?} over {under:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_band_shows_a_clean_title_and_never_a_stray_mark() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (480u32, 120u32);
+        let frame = |title: &[u8]| {
+            let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+            let (mut r, t, mut text) = build_gpu_renderer(&gpu, 60, 4);
+            without_ambience(&mut r);
+            r.set_bg_fg(pane(0.3), Color::WHITE);
+            r.surface_configured(translucent());
+            r.set_chrome_style(crate::window_chrome::ChromeStyle {
+                enabled: true,
+                ..crate::window_chrome::ChromeStyle::default()
+            });
+            t.write().feed(b"\x1b[?25l");
+            t.write().feed(title);
+            render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            render_one_frame_headless(&gpu, &mut r, &mut text, &target)
+        };
+        let bare = frame(b"");
+        let titled = frame("\x1b]0;~/code/mado\x07".as_bytes());
+        let snowflake = frame("\x1b]0;❄\x07".as_bytes());
+        let band_row = |pixels: &[u8]| -> Vec<[u8; 4]> {
+            (0..30)
+                .flat_map(|y| (w / 4..w * 3 / 4).map(move |x| (x, y)))
+                .map(|(x, y)| rgba(pixels, w, x, y))
+                .collect()
+        };
+        assert!(
+            band_row(&titled) != band_row(&bare),
+            "a real title draws in the band"
+        );
+        assert!(
+            band_row(&snowflake) == band_row(&bare),
+            "a lone snowflake draws nothing"
+        );
+    }
+
+    #[test]
+    fn the_band_hovers_and_goes_away_in_fullscreen() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (320u32, 120u32);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 40, 4);
+        without_ambience(&mut r);
+        r.set_bg_fg(pane(0.3), Color::WHITE);
+        r.surface_configured(translucent());
+        r.set_chrome_style(crate::window_chrome::ChromeStyle {
+            enabled: true,
+            ..crate::window_chrome::ChromeStyle::default()
+        });
+        let rest = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let hover = std::sync::Arc::new(std::sync::Mutex::new(Some(madori::ChromeButton::Close)));
+        r.set_chrome_hover(std::sync::Arc::clone(&hover));
+        let lit = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let layout = r.chrome_layout().unwrap();
+        let close = layout.button_rect(madori::ChromeButton::Close);
+        let probe = (
+            close.x as u32 + close.width as u32 / 2 + 9,
+            close.height as u32 / 2,
+        );
+        assert!(
+            rgba(&lit, w, probe.0, probe.1)[0] > rgba(&rest, w, probe.0, probe.1)[0] + 40,
+            "hovering close lights it"
+        );
+        *hover.lock().unwrap() = None;
+        r.set_window_state(madori::WindowState {
+            fullscreen: true,
+            ..madori::WindowState::default()
+        });
+        let full = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        assert!(r.chrome_layout().is_none());
+        let topright = rgba(&full, w, w - 20, 15);
+        assert!(
+            near(topright[3], 0.3 * 255.0, 2.0),
+            "fullscreen: no controls: {topright:?}"
+        );
+    }
+
     /// Forcing function for the per-surface-layer invariant: `ensure_layers`
     /// must mint exactly one isolated layer per named text surface in
     /// [`TEXT_LAYERS`]. A new text surface added without its own layer (which
@@ -14832,5 +15703,263 @@ mod swapchain_afterimage_tests {
             "one mechanism, one depth — a session switch and ordinary output \
              land in the same swapchain"
         );
+    }
+}
+
+#[cfg(test)]
+mod glass_invariants {
+    use super::*;
+    use crate::terminal::Terminal;
+
+    fn renderer(cols: usize, rows: usize) -> (TerminalRenderer, SharedTerminal) {
+        let term = Arc::new(parking_lot::RwLock::new(Terminal::new(cols, rows)));
+        let renderer = TerminalRenderer::new(
+            term.clone(),
+            14.0,
+            1.4,
+            "monospace".into(),
+            "monospace".into(),
+            "monospace".into(),
+            0.0,
+            CursorStyle::Block,
+            false,
+            500,
+            wgpu::Color {
+                r: 0.03,
+                g: 0.03,
+                b: 0.05,
+                a: 0.5,
+            },
+            Color::WHITE,
+        );
+        (renderer, term)
+    }
+
+    fn translucent() -> madori::SurfaceAlpha {
+        madori::SurfaceAlpha {
+            mode: wgpu::CompositeAlphaMode::PreMultiplied,
+            transparent: true,
+        }
+    }
+
+    fn banded(r: &mut TerminalRenderer) {
+        r.set_chrome_style(crate::window_chrome::ChromeStyle {
+            enabled: true,
+            ..crate::window_chrome::ChromeStyle::default()
+        });
+        r.last_surface_w = 800;
+        r.last_surface_h = 600;
+    }
+
+    fn rect_colors(r: &TerminalRenderer) -> Vec<[f32; 4]> {
+        let (snap, _) = r.snapshot();
+        r.build_rect_instances(&snap, 0.0, 0.0, 0.0)
+            .iter()
+            .map(|i| i.color)
+            .collect()
+    }
+
+    #[test]
+    fn a_themed_default_background_cell_paints_a_rect_only_on_an_opaque_window() {
+        let nord = crate::theme::Theme::by_name("nord").expect("nord exists");
+        let (mut r, term) = renderer(8, 2);
+        crate::theme::apply_config_theme(&mut r, &term, "nord", 0.5);
+        term.write().feed(b"\x1b[?25lhello");
+        let themed = color_to_f32(&nord.background);
+
+        let opaque = rect_colors(&r);
+        assert!(
+            opaque.contains(&themed),
+            "control: an opaque window keeps painting it, byte for byte"
+        );
+
+        r.surface_configured(translucent());
+        let glass = rect_colors(&r);
+        assert!(
+            !glass.contains(&themed),
+            "glass: a default-background cell must not paint an opaque rect: {glass:?}"
+        );
+    }
+
+    #[test]
+    fn a_coloured_cell_still_paints_on_glass() {
+        let (mut r, term) = renderer(8, 2);
+        crate::theme::apply_config_theme(&mut r, &term, "nord", 0.5);
+        r.surface_configured(translucent());
+        term.write().feed(b"\x1b[?25l\x1b[41mX");
+        let red = color_to_f32(&term.read().ansi_palette()[1]);
+        assert!(rect_colors(&r).contains(&red));
+    }
+
+    #[test]
+    fn the_clear_colour_is_premultiplied_only_when_the_surface_gave_alpha() {
+        let (mut r, _term) = renderer(8, 2);
+        let straight = r.bg_color;
+        assert_eq!(r.clear_color(), straight, "control: today's clear");
+        assert_eq!(r.glass_pane_alpha(), 1.0, "control: effects unscaled");
+        r.surface_configured(madori::SurfaceAlpha {
+            mode: wgpu::CompositeAlphaMode::Opaque,
+            transparent: true,
+        });
+        assert_eq!(r.clear_color(), straight, "granted Opaque: today's clear");
+        r.surface_configured(translucent());
+        assert_eq!(r.clear_color(), crate::glass::premultiply(straight));
+        assert_eq!(r.glass_pane_alpha(), 0.5);
+    }
+
+    #[test]
+    fn every_pass_of_a_frame_writes_the_post_chain_target_and_only_the_resolve_writes_the_surface()
+    {
+        let source = include_str!("render.rs");
+        let body_start = source
+            .find("fn render(&mut self, ctx: &mut RenderContext<'_>) {")
+            .expect("the render entry point");
+        let body = &source[body_start..];
+        let body_end = body.find("fn resize(&mut self, _width").expect("its end");
+        let needle = concat!("ctx.", "surface_view");
+        let uses: Vec<&str> = body[..body_end]
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.starts_with("//") && l.contains(needle))
+            .collect();
+        assert_eq!(
+            uses,
+            vec![
+                ".map_or(ctx.surface_view, |lease| lease.view());",
+                "ctx.surface_view,",
+            ],
+            "only the out_view derivation and the glass resolve may name the surface"
+        );
+    }
+
+    #[test]
+    fn the_band_moves_the_grid_down_and_takes_its_rows() {
+        let (mut r, _term) = renderer(80, 24);
+        r.cell_width = 10.0;
+        r.cell_height = 20.0;
+        r.metrics_measured = true;
+        let without = r.grid_for_window_phys(800, 600);
+        assert_eq!(r.grid_top_px(), 0.0, "control: no band, no inset");
+        banded(&mut r);
+        assert_eq!(r.grid_inset_top(), 30.0);
+        assert_eq!(r.grid_top_px(), 30.0);
+        let with = r.grid_for_window_phys(800, 600);
+        assert_eq!(with.cols(), without.cols());
+        assert_eq!(
+            without.rows() - with.rows(),
+            2,
+            "30 px takes two 20 px rows"
+        );
+
+        r.set_window_state(madori::WindowState {
+            fullscreen: true,
+            ..madori::WindowState::default()
+        });
+        assert_eq!(r.grid_inset_top(), 0.0, "fullscreen: no band");
+        assert!(r.chrome_layout().is_none());
+
+        r.set_window_state(madori::WindowState {
+            decorated: true,
+            ..madori::WindowState::default()
+        });
+        assert_eq!(r.grid_inset_top(), 0.0, "someone else's bar: no band");
+        assert!(r.chrome_layout().is_none());
+
+        r.set_window_state(madori::WindowState {
+            maximized: true,
+            ..madori::WindowState::default()
+        });
+        assert_eq!(r.grid_inset_top(), 30.0, "maximized keeps the band");
+        assert_eq!(
+            r.chrome_layout().unwrap().hit_test(0.0, 300.0),
+            madori::WindowRegion::Interior,
+            "and has no resize edges"
+        );
+    }
+
+    #[test]
+    fn the_band_scales_with_the_display() {
+        let (mut r, _term) = renderer(80, 24);
+        banded(&mut r);
+        r.scale_factor = 2.0;
+        assert_eq!(r.grid_inset_top(), 60.0);
+        assert_eq!(r.chrome_layout().unwrap().band_height(), 60.0);
+    }
+
+    #[test]
+    fn maximized_and_fullscreen_flatten_the_glass_shape() {
+        let (mut r, _term) = renderer(80, 24);
+        let shape = crate::glass::GlassShape {
+            corner_radius: 12.0,
+            rim_width: 1.0,
+            rim_color: [1.0; 4],
+        };
+        r.set_glass_shape(shape);
+        assert_eq!(r.effective_glass_shape(), shape);
+        for state in [
+            madori::WindowState {
+                maximized: true,
+                ..madori::WindowState::default()
+            },
+            madori::WindowState {
+                fullscreen: true,
+                ..madori::WindowState::default()
+            },
+        ] {
+            r.set_window_state(state);
+            assert_eq!(r.effective_glass_shape(), shape.flat(), "{state:?}");
+        }
+    }
+
+    #[test]
+    fn the_controls_fit_their_buffer_and_light_on_hover() {
+        let (mut r, _term) = renderer(80, 24);
+        banded(&mut r);
+        let layout = r.chrome_layout().unwrap();
+        let rest = r.chrome_rects(&layout, 800.0, None);
+        let hovered = r.chrome_rects(&layout, 800.0, Some(madori::ChromeButton::Close));
+        assert!(hovered.len() <= CHROME_RECT_CAPACITY);
+        assert_eq!(hovered.len(), rest.len() + 1, "hover adds one pill");
+        let glyphs = rest
+            .iter()
+            .filter(|i| i.mode == RectMode::WindowGlyph.word())
+            .count();
+        assert_eq!(glyphs, 3);
+        let pill = hovered
+            .iter()
+            .find(|i| i.mode == RectMode::RoundedSolid.word())
+            .unwrap();
+        let red = color_to_f32(&r.ansi_colors[1]);
+        assert_eq!(
+            &pill.color[..3],
+            &red[..3],
+            "close hovers in the theme's red"
+        );
+        let restore_kind = |r: &TerminalRenderer| {
+            r.chrome_rects(&layout, 800.0, None)
+                .iter()
+                .filter(|i| i.mode == RectMode::WindowGlyph.word())
+                .map(|i| i.pattern[0] as u32)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(restore_kind(&r), vec![3, 1, 0]);
+        r.set_window_state(madori::WindowState {
+            maximized: true,
+            ..madori::WindowState::default()
+        });
+        assert_eq!(restore_kind(&r), vec![3, 2, 0], "maximized shows restore");
+    }
+
+    #[test]
+    fn the_window_glyph_mode_stays_in_lockstep_with_the_shader() {
+        assert_eq!(RectMode::WindowGlyph.word(), 5);
+        assert!(RECT_SHADER.contains("if frag.mode == 5u {"));
+        let module = naga::front::wgsl::parse_str(RECT_SHADER).expect("RECT_SHADER parses");
+        naga::valid::Validator::new(
+            naga::valid::ValidationFlags::all(),
+            naga::valid::Capabilities::all(),
+        )
+        .validate(&module)
+        .expect("RECT_SHADER validates");
     }
 }

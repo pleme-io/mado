@@ -3599,6 +3599,7 @@ dependencies = [
  "lru",
  "madori",
  "mimalloc",
+ "naga",
  "objc2 0.6.5",
  "objc2-app-kit 0.3.2",
  "objc2-foundation 0.3.2",
@@ -3649,9 +3650,9 @@ dependencies = [
 
 [[package]]
 name = "madori"
-version = "0.1.27"
+version = "0.1.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "860f38534d6a0ef3ba559da54c1136e3d2bf9407a75a50defcc922971035e51f"
+checksum = "32b158aed56ef84478de35bf7fde06461d00b6856e0166f8bf690834474952be"
 dependencies = [
  "egaku",
  "garasu",

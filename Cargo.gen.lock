@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "6eeb37637eedf5ea0385797aec7203da07349dc6d0b44bbd504cda870797e21a",
+  "cargo_lock_sha256": "be6b023d96f61aaeeb263932fe9a29275fe7e4ecc979a1cd3485f160822f5b8b",
   "manifest_sha256": {
-    "Cargo.toml": "7f309ba924f38346e6da84353640d78cd059ac23ab30264f1953ec4501a254ef"
+    "Cargo.toml": "610e44eb083fe8455b22c9479588436df65711189fe04f64556941a6cb243421"
   },
   "target_resolves": {
     "base": {
@@ -28021,7 +28021,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.27",
+                "package_key": "madori-0.1.29",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28532,7 +28532,7 @@
               "default"
             ]
           },
-          "madori-0.1.27": {
+          "madori-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -33360,7 +33360,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.27",
+                "package_key": "madori-0.1.29",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33811,7 +33811,7 @@
               "default"
             ]
           },
-          "madori-0.1.27": {
+          "madori-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -37703,7 +37703,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.27",
+                "package_key": "madori-0.1.29",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38154,7 +38154,7 @@
               "default"
             ]
           },
-          "madori-0.1.27": {
+          "madori-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -42221,7 +42221,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.27",
+                "package_key": "madori-0.1.29",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42732,7 +42732,7 @@
               "default"
             ]
           },
-          "madori-0.1.27": {
+          "madori-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -47635,7 +47635,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.27",
+                "package_key": "madori-0.1.29",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48086,7 +48086,7 @@
               "default"
             ]
           },
-          "madori-0.1.27": {
+          "madori-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -52053,7 +52053,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.27",
+                "package_key": "madori-0.1.29",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52504,7 +52504,7 @@
               "default"
             ]
           },
-          "madori-0.1.27": {
+          "madori-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "egaku",
@@ -56196,7 +56196,7 @@
         }
       ]
     },
-    "madori-0.1.27": {
+    "madori-0.1.29": {
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {

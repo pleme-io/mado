@@ -1141,26 +1141,15 @@ where
         .ok();
     }
 
-    let app_config = AppConfig {
-        // Snowflake-only title — the operator-facing identifier IS the
-        // window itself; pane-id + tear-kind don't need to be repeated
-        // in the titlebar (they're in the seki prompt + mado MCP).
-        // platform::apply_native_styling hides the text anyway via
-        // NSWindowTitleVisibility::Hidden, but setting it to ❄ means
-        // any path that bypasses styling (initial frame, accessibility,
-        // window-menu list, screen-recordings) shows the brand mark
-        // instead of a debug string.
-        title: "❄".to_string(),
-        width: config.window.width,
-        height: config.window.height,
-        resizable: true,
-        vsync: config.performance.vsync,
-        transparent: false,
-        decorations: config.window.decorations,
-        // Same reasoning as the local-PTY path in main.rs: mado owns its
-        // menubar so winit's Services submenu never ships.
-        menu_policy: madori::MenuPolicy::AppOwned,
-    };
+    // Snowflake-only title — the operator-facing identifier IS the
+    // window itself; pane-id + tear-kind don't need to be repeated
+    // in the titlebar (they're in the seki prompt + mado MCP).
+    // platform::apply_native_styling hides the text anyway via
+    // NSWindowTitleVisibility::Hidden, but setting it to ❄ means
+    // any path that bypasses styling (initial frame, accessibility,
+    // window-menu list, screen-recordings) shows the brand mark
+    // instead of a debug string.
+    let app_config = config.window_app_config("❄");
     crate::platform::install_app_menu();
     crate::perf::log_phase("event_loop_entering");
     let session_reap_target = std::sync::Arc::new(std::sync::Mutex::new(owned_session_id));
@@ -1741,6 +1730,11 @@ where
                 AppEvent::Mouse(madori::MouseEvent::Moved { x, y }) => {
                     renderer.snow_set_cursor(*x as f32, *y as f32);
                     engine.on_mouse_moved(*x, *y, renderer).into()
+                }
+                AppEvent::PointerLeft => engine.on_pointer_left().into(),
+                AppEvent::WindowState(state) => {
+                    renderer.set_window_state(*state);
+                    EventResponse::ignored()
                 }
                 AppEvent::Mouse(madori::MouseEvent::Scroll { delta, .. }) => {
                     engine.on_mouse_scroll((*delta).into(), renderer).into()

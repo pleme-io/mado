@@ -87,6 +87,8 @@ pub enum SetterCall {
     /// the live madori posture wire is the M1 follow-up.)
     AmbienceBudgetFps(u32),
     Histograms(crate::config::HistogramMode),
+    GlassShape(crate::glass::GlassShape),
+    ChromeStyle(crate::window_chrome::ChromeStyle),
 }
 
 /// The executor seam: every setter the config diff can decide to
@@ -111,6 +113,8 @@ pub trait ConfigSetters {
     fn set_effects_config(&mut self, v: MadoEffectsConfig);
     fn set_ambience_budget_fps(&mut self, v: u32);
     fn set_histograms(&mut self, v: crate::config::HistogramMode);
+    fn set_glass_shape(&mut self, v: crate::glass::GlassShape);
+    fn set_chrome_style(&mut self, v: crate::window_chrome::ChromeStyle);
 }
 
 impl ConfigSetters for TerminalRenderer {
@@ -168,6 +172,12 @@ impl ConfigSetters for TerminalRenderer {
     fn set_histograms(&mut self, v: crate::config::HistogramMode) {
         TerminalRenderer::set_histograms(self, v);
     }
+    fn set_glass_shape(&mut self, v: crate::glass::GlassShape) {
+        TerminalRenderer::set_glass_shape(self, v);
+    }
+    fn set_chrome_style(&mut self, v: crate::window_chrome::ChromeStyle) {
+        TerminalRenderer::set_chrome_style(self, v);
+    }
 }
 
 /// The render-facing values a config resolves to — the same
@@ -208,6 +218,8 @@ struct Resolved {
     /// governor's frame budget.
     ambience_budget_fps: u32,
     histograms: crate::config::HistogramMode,
+    glass_shape: crate::glass::GlassShape,
+    chrome_style: crate::window_chrome::ChromeStyle,
 }
 
 // `u32 → f32` padding: operator padding is single-digit logical px;
@@ -261,6 +273,8 @@ fn resolve(config: &MadoConfig) -> Resolved {
         // boot's `None`-posture call (the live posture wire is M1).
         ambience_budget_fps: config.performance.resolve_target_fps(None),
         histograms: config.performance.histograms,
+        glass_shape: crate::glass::GlassShape::from_window(&config.window),
+        chrome_style: crate::window_chrome::ChromeStyle::from_config(&config.window.chrome),
     }
 }
 
@@ -359,6 +373,12 @@ pub fn diff(old: &MadoConfig, new: &MadoConfig) -> Vec<SetterCall> {
     if o.histograms != n.histograms {
         calls.push(SetterCall::Histograms(n.histograms));
     }
+    if o.glass_shape != n.glass_shape {
+        calls.push(SetterCall::GlassShape(n.glass_shape));
+    }
+    if o.chrome_style != n.chrome_style {
+        calls.push(SetterCall::ChromeStyle(n.chrome_style));
+    }
     calls
 }
 
@@ -385,6 +405,8 @@ pub fn execute<T: ConfigSetters>(target: &mut T, calls: Vec<SetterCall>) {
             SetterCall::Effects(v) => target.set_effects_config(v),
             SetterCall::AmbienceBudgetFps(v) => target.set_ambience_budget_fps(v),
             SetterCall::Histograms(v) => target.set_histograms(v),
+            SetterCall::GlassShape(v) => target.set_glass_shape(v),
+            SetterCall::ChromeStyle(v) => target.set_chrome_style(v),
         }
     }
 }
@@ -485,6 +507,13 @@ impl ConfigHotReload {
     /// `platform::NativeStylingLatch::refresh`).
     pub fn poll_config_reload<T: ConfigSetters>(&mut self, target: &mut T) -> Option<MadoConfig> {
         let new = self.source.take_if_dirty()?;
+        if self.applier.last.appearance.transparent() != new.appearance.transparent() {
+            tracing::warn!(
+                opacity = new.appearance.opacity,
+                "appearance.opacity crossed 1.0: the surface's alpha mode is chosen when the \
+                 window is created, so this takes effect on the next start"
+            );
+        }
         let applied = self.applier.apply_delta(&new, target);
         tracing::info!(setter_calls = applied, "config reload delta applied");
         crate::clipboard_store::set_temp_ttl_secs(new.attachments.temp_ttl_secs);
@@ -589,6 +618,12 @@ mod tests {
         fn set_histograms(&mut self, _: crate::config::HistogramMode) {
             self.calls.push("set_histograms");
         }
+        fn set_glass_shape(&mut self, _: crate::glass::GlassShape) {
+            self.calls.push("set_glass_shape");
+        }
+        fn set_chrome_style(&mut self, _: crate::window_chrome::ChromeStyle) {
+            self.calls.push("set_chrome_style");
+        }
     }
 
     fn call_kind(c: &SetterCall) -> &'static str {
@@ -610,7 +645,42 @@ mod tests {
             SetterCall::Effects(_) => "Effects",
             SetterCall::AmbienceBudgetFps(_) => "AmbienceBudgetFps",
             SetterCall::Histograms(_) => "Histograms",
+            SetterCall::GlassShape(_) => "GlassShape",
+            SetterCall::ChromeStyle(_) => "ChromeStyle",
         }
+    }
+
+    #[test]
+    fn a_glass_shape_edit_is_one_setter_call_and_so_is_a_chrome_edit() {
+        let base = MadoConfig::default();
+        let mut rounded = base.clone();
+        rounded.window.corner_radius = 14.0;
+        rounded.window.rim.width = 1.0;
+        let calls = diff(&base, &rounded);
+        assert_eq!(calls.len(), 1, "{calls:?}");
+        assert_eq!(call_kind(&calls[0]), "GlassShape");
+
+        let mut banded = base.clone();
+        banded.window.chrome.enabled = true;
+        banded.window.chrome.height = 34.0;
+        let calls = diff(&base, &banded);
+        assert_eq!(calls.len(), 1, "{calls:?}");
+        assert_eq!(call_kind(&calls[0]), "ChromeStyle");
+
+        let mut applier = ConfigApplier::new(base.clone());
+        let mut counter = CountingSetters::default();
+        applier.apply_delta(&rounded, &mut counter);
+        assert_eq!(counter.calls, vec!["set_glass_shape"]);
+    }
+
+    #[test]
+    fn an_opacity_edit_stays_a_live_background_change() {
+        let base = MadoConfig::default();
+        let mut thin = base.clone();
+        thin.appearance.opacity = 0.2;
+        let calls = diff(&base, &thin);
+        assert_eq!(calls.len(), 1, "{calls:?}");
+        assert_eq!(call_kind(&calls[0]), "BgFg");
     }
 
     #[test]

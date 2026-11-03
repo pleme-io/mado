@@ -1340,6 +1340,23 @@
       "description": "",
       "type": "nullOrStr"
     },
+    "chrome": {
+      "default": {
+        "button_width": 40.0,
+        "edge_width": 6.0,
+        "enabled": false,
+        "height": 30.0,
+        "tint": 0.18000000715255737,
+        "title": true
+      },
+      "description": "",
+      "type": "object"
+    },
+    "corner_radius": {
+      "default": 0.0,
+      "description": "Corner radius in logical pixels. Corners go fully transparent. Active only when appearance.opacity is below 1.0, and not while maximized or fullscreen.",
+      "type": "float"
+    },
     "decorations": {
       "default": true,
       "description": "Show server / window-manager decorations (titlebar, border,\nclose/minimize buttons). Default is **platform-aware**:\n\n* macOS: `true` — preserves the traffic-light buttons.\n  Combined with `platform::apply_native_styling()`'s themed\n  transparent titlebar band ([`TitlebarStyle::Flush`];\n  `FullSizeContentView` only with `titlebar: overlay`), the\n  chrome reads as part of the canvas for a \"minimal but\n  functional\" look. Operators who want a truly chromeless\n  look (no traffic lights) override to `false`.\n* Linux: `true`. A borderless window under Wayland/X11 has\n  no move handle, no resize edges, no maximize/close\n  affordance, and under Wayland no server-side border at\n  all — the operator sees a fixed rectangle they cannot\n  drag or maximize. libdecor (Wayland) and the WM (X11)\n  supply real decorations when this is `true`. Tiling-WM\n  operators who want the borderless look override to\n  `false`; the default matches the majority stack (GNOME/\n  KDE on Wayland or X11).\n* Windows: `false` — pre-existing default; mado is not\n  shipped on Windows today.\n\nThe operator-facing contract: \"give the operator a real\nwindow they can move by default; opt out if you want\nborderless.\" Override in `~/.config/mado/mado.yaml` if you\nwant a specific behavior.",
@@ -1386,6 +1403,15 @@
         "quiet_ms": 40
       },
       "description": "When a window drag's new cell grid reaches the shell and the mirror.",
+      "type": "object"
+    },
+    "rim": {
+      "default": {
+        "color": "#ECEFF4",
+        "opacity": 0.2199999988079071,
+        "width": 0.0
+      },
+      "description": "",
       "type": "object"
     },
     "split_divider_color": {

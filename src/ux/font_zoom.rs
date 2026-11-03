@@ -25,9 +25,21 @@ pub trait FontZoomTarget {
     fn cell_height(&self) -> f32;
     /// HiDPI scale factor — logical padding × this = physical pad.
     fn scale_factor(&self) -> f32;
+    fn grid_inset_top(&self) -> f32 {
+        0.0
+    }
+    fn chrome_layout(&self) -> Option<madori::ChromeLayout> {
+        None
+    }
 }
 
 impl FontZoomTarget for crate::render::TerminalRenderer {
+    fn grid_inset_top(&self) -> f32 {
+        crate::render::TerminalRenderer::grid_inset_top(self)
+    }
+    fn chrome_layout(&self) -> Option<madori::ChromeLayout> {
+        crate::render::TerminalRenderer::chrome_layout(self)
+    }
     fn font_size(&self) -> f32 {
         crate::render::TerminalRenderer::font_size(self)
     }

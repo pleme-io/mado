@@ -447,6 +447,12 @@ Config sections: `font_family`, `font_size`, `window` (width/height/padding),
 `shell` (command), `cursor` (style/blink/blink_rate_ms), `behavior`
 (scrollback_lines/copy_on_select), `appearance` (background/foreground/opacity).
 
+Glass and window chrome (`docs/GLASS.md`): `appearance.opacity` below 1.0 asks for a
+composited surface at window creation. `window.corner_radius` and `window.rim`
+{`width`, `color`, `opacity`} shape it, and `window.chrome` {`enabled`, `height`,
+`edge_width`, `button_width`, `tint`, `title`} is mado's own band, used with
+`window.decorations: false`. Each default changes nothing.
+
 Link knobs (under `links`): `enabled`, `highlight` (always-on tint and
 underline for URLs and OSC 8 cells), `open_on_click` (a plain click opens;
 default off, so links open on Cmd-click only), `pointer_cursor`,
