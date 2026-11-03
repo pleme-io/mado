@@ -13,13 +13,13 @@ GPU-rendered terminal emulator following Ghostty's philosophy, written in Rust.
 
 ## Architecture
 
-| Module | Purpose |
-|--------|---------|
-| `render` | GPU pipeline via garasu (wgpu + glyphon text) |
-| `terminal` | VT100/xterm state machine (vte crate) |
-| `pty` | Unix PTY allocation and shell process management |
-| `config` | shikumi-based config with hot-reload |
-| `platform` | macOS/Linux native integration |
+| Module     | Purpose                                          |
+| ---------- | ------------------------------------------------ |
+| `render`   | GPU pipeline via garasu (wgpu + glyphon text)    |
+| `terminal` | VT100/xterm state machine (vte crate)            |
+| `pty`      | Unix PTY allocation and shell process management |
+| `config`   | shikumi-based config with hot-reload             |
+| `platform` | macOS/Linux native integration                   |
 
 ## Dependencies
 
@@ -52,7 +52,7 @@ Releases come in two streams:
   macOS DMG. `releases/latest` always points at the newest build
   (`macos-arm64-latest` → `Mado-latest-arm64.dmg`), and each build also
   gets an immutable, sortable `macos-arm64-r<run>-<sha>` release so you
-  can always tell *exactly* what you're running.
+  can always tell _exactly_ what you're running.
 - **Versioned** — every `vX.Y.Z` tag cuts an official release with the
   per-platform/arch artifacts: the bare binary `mado-<os>-<arch>` +
   `.sha256`, macOS `Mado-<version>-macos-<arch>.dmg`/`.zip`, and Linux
