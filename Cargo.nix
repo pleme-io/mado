@@ -1553,7 +1553,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.10";
+            packageId = "tatara-lisp 0.4.11";
           }
         ];
 
@@ -1574,7 +1574,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.10";
+            packageId = "tatara-lisp 0.4.11";
           }
           {
             name = "thiserror";
@@ -1611,11 +1611,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.10";
+            packageId = "tatara-lisp 0.4.11";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.10";
+            packageId = "tatara-lisp-eval 0.4.11";
           }
           {
             name = "thiserror";
@@ -1700,11 +1700,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.10";
+            packageId = "tatara-lisp 0.4.11";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.10";
+            packageId = "tatara-lisp-eval 0.4.11";
           }
           {
             name = "thiserror";
@@ -1735,11 +1735,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.10";
+            packageId = "tatara-lisp 0.4.11";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.10";
+            packageId = "tatara-lisp-eval 0.4.11";
           }
         ];
         devDependencies = [
@@ -1812,11 +1812,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.10";
+            packageId = "tatara-lisp 0.4.11";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.10";
+            packageId = "tatara-lisp-eval 0.4.11";
           }
           {
             name = "thiserror";
@@ -1838,7 +1838,7 @@ rec {
         dependencies = [
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.10";
+            packageId = "tatara-lisp 0.4.11";
           }
         ];
 
@@ -1859,7 +1859,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.10";
+            packageId = "tatara-lisp 0.4.11";
           }
         ];
 
@@ -1953,10 +1953,10 @@ rec {
       };
       "brotli" = rec {
         crateName = "brotli";
-        version = "9.1.0";
+        version = "9.1.1";
         edition = "2015";
         crateBin = [];
-        sha256 = "0i5sb2x0xvapbxqpc7kyayw7qgzi1gskzxq9g50gj2s6h65wwdv7";
+        sha256 = "10ax9w52cmnlw96lv7mn00cj7ldd836hzac7w3yfmw3q0pxpqyv2";
         authors = [
           "Daniel Reiter Horn <danielrh@dropbox.com>"
           "The Brotli Authors"
@@ -5425,11 +5425,6 @@ rec {
             packageId = "serde";
           }
           {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
-            optional = true;
-          }
-          {
             name = "toml";
             packageId = "toml";
             optional = true;
@@ -5465,7 +5460,7 @@ rec {
           "toml" = [ "dep:toml" ];
           "yaml" = [ "serde_yaml" ];
         };
-        resolvedDefaultFeatures = [ "env" "parse-value" "pear" "serde_yaml" "toml" "yaml" ];
+        resolvedDefaultFeatures = [ "env" "parse-value" "pear" "toml" ];
       };
       "filedescriptor" = rec {
         crateName = "filedescriptor";
@@ -6213,9 +6208,9 @@ rec {
       };
       "gen-macros" = rec {
         crateName = "gen-macros";
-        version = "0.1.54";
+        version = "0.1.55";
         edition = "2024";
-        sha256 = "083m4had8ixlr1dqav4f4pdh2divnrq2wndcmn9pi2sazs8ih0wm";
+        sha256 = "1j14mj0sw54b6y5pr8gqhalqf1bwj097ql1p7khjxy2a1x6qybjj";
         procMacro = true;
         libName = "gen_macros";
         authors = [
@@ -6240,9 +6235,9 @@ rec {
       };
       "gen-platform" = rec {
         crateName = "gen-platform";
-        version = "0.1.54";
+        version = "0.1.55";
         edition = "2024";
-        sha256 = "1xskpljp3j8f25f5iimdjj721azpjnjlaz9p725hrifl8r6pby22";
+        sha256 = "1za4z8gi16hvdgwkdnm40h4q47zxzi2sm4mbnlmqf3qys1hnfqn2";
         libName = "gen_platform";
         authors = [
           "pleme-io"
@@ -6278,9 +6273,9 @@ rec {
       };
       "gen-types" = rec {
         crateName = "gen-types";
-        version = "0.1.54";
+        version = "0.1.55";
         edition = "2024";
-        sha256 = "10rnp48inif1mgmg8iplbccx317pv0rlbpnzb7d1bn4z1cvkgqdk";
+        sha256 = "1gdhnqh7qkrss596xczyyggkz7zkkhch0x308a2rgz9z06gxvmgn";
         libName = "gen_types";
         authors = [
           "pleme-io"
@@ -6359,7 +6354,7 @@ rec {
         dependencies = [
           {
             name = "rustix";
-            packageId = "rustix 1.1.5";
+            packageId = "rustix 1.1.6";
             usesDefaultFeatures = false;
             target = { target, features }: (!(target."windows" or false));
             features = [ "system" ];
@@ -8864,9 +8859,9 @@ rec {
       };
       "irodzuki" = rec {
         crateName = "irodzuki";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2024";
-        sha256 = "1qfq98q1s269cr8y01mra22656wq95vbdmc1ccw49kiyqsryvbdy";
+        sha256 = "10p2m7f1fspwcly9h7f45d3cn70r4xrf39am0nggf6v58h6pi51y";
         dependencies = [
           {
             name = "bytemuck";
@@ -8887,8 +8882,8 @@ rec {
             packageId = "serde_json";
           }
           {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
+            name = "serde_norway";
+            packageId = "serde_norway";
           }
           {
             name = "thiserror";
@@ -8987,9 +8982,9 @@ rec {
       };
       "ishou-tokens" = rec {
         crateName = "ishou-tokens";
-        version = "0.1.21";
+        version = "0.1.22";
         edition = "2024";
-        sha256 = "028bcqynxn18p39ilqh0x8ybwxybgilw6bjhnsf65mwg8n2635q7";
+        sha256 = "1hqzpnq8dc7v8f4p3837h3ikv8ahqqmar7l0jybnbbhqa5qadsbm";
         libName = "ishou_tokens";
         dependencies = [
           {
@@ -9051,9 +9046,9 @@ rec {
       };
       "izumi" = rec {
         crateName = "izumi";
-        version = "0.1.25";
+        version = "0.1.26";
         edition = "2024";
-        sha256 = "0j37b6l03bldj26xaj4m3s06p51mbp2zgka1jslvpwpnhmzdjhf2";
+        sha256 = "1kqbkwslnnqgqv0pkci4xl5270g1apdywvfsy19qcv1hsrb14ks1";
         authors = [
           "pleme-io"
         ];
@@ -9145,9 +9140,9 @@ rec {
       };
       "izumi-sources" = rec {
         crateName = "izumi-sources";
-        version = "0.1.25";
+        version = "0.1.26";
         edition = "2024";
-        sha256 = "0414xq8xffy7z107h3mjrikqc13yn6zxrz2b9irvxf0vzf1al8vk";
+        sha256 = "0hbkfm2hp31hhzbw9c36irw2zd5cdn5sqk4sjzk92nf170zlw9jx";
         libName = "izumi_sources";
         authors = [
           "pleme-io"
@@ -10350,9 +10345,9 @@ rec {
       };
       "kukaku" = rec {
         crateName = "kukaku";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "072r1hrnmzl8s9flmpfp8qcp8xgb2ivpw9xagxbllbzi0n4lgnz5";
+        sha256 = "1wv8vx8448rqv4yg1dgqql81g02zz6c9x5abp9zprp2jpcwcz6vw";
         authors = [
           "pleme-io"
         ];
@@ -10889,7 +10884,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.217";
+        version = "0.1.218";
         edition = "2024";
         crateBin = [
           {
@@ -11242,6 +11237,11 @@ rec {
             usesDefaultFeatures = false;
           }
           {
+            name = "naga";
+            packageId = "naga";
+            features = [ "wgsl-in" ];
+          }
+          {
             name = "proptest";
             packageId = "proptest";
           }
@@ -11276,9 +11276,9 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.26";
+        version = "0.1.29";
         edition = "2024";
-        sha256 = "0rg9qj3b5sy25sihzm95h7plxl8c2wd9k17daw3vd7sqvnq3p0sd";
+        sha256 = "1gjj953k8239pzw6c0bfhnv007a60vg7zgrmvrw49y3fsnp5ic9j";
         dependencies = [
           {
             name = "egaku";
@@ -11745,11 +11745,11 @@ rec {
         ];
 
       };
-      "monosashi 0.4.10" = rec {
+      "monosashi 0.4.11" = rec {
         crateName = "monosashi";
-        version = "0.4.10";
+        version = "0.4.11";
         edition = "2021";
-        sha256 = "18pn13qvr9brl01gybaw84bi3ma46821yl3vx5a833la2rhvlrn6";
+        sha256 = "0fp3126s97i70padkkiq40vfsn07vrp64h9w5sspwnv4vmx0bzbm";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
@@ -12314,9 +12314,9 @@ rec {
       };
       "notify-types" = rec {
         crateName = "notify-types";
-        version = "2.1.0";
-        edition = "2021";
-        sha256 = "0yj710mxd4lsaz4hq7601mh6xb02awb8hg4z6lvh76ik1vpczf22";
+        version = "2.2.0";
+        edition = "2024";
+        sha256 = "027ip1l8ak1vq502cjbk7ky7x8wfsd0gbzg7n6affb13129plhqa";
         libName = "notify_types";
         authors = [
           "Daniel Faust <hessijames@gmail.com>"
@@ -17546,7 +17546,7 @@ rec {
           }
           {
             name = "rustix";
-            packageId = "rustix 1.1.5";
+            packageId = "rustix 1.1.6";
             usesDefaultFeatures = false;
             target = { target, features }: ((target."unix" or false) || ("fuchsia" == target."os" or null) || ("vxworks" == target."os" or null));
             features = [ "event" "fs" "pipe" "process" "std" "time" ];
@@ -17728,9 +17728,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "0zns6q8m8fkkmnr25zflc125j81i5kpnc9hkpmv21rqdynpcd7jk";
+        sha256 = "1cnamqkzrgxd7vi5930sx0d0249hprxg0qhp39lrf9x3vnhfhn9c";
         authors = [
           "pleme-io"
         ];
@@ -20281,11 +20281,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "alloc" "default" "event" "fs" "libc-extra-traits" "pipe" "process" "shm" "std" "system" "thread" "use-libc-auxv" ];
       };
-      "rustix 1.1.5" = rec {
+      "rustix 1.1.6" = rec {
         crateName = "rustix";
-        version = "1.1.5";
+        version = "1.1.6";
         edition = "2021";
-        sha256 = "17b2srw7rcqmrs1shj89g8i3r1447lihv7qrbxvp11j1psxgl7l9";
+        sha256 = "1ajqv2zxmfms30hhvp5bdzpixn5xqnz7s871vpa56h99wm16grz5";
         authors = [
           "Dan Gohman <dev@sunfishcode.online>"
           "Jakub Konka <kubkon@jakubkonka.com>"
@@ -20378,7 +20378,7 @@ rec {
           "process" = [ "linux-raw-sys/prctl" ];
           "pty" = [ "fs" ];
           "runtime" = [ "linux-raw-sys/prctl" ];
-          "rustc-dep-of-std" = [ "core" "rustc-std-workspace-alloc" "linux-raw-sys/rustc-dep-of-std" "bitflags/rustc-dep-of-std" ];
+          "rustc-dep-of-std" = [ "core" "rustc-std-workspace-alloc" "linux-raw-sys/rustc-dep-of-std" ];
           "rustc-std-workspace-alloc" = [ "dep:rustc-std-workspace-alloc" ];
           "shm" = [ "fs" ];
           "std" = [ "bitflags/std" "alloc" "libc?/std" "libc_errno?/std" ];
@@ -20710,9 +20710,9 @@ rec {
       };
       "samba" = rec {
         crateName = "samba";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2024";
-        sha256 = "0v9bc6bwh0j42415pazx7024csady6rd1f78yz74p8v2jyjrbi9v";
+        sha256 = "13pn8gyknnxm131c057b2qg5vkcjfx9zngh7bafyc9h41cx7w7cp";
         dependencies = [
           {
             name = "rand";
@@ -20745,7 +20745,7 @@ rec {
         ];
         features = {
           "default" = [ "worker" ];
-          "worker" = [ "dep:async-nats" "dep:async-trait" "dep:serde" "dep:serde_yaml_ng" "dep:tracing-subscriber" "dep:prometheus" "dep:hyper" "dep:hyper-util" "dep:http-body-util" "dep:bytes" "dep:futures" ];
+          "worker" = [ "dep:async-nats" "dep:async-trait" "dep:serde" "dep:serde_norway" "dep:tracing-subscriber" "dep:prometheus" "dep:hyper" "dep:hyper-util" "dep:http-body-util" "dep:bytes" "dep:futures" ];
         };
       };
       "same-file" = rec {
@@ -22266,6 +22266,39 @@ rec {
         };
         resolvedDefaultFeatures = [ "alloc" "default" "float_roundtrip" "raw_value" "std" ];
       };
+      "serde_norway" = rec {
+        crateName = "serde_norway";
+        version = "0.9.42";
+        edition = "2021";
+        sha256 = "130nx1r3nwydglq1yrrcydavd6w5zj219zsimc7m1zdmi6ag4274";
+        authors = [
+          "Christina Sørensen <christina@cafkafk.com>"
+          "David Tolnay <dtolnay@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "indexmap";
+            packageId = "indexmap";
+          }
+          {
+            name = "itoa";
+            packageId = "itoa";
+          }
+          {
+            name = "ryu";
+            packageId = "ryu";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+          }
+          {
+            name = "unsafe-libyaml-norway";
+            packageId = "unsafe-libyaml-norway";
+          }
+        ];
+
+      };
       "serde_spanned" = rec {
         crateName = "serde_spanned";
         version = "0.6.9";
@@ -22547,9 +22580,9 @@ rec {
       };
       "shidou" = rec {
         crateName = "shidou";
-        version = "0.1.10";
+        version = "0.1.11";
         edition = "2024";
-        sha256 = "0cdckzjm9l3zjizshmf57p2z6pr2njsxgmn9vq3vy48wqvx2qm5l";
+        sha256 = "06vc8qgx096263f7dm7d6ybn8x8r4238b152fz0j8gxn6d1gm6ji";
         dependencies = [
           {
             name = "anyhow";
@@ -22588,9 +22621,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.1083";
+        version = "0.1.1084";
         edition = "2024";
-        sha256 = "08smrh43h7bkwzicawxd2ql35x4d88cyfjsa71vc9p2q8pqf2gi5";
+        sha256 = "1hd1kqrs2szlhrkgxp5c5bfsk1q66g6qkg13f8704v5wlb5g4h6k";
         dependencies = [
           {
             name = "arc-swap";
@@ -22609,7 +22642,7 @@ rec {
           {
             name = "figment";
             packageId = "figment";
-            features = [ "env" "yaml" "toml" ];
+            features = [ "env" "toml" ];
           }
           {
             name = "gen-platform";
@@ -22645,8 +22678,8 @@ rec {
             packageId = "serde_json";
           }
           {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
+            name = "serde_norway";
+            packageId = "serde_norway";
           }
           {
             name = "thiserror";
@@ -22663,8 +22696,8 @@ rec {
             packageId = "serde_json";
           }
           {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
+            name = "serde_norway";
+            packageId = "serde_norway";
           }
         ];
         features = {
@@ -24815,11 +24848,11 @@ rec {
         ];
 
       };
-      "tatara-closed-set 0.4.10" = rec {
+      "tatara-closed-set 0.4.11" = rec {
         crateName = "tatara-closed-set";
-        version = "0.4.10";
+        version = "0.4.11";
         edition = "2021";
-        sha256 = "1ap7rcii69gzl7f4h9lagn0b6zr54413apbnmz1vhsjfi36ilmch";
+        sha256 = "03ba43kgf766xwcxvfh4wpzrzcws285xaf1g1576sm90kcxi7qzb";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24827,7 +24860,7 @@ rec {
         dependencies = [
           {
             name = "tatara-closed-set-derive";
-            packageId = "tatara-closed-set-derive 0.4.10";
+            packageId = "tatara-closed-set-derive 0.4.11";
           }
         ];
 
@@ -24859,11 +24892,11 @@ rec {
         ];
 
       };
-      "tatara-closed-set-derive 0.4.10" = rec {
+      "tatara-closed-set-derive 0.4.11" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.4.10";
+        version = "0.4.11";
         edition = "2021";
-        sha256 = "1jqpidyfrhbqw9l2kq33f66mc08maq3bhvdvcncbv2z41mwni4jn";
+        sha256 = "0fnprdp2wfmqfq0gk0i7ycmwgzs3pdslaldpk8saygh5adamgjxx";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -24888,9 +24921,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.827";
+        version = "0.2.830";
         edition = "2021";
-        sha256 = "1vnz2a4f03b2l3jpqfiq146s7vb45qs9xzkzgal2czsx1ff2s8x8";
+        sha256 = "1l36wyz3511gr19rlr4pckxk41qwda2zr6wq3bygr6r1djzd1kab";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24965,9 +24998,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.827";
+        version = "0.2.830";
         edition = "2021";
-        sha256 = "0j2iamznrwvh6169f4xhgg5pf08xahlcg409k0n418w2kg7c0hq3";
+        sha256 = "00aap7p19cdx0wa6dp7bfaryn5r55ry78z0mv4s4cdclf9hgb01f";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -25004,9 +25037,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.827";
+        version = "0.2.830";
         edition = "2021";
-        sha256 = "15rs8pkhfn4rzbnfsx9x3za050gm2vmrssdh3sl1fhqc5x0x2w1s";
+        sha256 = "1ahq3l5bzv9laxim10kphsnksb7nddr6k9mx4g3z5xsllxav7541";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -25073,11 +25106,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "tatara-lisp 0.4.10" = rec {
+      "tatara-lisp 0.4.11" = rec {
         crateName = "tatara-lisp";
-        version = "0.4.10";
+        version = "0.4.11";
         edition = "2021";
-        sha256 = "11lbgfj95aznjc7b6afwqm091llxqs7m61z59lygdmbn7f8ybjkj";
+        sha256 = "0bhzf2wq4iabg2mp3bx92f8iyz150havhrhd30dj3m60xw1kyngv";
         libName = "tatara_lisp";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -25098,11 +25131,11 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set 0.4.10";
+            packageId = "tatara-closed-set 0.4.11";
           }
           {
             name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive 0.4.10";
+            packageId = "tatara-lisp-derive 0.4.11";
           }
           {
             name = "thiserror";
@@ -25140,11 +25173,11 @@ rec {
         ];
 
       };
-      "tatara-lisp-derive 0.4.10" = rec {
+      "tatara-lisp-derive 0.4.11" = rec {
         crateName = "tatara-lisp-derive";
-        version = "0.4.10";
+        version = "0.4.11";
         edition = "2021";
-        sha256 = "0js05803h5hrg5m2fqv69qa2m17yhnrj18s6wqd9wxx7h8s34qgi";
+        sha256 = "04m4jak9m9x89q20aykq1dc9p7qp6kcjsf2scix4v1g0mpb3hkr8";
         procMacro = true;
         libName = "tatara_lisp_derive";
         authors = [
@@ -25196,11 +25229,11 @@ rec {
         ];
 
       };
-      "tatara-lisp-eval 0.4.10" = rec {
+      "tatara-lisp-eval 0.4.11" = rec {
         crateName = "tatara-lisp-eval";
-        version = "0.4.10";
+        version = "0.4.11";
         edition = "2021";
-        sha256 = "0f152vjji03krzw2slbvqnxqhkhm36afia07zw4p0l9yvny06inw";
+        sha256 = "1379a1zp4n2dmxmm7si6iwjcg31dd8qc7m16bw234wipy8y2c49r";
         libName = "tatara_lisp_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -25212,7 +25245,7 @@ rec {
           }
           {
             name = "monosashi";
-            packageId = "monosashi 0.4.10";
+            packageId = "monosashi 0.4.11";
           }
           {
             name = "stacker";
@@ -25221,11 +25254,11 @@ rec {
           }
           {
             name = "tatara-closed-set";
-            packageId = "tatara-closed-set 0.4.10";
+            packageId = "tatara-closed-set 0.4.11";
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.10";
+            packageId = "tatara-lisp 0.4.11";
           }
           {
             name = "thiserror";
@@ -25373,9 +25406,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "1lzkn1wdryfjcrwk9ck4ls6lhapw1gkylc8l0pvbd2vdkxkvwm6z";
+        sha256 = "1xph0swna8w5mpy6wkppvfns4ahwqp258dff6qhdy7ckgdmsbj03";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -25396,8 +25429,8 @@ rec {
             packageId = "parking_lot";
           }
           {
-            name = "serde_yaml_ng";
-            packageId = "serde_yaml_ng";
+            name = "serde_norway";
+            packageId = "serde_norway";
           }
           {
             name = "tear-config";
@@ -25416,9 +25449,9 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "195i98fqms77flphppspyxkx280srg8j673an59az3ylby0cp6ck";
+        sha256 = "0fy06sw9zwdspyalgd49rjxivdx6ls4p4srcfk2jkk0k5zx69vhh";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -25456,8 +25489,8 @@ rec {
             features = [ "derive" ];
           }
           {
-            name = "serde_yaml_ng";
-            packageId = "serde_yaml_ng";
+            name = "serde_norway";
+            packageId = "serde_norway";
           }
           {
             name = "shikumi";
@@ -25481,9 +25514,9 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "00amvxbxka5gg3p695ffwvbf796lna3ixch4nhkq4g6bmhxid9gi";
+        sha256 = "03a7hadxc99ywjhp3bq17cgcm7z1z12nayynn617sa6lbdyrx9l0";
         libName = "tear_core";
         authors = [
           "pleme-io"
@@ -25579,9 +25612,9 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "000gsarsmw2n2b08sfz0zs9jiwgaj1fsg86vay5vs99n4zzrrinv";
+        sha256 = "0bvy0zqx4yhgx42wxfiiw29kjligmgvk1c5iqmzm6zwfa2wbvgnq";
         libName = "tear_daemon";
         authors = [
           "pleme-io"
@@ -25628,8 +25661,8 @@ rec {
             packageId = "serde_json";
           }
           {
-            name = "serde_yaml_ng";
-            packageId = "serde_yaml_ng";
+            name = "serde_norway";
+            packageId = "serde_norway";
           }
           {
             name = "tear-config";
@@ -25670,9 +25703,9 @@ rec {
       };
       "tear-makimono" = rec {
         crateName = "tear-makimono";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "1ycjdamfyjzrhmamp6nxzl9ga1p64sj63q8h76fydkrrc50ff1fm";
+        sha256 = "0l1x9sarhnfq0a646z7vn7dnvg8ig1dz8sc7r218994ki9y79dzn";
         libName = "makimono";
         authors = [
           "pleme-io"
@@ -25707,9 +25740,9 @@ rec {
       };
       "tear-picker" = rec {
         crateName = "tear-picker";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "1iw7lwv4qvm3zk7yghmwicmvh66x8ac14zn5zsm0p7z3y77x290s";
+        sha256 = "01111rp7j13i492hsc8pwx6l47qhxi9xipqn9p2f8yam0f5cxy20";
         libName = "tear_picker";
         authors = [
           "pleme-io"
@@ -25750,10 +25783,10 @@ rec {
       };
       "tear-tamotsu" = rec {
         crateName = "tear-tamotsu";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
         crateBin = [];
-        sha256 = "04vp3mma35vsx885a5mrgsw0jig81m6zqazpnpbhhl2qwcm3y5zj";
+        sha256 = "096b9z1mhmxkfk5r8xf9r6fm2zws594r30l09jp9zqz2jz4vwcg4";
         libName = "tamotsu";
         authors = [
           "pleme-io"
@@ -25802,9 +25835,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
-        sha256 = "1grmb8bvibs6fv462m64735hd2bxpyfp0rb03hcnwi1sm8qfr252";
+        sha256 = "04ri5522qjq88134bpy6qp9j4rvya7fm30ix8wk3rcbzincgjn6y";
         libName = "tear_types";
         authors = [
           "pleme-io"
@@ -25893,7 +25926,7 @@ rec {
           }
           {
             name = "rustix";
-            packageId = "rustix 1.1.5";
+            packageId = "rustix 1.1.6";
             target = { target, features }: ((target."unix" or false) || ("wasi" == target."os" or null));
             features = [ "fs" ];
           }
@@ -26385,10 +26418,10 @@ rec {
       };
       "todoku" = rec {
         crateName = "todoku";
-        version = "0.1.10";
+        version = "0.1.11";
         edition = "2024";
         crateBin = [];
-        sha256 = "157nzsa1yj0a3g602kgxrm3f2j4vvyq7spxfc86zsj77vgninfbz";
+        sha256 = "13cbvpgwz22bgrmhkhpn2zzb035i7s7fq3chq737mrvsy2m74928";
         dependencies = [
           {
             name = "async-trait";
@@ -27910,9 +27943,9 @@ rec {
       };
       "unicode-width" = rec {
         crateName = "unicode-width";
-        version = "0.2.2";
+        version = "0.2.3";
         edition = "2021";
-        sha256 = "0m7jjzlcccw716dy9423xxh0clys8pfpllc5smvfxrzdf66h9b5l";
+        sha256 = "0mymrsdklcgys4fndds2h2hasij36gyalcqy4nghb4k9hxqq8wfa";
         libName = "unicode_width";
         authors = [
           "kwantam <kwantam@gmail.com>"
@@ -27949,6 +27982,19 @@ rec {
         sha256 = "0qdq69ffl3v5pzx9kzxbghzn0fzn266i1xn70y88maybz9csqfk7";
         libName = "unsafe_libyaml";
         authors = [
+          "David Tolnay <dtolnay@gmail.com>"
+        ];
+
+      };
+      "unsafe-libyaml-norway" = rec {
+        crateName = "unsafe-libyaml-norway";
+        version = "0.2.15";
+        edition = "2021";
+        crateBin = [];
+        sha256 = "0111lbq845fwqv8cn89m02v7bjd2lq2jvd814dziqlijpxcvv6mk";
+        libName = "unsafe_libyaml_norway";
+        authors = [
+          "Christina Sørensen <christina@cafkafk.com>"
           "David Tolnay <dtolnay@gmail.com>"
         ];
 
@@ -28370,11 +28416,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.4.10";
+            packageId = "tatara-lisp 0.4.11";
           }
           {
             name = "tatara-lisp-eval";
-            packageId = "tatara-lisp-eval 0.4.10";
+            packageId = "tatara-lisp-eval 0.4.11";
           }
           {
             name = "thiserror";
@@ -28961,7 +29007,7 @@ rec {
           }
           {
             name = "rustix";
-            packageId = "rustix 1.1.5";
+            packageId = "rustix 1.1.6";
             features = [ "event" "fs" "net" "process" ];
           }
           {
@@ -29020,7 +29066,7 @@ rec {
           }
           {
             name = "rustix";
-            packageId = "rustix 1.1.5";
+            packageId = "rustix 1.1.6";
             features = [ "event" ];
           }
           {
@@ -29077,7 +29123,7 @@ rec {
         dependencies = [
           {
             name = "rustix";
-            packageId = "rustix 1.1.5";
+            packageId = "rustix 1.1.6";
             features = [ "shm" ];
           }
           {
@@ -34348,7 +34394,7 @@ rec {
           }
           {
             name = "rustix";
-            packageId = "rustix 1.1.5";
+            packageId = "rustix 1.1.6";
             usesDefaultFeatures = false;
             features = [ "std" "event" "fs" "net" "system" ];
           }

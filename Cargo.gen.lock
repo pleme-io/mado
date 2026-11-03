@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "be6b023d96f61aaeeb263932fe9a29275fe7e4ecc979a1cd3485f160822f5b8b",
+  "cargo_lock_sha256": "cff916d8b7ef4b35f62085a716a99be3296ea92c8de162eedfc985890fbd6e22",
   "manifest_sha256": {
-    "Cargo.toml": "610e44eb083fe8455b22c9479588436df65711189fe04f64556941a6cb243421"
+    "Cargo.toml": "a467942569ba913fb6cddea3aef6d139cb95c043c0ca5263657cc2f9032aaaab"
   },
   "target_resolves": {
     "base": {
@@ -386,11 +386,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "async-compression-0.4.51": {
+      "async-compression-0.4.52": {
         "runtime_dependencies": [
           {
             "name": "compression_codecs",
-            "package_key": "compression-codecs-0.4.46",
+            "package_key": "compression-codecs-0.4.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -930,7 +930,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.11",
+            "package_key": "tatara-lisp-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -956,7 +956,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.11",
+            "package_key": "tatara-lisp-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1022,7 +1022,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.11",
+            "package_key": "tatara-lisp-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1032,7 +1032,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.11",
+            "package_key": "tatara-lisp-eval-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1181,7 +1181,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.11",
+            "package_key": "tatara-lisp-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1191,7 +1191,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.11",
+            "package_key": "tatara-lisp-eval-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1239,7 +1239,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.11",
+            "package_key": "tatara-lisp-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1249,7 +1249,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.11",
+            "package_key": "tatara-lisp-eval-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1384,7 +1384,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.11",
+            "package_key": "tatara-lisp-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1394,7 +1394,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.11",
+            "package_key": "tatara-lisp-eval-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1420,7 +1420,7 @@
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.11",
+            "package_key": "tatara-lisp-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1446,7 +1446,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.11",
+            "package_key": "tatara-lisp-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1751,7 +1751,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "cc-1.10.0": {
+      "cc-1.11.0": {
         "runtime_dependencies": [
           {
             "name": "find_msvc_tools",
@@ -2123,7 +2123,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "compression-codecs-0.4.46": {
+      "compression-codecs-0.4.47": {
         "runtime_dependencies": [
           {
             "name": "brotli",
@@ -2295,7 +2295,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2403,7 +2403,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2520,7 +2520,7 @@
           },
           {
             "name": "unicode_script",
-            "package_key": "unicode-script-0.5.8",
+            "package_key": "unicode-script-0.5.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2574,7 +2574,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "crc32fast-1.5.3": {
+      "crc32fast-1.5.4": {
         "runtime_dependencies": [
           {
             "name": "cfg_if",
@@ -3850,7 +3850,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.22",
+            "package_key": "ishou-tokens-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4506,7 +4506,7 @@
         "runtime_dependencies": [
           {
             "name": "crc32fast",
-            "package_key": "crc32fast-1.5.3",
+            "package_key": "crc32fast-1.5.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -5049,7 +5049,7 @@
           "std"
         ]
       },
-      "garasu-0.1.17": {
+      "garasu-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "bincode",
@@ -5160,6 +5160,16 @@
             "features": [
               "derive"
             ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.154",
+            "kind": "normal",
+            "features": [],
             "uses_default_features": true,
             "optional": false,
             "target": null,
@@ -6436,7 +6446,7 @@
         "runtime_dependencies": [
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6921,7 +6931,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7089,7 +7099,7 @@
           },
           {
             "name": "utf8_iter",
-            "package_key": "utf8_iter-1.0.4",
+            "package_key": "utf8_iter-1.1.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -7493,7 +7503,7 @@
           },
           {
             "name": "utf8_iter",
-            "package_key": "utf8_iter-1.0.4",
+            "package_key": "utf8_iter-1.1.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7922,7 +7932,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.22": {
+      "ishou-tokens-0.1.24": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -8123,7 +8133,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-config-0.1.25": {
+      "izumi-config-0.1.26": {
         "runtime_dependencies": [
           {
             "name": "izumi",
@@ -8270,7 +8280,7 @@
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.2",
+            "package_key": "pest-2.9.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8280,7 +8290,7 @@
           },
           {
             "name": "pest_derive",
-            "package_key": "pest_derive-2.9.2",
+            "package_key": "pest_derive-2.9.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9532,7 +9542,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.10.0",
+            "package_key": "cc-1.11.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -9548,7 +9558,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.10.0",
+            "package_key": "cc-1.11.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -9833,7 +9843,7 @@
           "default"
         ]
       },
-      "log-0.4.34": {
+      "log-0.4.35": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -9911,7 +9921,7 @@
         "runtime_dependencies": [
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10203,7 +10213,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10226,7 +10236,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "monosashi-0.4.11": {
+      "monosashi-0.4.13": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -10369,7 +10379,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11489,7 +11499,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11779,11 +11789,21 @@
           "std"
         ]
       },
-      "pest-2.9.2": {
+      "pest-2.9.5": {
         "runtime_dependencies": [
           {
             "name": "memchr",
             "package_key": "memchr-2.8.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "pest_stack_guard",
+            "package_key": "pest_stack_guard-1.0.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11809,11 +11829,11 @@
           "std"
         ]
       },
-      "pest_derive-2.9.2": {
+      "pest_derive-2.9.5": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.2",
+            "package_key": "pest-2.9.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11823,7 +11843,7 @@
           },
           {
             "name": "pest_generator",
-            "package_key": "pest_generator-2.9.2",
+            "package_key": "pest_generator-2.9.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11838,11 +11858,11 @@
           "std"
         ]
       },
-      "pest_generator-2.9.2": {
+      "pest_generator-2.9.5": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.2",
+            "package_key": "pest-2.9.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11852,7 +11872,7 @@
           },
           {
             "name": "pest_meta",
-            "package_key": "pest_meta-2.9.2",
+            "package_key": "pest_meta-2.9.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11882,7 +11902,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.119",
+            "package_key": "syn-3.0.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11896,11 +11916,11 @@
           "std"
         ]
       },
-      "pest_meta-2.9.2": {
+      "pest_meta-2.9.5": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.2",
+            "package_key": "pest-2.9.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12620,7 +12640,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.17",
+            "package_key": "garasu-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12670,7 +12690,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.22",
+            "package_key": "ishou-tokens-0.1.24",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -12859,7 +12879,7 @@
           },
           {
             "name": "crc32fast",
-            "package_key": "crc32fast-1.5.3",
+            "package_key": "crc32fast-1.5.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12952,7 +12972,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13047,7 +13067,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.22",
+            "package_key": "ishou-tokens-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13444,7 +13464,7 @@
           },
           {
             "name": "cc",
-            "package_key": "cc-1.10.0",
+            "package_key": "cc-1.11.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -14562,7 +14582,7 @@
           },
           {
             "name": "encoding_rs",
-            "package_key": "encoding_rs-0.8.42",
+            "package_key": "encoding_rs-0.8.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14664,7 +14684,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15506,7 +15526,7 @@
         "runtime_dependencies": [
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15788,7 +15808,7 @@
           },
           {
             "name": "unicode_properties",
-            "package_key": "unicode-properties-0.1.4",
+            "package_key": "unicode-properties-0.1.5",
             "kind": "normal",
             "features": [
               "general-category"
@@ -15800,7 +15820,7 @@
           },
           {
             "name": "unicode_script",
-            "package_key": "unicode-script-0.5.8",
+            "package_key": "unicode-script-0.5.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16261,7 +16281,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -18547,7 +18567,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -19261,7 +19281,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19655,7 +19675,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19975,7 +19995,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20135,7 +20155,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.10.0",
+            "package_key": "cc-1.11.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -20281,7 +20301,7 @@
           },
           {
             "name": "unicode_properties",
-            "package_key": "unicode-properties-0.1.4",
+            "package_key": "unicode-properties-0.1.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20400,7 +20420,7 @@
           },
           {
             "name": "yazi",
-            "package_key": "yazi-0.2.1",
+            "package_key": "yazi-0.2.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -20702,11 +20722,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.4.11": {
+      "tatara-closed-set-0.4.13": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.4.11",
+            "package_key": "tatara-closed-set-derive-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20756,7 +20776,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.4.11": {
+      "tatara-closed-set-derive-0.4.13": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -21150,7 +21170,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.4.11": {
+      "tatara-lisp-0.4.13": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -21186,7 +21206,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.11",
+            "package_key": "tatara-closed-set-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21196,7 +21216,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.4.11",
+            "package_key": "tatara-lisp-derive-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21258,7 +21278,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.4.11": {
+      "tatara-lisp-derive-0.4.13": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -21342,8 +21362,18 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.4.11": {
+      "tatara-lisp-eval-0.4.13": {
         "runtime_dependencies": [
+          {
+            "name": "blake3",
+            "package_key": "blake3-1.8.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
           {
             "name": "imbl",
             "package_key": "imbl-7.0.2",
@@ -21356,9 +21386,21 @@
           },
           {
             "name": "monosashi",
-            "package_key": "monosashi-0.4.11",
+            "package_key": "monosashi-0.4.13",
             "kind": "normal",
             "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
             "uses_default_features": true,
             "optional": false,
             "target": null,
@@ -21376,7 +21418,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.11",
+            "package_key": "tatara-closed-set-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21386,7 +21428,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.11",
+            "package_key": "tatara-lisp-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21787,7 +21829,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.22",
+            "package_key": "ishou-tokens-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21939,7 +21981,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.22",
+            "package_key": "ishou-tokens-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22349,7 +22391,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.22",
+            "package_key": "ishou-tokens-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22558,7 +22600,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.22",
+            "package_key": "ishou-tokens-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23896,7 +23938,7 @@
         "runtime_dependencies": [
           {
             "name": "async_compression",
-            "package_key": "async-compression-0.4.51",
+            "package_key": "async-compression-0.4.52",
             "kind": "normal",
             "features": [
               "tokio"
@@ -24112,7 +24154,7 @@
         "runtime_dependencies": [
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24259,7 +24301,7 @@
         "runtime_dependencies": [
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24649,7 +24691,7 @@
           "std"
         ]
       },
-      "unicode-properties-0.1.4": {
+      "unicode-properties-0.1.5": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -24658,7 +24700,7 @@
           "general-category"
         ]
       },
-      "unicode-script-0.5.8": {
+      "unicode-script-0.5.9": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -24775,8 +24817,19 @@
         "build_dependencies": [],
         "features": []
       },
-      "utf8_iter-1.0.4": {
-        "runtime_dependencies": [],
+      "utf8_iter-1.1.0": {
+        "runtime_dependencies": [
+          {
+            "name": "utf_types",
+            "package_key": "utf_types-1.0.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
         "build_dependencies": [],
         "features": []
       },
@@ -24786,6 +24839,11 @@
         "features": [
           "default"
         ]
+      },
+      "utf_types-1.0.0": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
       },
       "utoipa-5.5.0": {
         "runtime_dependencies": [
@@ -25085,7 +25143,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.11",
+            "package_key": "tatara-lisp-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25095,7 +25153,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.11",
+            "package_key": "tatara-lisp-eval-0.4.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25860,7 +25918,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26052,7 +26110,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.34",
+            "package_key": "log-0.4.35",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26165,7 +26223,7 @@
           "std"
         ]
       },
-      "yazi-0.2.1": {
+      "yazi-0.2.2": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -26737,7 +26795,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -27193,7 +27251,7 @@
               "std"
             ]
           },
-          "encoding_rs-0.8.42": {
+          "encoding_rs-0.8.44": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -27260,7 +27318,7 @@
             "runtime_dependencies": [
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27695,7 +27753,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.217": {
+          "mado-0.1.218": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27846,7 +27904,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27909,7 +27967,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -27931,7 +27989,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.25",
+                "package_key": "izumi-config-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28546,7 +28604,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28556,7 +28614,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -28722,7 +28780,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28781,7 +28839,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30797,6 +30855,132 @@
             "build_dependencies": [],
             "features": []
           },
+          "pest_stack_guard-1.0.1": {
+            "runtime_dependencies": [
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-unknown-linux-gnu",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
           "ring-0.17.14": {
             "runtime_dependencies": [
               {
@@ -30853,7 +31037,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -31303,7 +31487,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31646,7 +31830,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32116,7 +32300,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32126,7 +32310,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32223,7 +32407,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -32252,7 +32436,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32529,7 +32713,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "encoding_rs-0.8.42": {
+          "encoding_rs-0.8.44": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -32622,7 +32806,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33044,7 +33228,7 @@
               "system"
             ]
           },
-          "mado-0.1.217": {
+          "mado-0.1.218": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -33185,7 +33369,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33248,7 +33432,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -33270,7 +33454,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.25",
+                "package_key": "izumi-config-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33825,7 +34009,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33835,7 +34019,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -33955,7 +34139,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34071,6 +34255,132 @@
               "variable-fonts"
             ]
           },
+          "pest_stack_guard-1.0.1": {
+            "runtime_dependencies": [
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-unknown-linux-gnu",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
           "polling-3.11.0": {
             "runtime_dependencies": [
               {
@@ -34178,7 +34488,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -34468,7 +34778,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34570,7 +34880,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34756,7 +35066,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34944,7 +35254,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -35299,7 +35609,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35413,7 +35723,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35739,7 +36049,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36336,7 +36646,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36459,7 +36769,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36469,7 +36779,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36566,7 +36876,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -36595,7 +36905,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36872,7 +37182,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "encoding_rs-0.8.42": {
+          "encoding_rs-0.8.44": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -36965,7 +37275,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37387,7 +37697,7 @@
               "system"
             ]
           },
-          "mado-0.1.217": {
+          "mado-0.1.218": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -37528,7 +37838,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37591,7 +37901,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -37613,7 +37923,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.25",
+                "package_key": "izumi-config-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38168,7 +38478,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38178,7 +38488,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -38298,7 +38608,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38414,6 +38724,11 @@
               "variable-fonts"
             ]
           },
+          "pest_stack_guard-1.0.1": {
+            "runtime_dependencies": [],
+            "build_dependencies": [],
+            "features": []
+          },
           "polling-3.11.0": {
             "runtime_dependencies": [
               {
@@ -38521,7 +38836,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -38811,7 +39126,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38913,7 +39228,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39099,7 +39414,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39287,7 +39602,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -39642,7 +39957,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39756,7 +40071,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40082,7 +40397,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40679,7 +40994,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40895,7 +41210,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -41383,7 +41698,7 @@
               "std"
             ]
           },
-          "encoding_rs-0.8.42": {
+          "encoding_rs-0.8.44": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -41460,7 +41775,7 @@
             "runtime_dependencies": [
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41895,7 +42210,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.217": {
+          "mado-0.1.218": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -42046,7 +42361,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42109,7 +42424,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -42131,7 +42446,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.25",
+                "package_key": "izumi-config-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42746,7 +43061,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42756,7 +43071,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -42922,7 +43237,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42981,7 +43296,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44997,6 +45312,132 @@
             "build_dependencies": [],
             "features": []
           },
+          "pest_stack_guard-1.0.1": {
+            "runtime_dependencies": [
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-unknown-linux-gnu",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
           "ring-0.17.14": {
             "runtime_dependencies": [
               {
@@ -45033,7 +45474,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -45502,7 +45943,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45845,7 +46286,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46339,7 +46780,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46349,7 +46790,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46456,7 +46897,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -46485,7 +46926,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46794,7 +47235,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "encoding_rs-0.8.42": {
+          "encoding_rs-0.8.44": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -46897,7 +47338,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47319,7 +47760,7 @@
               "system"
             ]
           },
-          "mado-0.1.217": {
+          "mado-0.1.218": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -47460,7 +47901,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47523,7 +47964,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -47545,7 +47986,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.25",
+                "package_key": "izumi-config-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48100,7 +48541,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48110,7 +48551,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -48230,7 +48671,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48346,6 +48787,132 @@
               "variable-fonts"
             ]
           },
+          "pest_stack_guard-1.0.1": {
+            "runtime_dependencies": [
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "psm",
+                "package_key": "psm-0.1.32",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "aarch64-unknown-linux-gnu",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-apple-darwin",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-pc-windows-msvc",
+                "tree": "target"
+              },
+              {
+                "name": "stacker",
+                "package_key": "stacker-0.1.25",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "x86_64-unknown-linux-gnu",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
           "polling-3.11.0": {
             "runtime_dependencies": [
               {
@@ -48433,7 +49000,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -48742,7 +49309,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48844,7 +49411,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49030,7 +49597,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49218,7 +49785,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -49573,7 +50140,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49687,7 +50254,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50013,7 +50580,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50634,7 +51201,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50757,7 +51324,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50767,7 +51334,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50874,7 +51441,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -50903,7 +51470,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51212,7 +51779,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "encoding_rs-0.8.42": {
+          "encoding_rs-0.8.44": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -51315,7 +51882,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51737,7 +52304,7 @@
               "system"
             ]
           },
-          "mado-0.1.217": {
+          "mado-0.1.218": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -51878,7 +52445,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51941,7 +52508,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -51963,7 +52530,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.25",
+                "package_key": "izumi-config-0.1.26",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52518,7 +53085,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.17",
+                "package_key": "garasu-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52528,7 +53095,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.22",
+                "package_key": "ishou-tokens-0.1.24",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -52648,7 +53215,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52764,6 +53331,11 @@
               "variable-fonts"
             ]
           },
+          "pest_stack_guard-1.0.1": {
+            "runtime_dependencies": [],
+            "build_dependencies": [],
+            "features": []
+          },
           "polling-3.11.0": {
             "runtime_dependencies": [
               {
@@ -52851,7 +53423,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -53160,7 +53732,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53262,7 +53834,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53448,7 +54020,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53636,7 +54208,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.10.0",
+                "package_key": "cc-1.11.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -53991,7 +54563,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -54105,7 +54677,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -54431,7 +55003,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -55052,7 +55624,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.34",
+                "package_key": "log-0.4.35",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -55186,7 +55758,7 @@
     "async-broadcast-0.7.2": {
       "edition": "2021"
     },
-    "async-compression-0.4.51": {
+    "async-compression-0.4.52": {
       "edition": "2018"
     },
     "async-stream-0.3.6": {
@@ -55370,7 +55942,7 @@
     "cast-0.3.0": {
       "edition": "2018"
     },
-    "cc-1.10.0": {
+    "cc-1.11.0": {
       "edition": "2021"
     },
     "cfg-if-1.0.5": {
@@ -55422,7 +55994,7 @@
     "colorchoice-1.0.5": {
       "edition": "2021"
     },
-    "compression-codecs-0.4.46": {
+    "compression-codecs-0.4.47": {
       "edition": "2018"
     },
     "compression-core-0.4.34": {
@@ -55483,7 +56055,7 @@
     "crc-catalog-2.5.0": {
       "edition": "2018"
     },
-    "crc32fast-1.5.3": {
+    "crc32fast-1.5.4": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -55657,7 +56229,7 @@
     "either-1.19.0": {
       "edition": "2021"
     },
-    "encoding_rs-0.8.42": {
+    "encoding_rs-0.8.44": {
       "edition": "2024",
       "build_script": "build.rs"
     },
@@ -55798,9 +56370,15 @@
     "futures-util-0.3.34": {
       "edition": "2018"
     },
-    "garasu-0.1.17": {
+    "garasu-0.1.19": {
       "edition": "2024",
-      "build_script": "build.rs"
+      "build_script": "build.rs",
+      "binaries": [
+        {
+          "name": "garasu-canvas",
+          "path": "src/bin/garasu-canvas.rs"
+        }
+      ]
     },
     "gen-macros-0.1.55": {
       "edition": "2024",
@@ -56039,7 +56617,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.22": {
+    "ishou-tokens-0.1.24": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -56051,7 +56629,7 @@
     "izumi-0.1.26": {
       "edition": "2024"
     },
-    "izumi-config-0.1.25": {
+    "izumi-config-0.1.26": {
       "edition": "2024"
     },
     "izumi-sources-0.1.26": {
@@ -56168,7 +56746,7 @@
     "lock_api-0.4.14": {
       "edition": "2021"
     },
-    "log-0.4.34": {
+    "log-0.4.35": {
       "edition": "2021"
     },
     "lru-0.12.5": {
@@ -56183,7 +56761,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.217": {
+    "mado-0.1.218": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -56261,7 +56839,7 @@
     "monosashi-0.3.64": {
       "edition": "2021"
     },
-    "monosashi-0.4.11": {
+    "monosashi-0.4.13": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -56526,18 +57104,22 @@
     "percent-encoding-2.3.2": {
       "edition": "2018"
     },
-    "pest-2.9.2": {
+    "pest-2.9.5": {
       "edition": "2021"
     },
-    "pest_derive-2.9.2": {
+    "pest_derive-2.9.5": {
       "edition": "2021",
       "proc_macro": true
     },
-    "pest_generator-2.9.2": {
+    "pest_generator-2.9.5": {
       "edition": "2021"
     },
-    "pest_meta-2.9.2": {
+    "pest_meta-2.9.5": {
       "edition": "2021"
+    },
+    "pest_stack_guard-1.0.1": {
+      "edition": "2021",
+      "build_script": "build.rs"
     },
     "pgvector-0.4.2": {
       "edition": "2021"
@@ -57199,14 +57781,14 @@
     "tatara-closed-set-0.3.64": {
       "edition": "2021"
     },
-    "tatara-closed-set-0.4.11": {
+    "tatara-closed-set-0.4.13": {
       "edition": "2021"
     },
     "tatara-closed-set-derive-0.3.64": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-closed-set-derive-0.4.11": {
+    "tatara-closed-set-derive-0.4.13": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -57222,21 +57804,21 @@
     "tatara-lisp-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-0.4.11": {
+    "tatara-lisp-0.4.13": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.3.52": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.4.11": {
+    "tatara-lisp-derive-0.4.13": {
       "edition": "2021",
       "proc_macro": true
     },
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-eval-0.4.11": {
+    "tatara-lisp-eval-0.4.13": {
       "edition": "2021"
     },
     "tatara-nix-0.2.568": {
@@ -57481,10 +58063,10 @@
     "unicode-normalization-0.1.26": {
       "edition": "2018"
     },
-    "unicode-properties-0.1.4": {
+    "unicode-properties-0.1.5": {
       "edition": "2021"
     },
-    "unicode-script-0.5.8": {
+    "unicode-script-0.5.9": {
       "edition": "2018"
     },
     "unicode-segmentation-1.13.3": {
@@ -57538,11 +58120,14 @@
     "utf8-width-0.1.9": {
       "edition": "2021"
     },
-    "utf8_iter-1.0.4": {
+    "utf8_iter-1.1.0": {
       "edition": "2021"
     },
     "utf8parse-0.2.2": {
       "edition": "2018"
+    },
+    "utf_types-1.0.0": {
+      "edition": "2021"
     },
     "utoipa-5.5.0": {
       "edition": "2021"
@@ -57764,7 +58349,7 @@
     "yansi-1.0.1": {
       "edition": "2021"
     },
-    "yazi-0.2.1": {
+    "yazi-0.2.2": {
       "edition": "2021"
     },
     "yoke-0.8.4": {
