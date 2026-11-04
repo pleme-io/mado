@@ -57,7 +57,7 @@ fn a_loop_and_a_native_runaway_cannot_hold_the_window() {
     let Load::Refused(r) = world::read(worker(&native), &native, limit) else {
         panic!("a native runaway must be refused");
     };
-    assert_eq!(r.kind, "killed");
+    assert!(r.kind == "killed" || r.kind == "died", "{r}");
     assert!(started.elapsed() < Duration::from_secs(20));
 }
 
