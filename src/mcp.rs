@@ -1831,6 +1831,7 @@ impl MadoMcp {
             serde_json::json!({
                 "name": input.name,
                 "program": input.program,
+                "language": input.language.unwrap_or_else(|| String::from("tatara-lisp")),
                 "tick_interval_ms": input.tick_interval_ms.unwrap_or(1000),
                 "enabled": input.enabled.unwrap_or(true),
                 "labels": input.labels.unwrap_or_default(),
@@ -2262,9 +2263,11 @@ struct VigyRegisterInput {
     #[schemars(description = "Human-readable name. Combined with program to derive a stable id.")]
     name: String,
     #[schemars(
-        description = "tatara-lisp source. See pleme-io/vigy README for the intrinsic surface (vigy-emit / vigy-pull / vigy-push / vigy-noop / vigy-log / vigy-tick)."
+        description = "Source in `language`. See pleme-io/vigy README for the intrinsic surface (vigy-emit / vigy-pull / vigy-push / vigy-noop / vigy-log / vigy-tick; blue spells them vigy_emit)."
     )]
     program: String,
+    #[schemars(description = "tatara-lisp (default) or blue.")]
+    language: Option<String>,
     #[schemars(description = "Tick interval in milliseconds (≥ 100). Default 1000.")]
     tick_interval_ms: Option<u64>,
     #[schemars(description = "Whether the vigy ticks immediately. Default true.")]
@@ -5555,6 +5558,7 @@ mod tests {
                 .vigy_register(Parameters(VigyRegisterInput {
                     name: "uniformity-matrix".into(),
                     program: "(vigy-noop)".into(),
+                    language: None,
                     tick_interval_ms: Some(60_000),
                     enabled: Some(false),
                     labels: None,

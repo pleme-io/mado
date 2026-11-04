@@ -129,7 +129,7 @@ cargo fmt --check             # CI gate — the tree must stay rustfmt-clean
 
 | vs | Mado advantage |
 |----|----------------|
-| **Ghostty** | embedded MCP automation (63 typed tools), tatara-lisp scripting via the embedded vigy reconciler (**default OFF** — `vigy.enabled = true` to use it), Nix-native typed config (shikumi) |
+| **Ghostty** | embedded MCP automation (63 typed tools), blue scripting via the embedded vigy reconciler (a `.b` file in `~/.config/mado/vigies` starts it; `vigy.enabled = true` for the whole runtime), Nix-native typed config (shikumi) |
 | **WezTerm** | wgpu not OpenGL, pure-safe Rust (no C deps), tatara-lisp scripting (vigy) not Lua, Nix-managed config via shikumi, MCP |
 | **Kitty** | Modal vim-style hotkeys (awase), MCP + tatara-lisp scripting (vigy) instead of Python kittens |
 | **Alacritty** | Embedded tear multiplexer (panes/tabs/sessions), MCP automation (Alacritty is intentionally minimal) |
@@ -436,6 +436,10 @@ answer different questions, and only the second one explains a build failure.
 
 ## Configuration
 
+- **New customization is blue**: `~/.config/mado/mado.b` and
+  `~/.config/mado/vigies/*.b`. A world value wins over YAML. Blue runs in a child
+  process or on the vigy thread, never on the render loop. Words, order, budget and
+  faults: [`docs/BLUE-WORLD.md`](./docs/BLUE-WORLD.md).
 - **File**: `~/.config/mado/mado.yaml`
 - **Env override**: `MADO_CONFIG=/path/to/config.yaml`
 - **Env prefix**: `MADO_` (e.g., `MADO_FONT_SIZE=16`)

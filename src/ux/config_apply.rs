@@ -473,11 +473,11 @@ impl ConfigReloadSource {
     #[must_use]
     pub fn take_if_dirty(&self) -> Option<MadoConfig> {
         if self.dirty.swap(false, Ordering::AcqRel) {
-            Some(
+            Some(crate::world::over(
                 MadoConfig::clone(&self.store.get())
                     .with_active_profile()
                     .with_os_reduce_motion(crate::platform::os_reduce_motion()),
-            )
+            ))
         } else {
             None
         }

@@ -1341,10 +1341,20 @@
     }
   },
   "vigy": {
+    "blue": {
+      "default": true,
+      "description": "Run the blue vigies in `~/.config/mado/vigies`. Default on.",
+      "type": "bool"
+    },
     "enabled": {
       "default": false,
       "description": "",
       "type": "bool"
+    },
+    "tick_ms": {
+      "default": 5000,
+      "description": "Tick interval of a blue vigy with no `every_ms` in the world.",
+      "type": "int"
     }
   },
   "window": {

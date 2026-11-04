@@ -646,6 +646,15 @@ pub fn parse_action(name: &str) -> Option<Action> {
     Action::from_str_kind(name)
 }
 
+#[must_use]
+pub fn hotkey_of(event: &madori::event::KeyEvent) -> Option<awase::Hotkey> {
+    let key = madori_key_to_awase(&event.key, &event.text)?;
+    Some(awase::Hotkey::new(
+        madori_modifiers_to_awase(event.modifiers),
+        key,
+    ))
+}
+
 /// Construct the keybind manager exactly as the GUI assembles it for
 /// the default (embedded-tear) window: mado's curated baseline
 /// (`with_mado_defaults`) plus the operator's `keybinds.custom`

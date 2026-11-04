@@ -302,6 +302,16 @@
           default = null;
           description = "Font size in pixels.";
         };
+        world = lib.mkOption {
+          type = lib.types.lines;
+          default = "";
+          description = "Blue source written to `~/.config/mado/mado.b`, the place new customization goes. Empty writes no file. See docs/BLUE-WORLD.md.";
+        };
+        vigies = lib.mkOption {
+          type = lib.types.attrsOf lib.types.lines;
+          default = { };
+          description = "Blue vigies by name, each written to `~/.config/mado/vigies/<name>.b`.";
+        };
         extraSettings = lib.mkOption {
           type = lib.types.attrs;
           default = { };
@@ -448,6 +458,10 @@
           ];
         in {
           services.mado.settings = extras;
+          home.file = lib.optionalAttrs (cfg.world != "") {
+            ".config/mado/mado.b".text = cfg.world;
+          } // lib.mapAttrs' (name: text:
+            lib.nameValuePair ".config/mado/vigies/${name}.b" { inherit text; }) cfg.vigies;
           home.packages = fontPackages;
         };
     };

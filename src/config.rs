@@ -119,10 +119,10 @@ pub struct MadoConfig {
     /// `~/.config/mado/mado.yaml` to enable.
     #[serde(default)]
     pub effects: MadoEffectsConfig,
-    /// Embedded vigy reconciler runtime. **Defaults OFF.** Operator
-    /// sets `vigy.enabled = true` to spawn the in-process
-    /// tatara-lisp reconciler runtime + open the vigy MCP tool
-    /// surface. When disabled, the GUI thread + MCP-path init are
+    /// Embedded vigy reconciler runtime. It starts for a blue vigy on disk
+    /// (`vigy.blue`, default on; `docs/BLUE-WORLD.md`). Operator
+    /// sets `vigy.enabled = true` to spawn it always + open the vigy MCP tool
+    /// surface. When neither holds, the GUI thread + MCP-path init are
     /// skipped and the vigy MCP tools (vigy_register / vigy_list
     /// / vigy_inspect / vigy_tick / vigy_delete) return a typed
     /// `{ok: false, error: "vigy disabled in mado config"}` so
@@ -246,12 +246,37 @@ impl CursorKeysSource {
     }
 }
 
-/// Mado's embedded-vigy gate. Defaults the runtime OFF — operators
-/// who want the in-process reconciler set `vigy.enabled = true`.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema)]
+/// Mado's embedded-vigy gate. `enabled` starts the whole runtime, its
+/// heartbeat and the MCP tools. `blue` starts it when a `.b` file waits in
+/// `~/.config/mado/vigies`, so a machine with no such file pays nothing.
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct MadoVigyConfig {
     #[serde(default)]
     pub enabled: bool,
+    /// Run the blue vigies in `~/.config/mado/vigies`. Default on.
+    #[serde(default = "default_vigy_blue")]
+    pub blue: bool,
+    /// Tick interval of a blue vigy with no `every_ms` in the world.
+    #[serde(default = "default_vigy_tick_ms")]
+    pub tick_ms: u64,
+}
+
+impl Default for MadoVigyConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            blue: default_vigy_blue(),
+            tick_ms: default_vigy_tick_ms(),
+        }
+    }
+}
+
+fn default_vigy_blue() -> bool {
+    true
+}
+
+fn default_vigy_tick_ms() -> u64 {
+    5_000
 }
 
 /// Mado's post-effect configuration — one section per engawa
@@ -8339,7 +8364,9 @@ mod coverage {
         "tear.spawn_wait_ms",
         "tear.switch_sizing",
         "theme",
+        "vigy.blue",
         "vigy.enabled",
+        "vigy.tick_ms",
         "window.chrome.button_width",
         "window.chrome.edge_width",
         "window.chrome.enabled",

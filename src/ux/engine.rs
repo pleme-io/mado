@@ -599,6 +599,10 @@ impl InputEngine {
         };
         let vis = hide_cursor.then_some(false);
 
+        if let Some(call) = blue_command_for(event) {
+            crate::world::spawn_command(call);
+            return EventOutcome::consumed().with_cursor_visibility(vis);
+        }
         let action = self.keybinds.lookup_madori(event);
         let mods = event.modifiers;
         self.last_mods = mods;
@@ -703,6 +707,22 @@ impl InputEngine {
     /// parallel implementation to drift. The key-repeat gate is
     /// deliberately NOT in here — storms are an input-path concern;
     /// injected actions are deliberate.
+    pub fn apply_world_effects(&mut self, zoom: &mut dyn FontZoomTarget) {
+        for effect in crate::world::take_effects() {
+            match effect {
+                crate::world::Effect::SendText(text) => self.pty.write(text.as_bytes()),
+                crate::world::Effect::RunAction(name) => {
+                    if let Some(action) = crate::keybind::parse_action(&name) {
+                        let _ = self.apply_action(action, zoom);
+                    }
+                }
+                crate::world::Effect::Board { key, title } => {
+                    crate::world::board_row(key, title);
+                }
+            }
+        }
+    }
+
     pub fn apply_action(&mut self, action: Action, zoom: &mut dyn FontZoomTarget) -> ActionOutcome {
         match action {
             Action::Copy => {
@@ -7555,4 +7575,13 @@ mod tests {
         h.key(KeyCode::Char('x'), Some("x"), no_mods());
         assert_eq!(h.sent.lock().unwrap().concat(), b"x");
     }
+}
+
+fn blue_command_for(event: &KeyEvent) -> Option<String> {
+    let overlay = crate::world::installed();
+    if overlay.commands.is_empty() {
+        return None;
+    }
+    let hotkey = crate::keybind::hotkey_of(event)?;
+    overlay.command_on(&hotkey).map(str::to_owned)
 }

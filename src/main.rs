@@ -114,6 +114,7 @@ mod url;
 mod ux;
 mod vigy_host;
 mod vt_answer;
+mod world;
 // mod window removed at Phase 4 — single-pane mado uses single_pane.
 
 use std::sync::Arc;
@@ -168,6 +169,19 @@ enum BenchCmd {
 enum SubCmd {
     /// Run as MCP server (stdio transport) for Claude Code integration.
     Mcp,
+    /// Judge a blue world file and print the verdict as one JSON line.
+    /// mado starts this child itself, so a fault in the file ends here.
+    BlueWorld {
+        #[arg(long)]
+        file: std::path::PathBuf,
+    },
+    /// Call one function of a blue world file and print its effects.
+    BlueCommand {
+        #[arg(long)]
+        file: std::path::PathBuf,
+        #[arg(long)]
+        call: String,
+    },
     /// Run the L2 end-to-end smoke matrix (docs/INTEGRATION-TESTING.md
     /// §L2): spawn `mado mcp` (this binary) as a stdio child, drive
     /// spawn_term / get_output / send_keys through a typed rmcp
@@ -451,6 +465,10 @@ fn main() -> anyhow::Result<()> {
     // tracing to stderr only — stdout is the JSON-RPC framing channel
     // and any tracing line on stdout breaks the protocol.
     match cli.subcmd {
+        Some(SubCmd::BlueWorld { ref file }) => std::process::exit(world::serve_world(file)),
+        Some(SubCmd::BlueCommand { ref file, ref call }) => {
+            std::process::exit(world::serve_command(file, call))
+        }
         Some(SubCmd::Mcp) => {
             shidou::init_tracing_to_stderr();
             // One-shot config read so the vigy MCP tools (and any
@@ -750,6 +768,19 @@ fn main() -> anyhow::Result<()> {
     // park-a-config cell this replaces re-applied effects only.
     let config_dirty = Arc::new(AtomicBool::new(false));
     let watcher_dirty = Arc::clone(&config_dirty);
+    let world_file = world::world_file();
+    let late_dirty = Arc::clone(&config_dirty);
+    world::first_load(
+        world_file.clone(),
+        world::FIRST_WINDOW_PATIENCE,
+        move || {
+            late_dirty.store(true, Ordering::Release);
+            crate::ring::WINDOW.ring();
+        },
+    );
+    if let Some(file) = world_file {
+        world::watch(file, Arc::clone(&config_dirty));
+    }
     let (config, config_store) = config::load_and_watch(&cli.config, move |_new_config| {
         tracing::info!("config reloaded — typed setter delta applies next frame");
         watcher_dirty.store(true, Ordering::Release);
@@ -759,16 +790,17 @@ fn main() -> anyhow::Result<()> {
         crate::ux::ConfigReloadSource::new(Arc::new(config_store), config_dirty);
     crate::perf::log_phase("config_loaded");
 
-    // Embedded vigy reconciler runtime — gated by `vigy.enabled`
-    // (defaults OFF). When disabled, no SQLite DB open, no tick
+    // Embedded vigy reconciler runtime — `vigy.enabled`, or a blue vigy
+    // on disk with `vigy.blue` (default). Otherwise no SQLite DB open, no tick
     // loops, no second tokio runtime; the vigy MCP tools return a
     // typed "disabled" error if invoked. Operators flip
     // `vigy.enabled = true` in mado.yaml to spawn the runtime +
     // register the default heartbeat.
-    if config.vigy.enabled {
+    if vigy_host::should_start(&config.vigy) {
+        let vigy_config = config.vigy.clone();
         std::thread::Builder::new()
             .name("vigy-runtime".into())
-            .spawn(|| {
+            .spawn(move || {
                 match tokio::runtime::Builder::new_multi_thread()
                     .worker_threads(2)
                     .enable_all()
@@ -776,11 +808,11 @@ fn main() -> anyhow::Result<()> {
                     .build()
                 {
                     Ok(rt) => rt.block_on(async {
-                        if let Err(e) = vigy_host::init().await {
+                        if let Err(e) = vigy_host::init_with(&vigy_config).await {
                             tracing::warn!(err = %e, "embedded vigy runtime failed to start");
                             return;
                         }
-                        tracing::info!("embedded vigy runtime live; default heartbeat ticking");
+                        tracing::info!("embedded vigy runtime live");
                         std::future::pending::<()>().await;
                     }),
                     Err(e) => {
@@ -830,9 +862,11 @@ fn main() -> anyhow::Result<()> {
 
     // Apply active profile if set — same resolution the hot-reload
     // source performs on every reload (config.rs::with_active_profile).
-    let config = config
-        .with_active_profile()
-        .with_os_reduce_motion(crate::platform::os_reduce_motion());
+    let config = world::over(
+        config
+            .with_active_profile()
+            .with_os_reduce_motion(crate::platform::os_reduce_motion()),
+    );
     crate::clipboard_store::set_temp_ttl_secs(config.attachments.temp_ttl_secs);
     crate::clipboard_store::spawn_temp_sweeper();
     let ui = crate::perf::UiThread::mark();

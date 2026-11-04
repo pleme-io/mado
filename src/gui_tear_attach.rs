@@ -1655,6 +1655,9 @@ where
             // goes through engine.apply_action — EXACTLY the dispatch
             // a physical chord hits, no parallel implementation to
             // drift.
+            if woke {
+                engine.apply_world_effects(renderer);
+            }
             if woke && let Some(inj) = injected.as_ref() {
                 for action in inj.drain() {
                     if let crate::ux::ActionOutcome::FallThrough =

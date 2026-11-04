@@ -139,9 +139,9 @@ You cannot ratchet a ➖. This phase turns each ➖ into a number on
 
 | Item | Evidence | Done when | Gate |
 |---|---|---|---|
-| mado takes `blue-lang-host` directly | today only transitive, through `vigy-eval` | one `Program` loads `.b` at start | test: a `.b` motion file changes a live spring with no rebuild |
+| mado takes `blue-lang-host` directly | ✅ `docs/BLUE-WORLD.md`, `src/world.rs` | one `Program` loads `.b` at start | test: `motion_values_reach_their_group`; a live spring waits for the P4 spring |
 | Motion as blue | tokens → named springs → interaction recipes → surfaces | every motion surface reads a recipe; the Rust solver stays per frame | test: each surface names a recipe row; a surface without one is red |
-| Config as blue | config is YAML through shikumi | the blue entry is the source; YAML is a rendering | round-trip test: blue → YAML → blue is identity |
+| Config as blue | ⚠️ `mado.b` overlays YAML, field by field | the blue entry is the source; YAML is a rendering | round-trip test: blue → YAML → blue is identity |
 
 ## Order
 

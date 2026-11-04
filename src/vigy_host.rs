@@ -33,10 +33,12 @@ use vigy::eval::{
     standard_extensions,
 };
 use vigy::runtime::Scope;
+use vigy::types::Language;
 use vigy::{RuntimeHandle, TickInterval, Vigy};
 
 /// The name mado schedules under in the shared vigy store.
 pub const VIGY_HOST: &str = "mado";
+const BLUE_FILE_LABEL: &str = "blue-file";
 
 const DEFAULT_HEARTBEAT_NAME: &str = "mado-heartbeat";
 const DEFAULT_HEARTBEAT_PROGRAM: &str = r#"
@@ -62,7 +64,7 @@ impl MadoVigyHost {
     /// `Ok(None)` if vigy initialization failed — mado keeps running
     /// without the reconciler runtime in that case (best-effort
     /// additive primitive).
-    pub async fn start() -> anyhow::Result<Self> {
+    pub async fn start(config: &crate::config::MadoVigyConfig) -> anyhow::Result<Self> {
         let db = db_path()?;
         tracing::info!(?db, "starting embedded vigy runtime");
 
@@ -87,17 +89,51 @@ impl MadoVigyHost {
 
         // Register the default heartbeat (idempotent — same name+program
         // yields the same id, so this is a no-op on subsequent startups
-        // unless the operator deleted it).
-        let interval = TickInterval::from_millis(DEFAULT_HEARTBEAT_INTERVAL_MS)
-            .expect("heartbeat interval is in range");
-        let mut v = Vigy::new(DEFAULT_HEARTBEAT_NAME, DEFAULT_HEARTBEAT_PROGRAM, interval)?;
-        v.labels.insert(vigy::runtime::HOST_LABEL, VIGY_HOST)?;
-        v.labels.insert("kind", "heartbeat")?;
-        if let Err(e) = rt.register_or_update(v).await {
-            tracing::warn!(err = %e, "could not register mado heartbeat vigy");
+        // unless the operator deleted it). A runtime that runs only for blue
+        // vigies wakes nothing on its own.
+        if config.enabled {
+            let interval = TickInterval::from_millis(DEFAULT_HEARTBEAT_INTERVAL_MS)
+                .expect("heartbeat interval is in range");
+            let mut v = Vigy::new(DEFAULT_HEARTBEAT_NAME, DEFAULT_HEARTBEAT_PROGRAM, interval)?;
+            v.labels.insert(vigy::runtime::HOST_LABEL, VIGY_HOST)?;
+            v.labels.insert("kind", "heartbeat")?;
+            if let Err(e) = rt.register_or_update(v).await {
+                tracing::warn!(err = %e, "could not register mado heartbeat vigy");
+            }
         }
 
-        Ok(Self { rt: Arc::new(rt) })
+        let host = Self { rt: Arc::new(rt) };
+        if config.blue {
+            host.sync_blue_files(config.tick_ms).await;
+        }
+        Ok(host)
+    }
+
+    /// Make the store hold exactly the `.b` files of the vigies directory: a
+    /// new or changed file registers, a removed or off one leaves.
+    pub async fn sync_blue_files(&self, tick_ms: u64) {
+        let Some(dir) = crate::world::vigies_dir() else {
+            return;
+        };
+        let overlay = crate::world::installed();
+        let wanted = blue_vigies(&dir, tick_ms, &overlay.vigies, &overlay.off_vigies);
+        let mut kept = Vec::new();
+        for vigy in wanted {
+            kept.push(vigy.id.clone());
+            if let Err(e) = self.rt.register_or_update(vigy).await {
+                tracing::warn!(err = %e, "could not register a blue vigy");
+            }
+        }
+        let selector = format!("{BLUE_FILE_LABEL}=true");
+        if let Ok(present) = self.rt.list(Some(&selector)).await {
+            for vigy in present {
+                if !kept.contains(&vigy.id) {
+                    if let Err(e) = self.rt.delete(&vigy.id).await {
+                        tracing::warn!(err = %e, "could not remove a stale blue vigy");
+                    }
+                }
+            }
+        }
     }
 
     /// Bare runtime handle for callers that want direct access (e.g.
@@ -157,9 +193,100 @@ static HOST: OnceCell<MadoVigyHost> = OnceCell::const_new();
 /// Initialise the global vigy host. Idempotent — subsequent calls
 /// return the existing host.
 pub async fn init() -> anyhow::Result<MadoVigyHost> {
-    HOST.get_or_try_init(|| async { MadoVigyHost::start().await })
+    init_with(&crate::config::MadoVigyConfig {
+        enabled: true,
+        blue: false,
+        ..crate::config::MadoVigyConfig::default()
+    })
+    .await
+}
+
+pub async fn init_with(config: &crate::config::MadoVigyConfig) -> anyhow::Result<MadoVigyHost> {
+    let host = HOST
+        .get_or_try_init(|| async { MadoVigyHost::start(config).await })
         .await
-        .cloned()
+        .cloned()?;
+    let _ = TICK_MS.set(config.tick_ms);
+    Ok(host)
+}
+
+static TICK_MS: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+
+/// Bring the store in line with the vigies directory after a save. A runtime
+/// that never started stays stopped until the next launch.
+pub fn sync_soon() {
+    let (Some(host), Some(tick_ms)) = (get(), TICK_MS.get().copied()) else {
+        return;
+    };
+    let _ = std::thread::Builder::new()
+        .name("mado-vigy-sync".to_owned())
+        .spawn(move || {
+            if let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+            {
+                rt.block_on(host.sync_blue_files(tick_ms));
+            }
+        });
+}
+
+/// Whether this GUI starts the runtime: asked for by name, or because a blue
+/// vigy waits on disk.
+#[must_use]
+pub fn should_start(config: &crate::config::MadoVigyConfig) -> bool {
+    config.enabled
+        || (config.blue
+            && crate::world::vigies_dir().is_some_and(|dir| !blue_files(&dir).is_empty()))
+}
+
+fn blue_files(dir: &std::path::Path) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut files: Vec<PathBuf> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "b"))
+        .collect();
+    files.sort();
+    files
+}
+
+/// Each `.b` file as a vigy, ticked as `every` says or else every `tick_ms`.
+fn blue_vigies(
+    dir: &std::path::Path,
+    tick_ms: u64,
+    every: &std::collections::HashMap<String, u64>,
+    off: &[String],
+) -> Vec<Vigy> {
+    let mut vigies = Vec::new();
+    for file in blue_files(dir) {
+        let Some(name) = file.file_stem().map(|s| s.to_string_lossy().to_string()) else {
+            continue;
+        };
+        if off.contains(&name) {
+            continue;
+        }
+        let ms = every
+            .get(&name)
+            .copied()
+            .filter(|ms| *ms > 0)
+            .unwrap_or(tick_ms);
+        let built = std::fs::read_to_string(&file)
+            .map_err(anyhow::Error::from)
+            .and_then(|program| {
+                let interval = TickInterval::from_millis(ms).map_err(anyhow::Error::from)?;
+                let mut v = Vigy::in_language(name.clone(), program, Language::Blue, interval)?;
+                v.labels.insert(vigy::runtime::HOST_LABEL, VIGY_HOST)?;
+                v.labels.insert(BLUE_FILE_LABEL, "true")?;
+                Ok(v)
+            });
+        match built {
+            Ok(v) => vigies.push(v),
+            Err(e) => tracing::warn!(file = %file.display(), err = %e, "a blue vigy was refused"),
+        }
+    }
+    vigies
 }
 
 /// Read-only handle to the global vigy host, if it's been initialised.
@@ -189,11 +316,26 @@ pub fn get() -> Option<MadoVigyHost> {
 
 fn mado_intrinsics_extension() -> ExtensionHandle {
     closure_extension(|interp: &mut ExtInterpreter| {
+        // (mado-board "key" "title") → the row on this process's Ctrl-S board;
+        // the same key updates it, so a vigy shows its latest result every tick.
+        both(
+            interp,
+            "mado-board",
+            ExtArity::Exact(2),
+            |args: &[ExtValue], _host: &mut VigyHost, sp| {
+                let key = lisp_string(&args[0], sp)?;
+                let title = lisp_string(&args[1], sp)?;
+                crate::world::board_row(key, title);
+                Ok(ExtValue::Nil)
+            },
+        );
+
         // (mado-version) → string
         // The mado binary's CARGO_PKG_VERSION. Useful for vigies that
         // need to gate behavior on mado version (e.g. "if mado >= 0.2
         // assume the new OSC 1338 path exists").
-        interp.register_fn(
+        both(
+            interp,
             "mado-version",
             ExtArity::Exact(0),
             |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
@@ -207,7 +349,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         // The hostname mado is running on (best-effort via `hostname`
         // crate). Reconcilers running across a heterogeneous fleet
         // use this to gate host-specific behavior.
-        interp.register_fn(
+        both(
+            interp,
             "mado-host",
             ExtArity::Exact(0),
             |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
@@ -221,7 +364,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         // implement "wait until mado has been up for at least N ms
         // before doing anything" patterns without rolling their own
         // start-time bookkeeping.
-        interp.register_fn(
+        both(
+            interp,
             "mado-process-uptime-ms",
             ExtArity::Exact(0),
             |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
@@ -237,7 +381,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         // Whether mado has an active tear-daemon attachment right
         // now. Vigies that sync tear state should defer when this is
         // false. Reads through tear-discovery's cached state — cheap.
-        interp.register_fn(
+        both(
+            interp,
             "mado-tear-attached?",
             ExtArity::Exact(0),
             |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
@@ -249,7 +394,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         // Sugar around tracing::info! tagged with `source = "mado-vigy"`
         // so operators tailing mado logs can filter just the events
         // that originated from vigy programs.
-        interp.register_fn(
+        both(
+            interp,
             "mado-emit-event",
             ExtArity::Exact(2),
             |args: &[ExtValue], _host: &mut VigyHost, sp| {
@@ -275,7 +421,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         // `false`. ──
 
         // (mado-browser-open "https://…") → bool (queued?)
-        interp.register_fn(
+        both(
+            interp,
             "mado-browser-open",
             ExtArity::Exact(1),
             |args: &[ExtValue], _host: &mut VigyHost, sp| {
@@ -288,7 +435,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         );
 
         // (mado-browser-navigate id "url") → bool
-        interp.register_fn(
+        both(
+            interp,
             "mado-browser-navigate",
             ExtArity::Exact(2),
             |args: &[ExtValue], _host: &mut VigyHost, sp| {
@@ -302,7 +450,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         );
 
         // (mado-browser-snap id :left-half) → bool
-        interp.register_fn(
+        both(
+            interp,
             "mado-browser-snap",
             ExtArity::Exact(2),
             |args: &[ExtValue], _host: &mut VigyHost, sp| {
@@ -316,7 +465,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         );
 
         // (mado-browser-focus id) → bool
-        interp.register_fn(
+        both(
+            interp,
             "mado-browser-focus",
             ExtArity::Exact(1),
             |args: &[ExtValue], _host: &mut VigyHost, sp| {
@@ -329,7 +479,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         );
 
         // (mado-browser-close id) → bool
-        interp.register_fn(
+        both(
+            interp,
             "mado-browser-close",
             ExtArity::Exact(1),
             |args: &[ExtValue], _host: &mut VigyHost, sp| {
@@ -348,7 +499,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         // the sexp first; a malformed sexp returns false, never a silent bad
         // render. Needs mado's live in-process page state (mado-memory-
         // privileged), so it is a mado intrinsic, not shell.
-        interp.register_fn(
+        both(
+            interp,
             "mado-browser-set-dom",
             ExtArity::Exact(2),
             |args: &[ExtValue], _host: &mut VigyHost, sp| {
@@ -368,7 +520,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         // (mado-browser-list) → JSON string of live float surfaces
         // (ExtValue has no list variant, so the read snapshot is JSON —
         // the same shape browser_list returns over MCP).
-        interp.register_fn(
+        both(
+            interp,
             "mado-browser-list",
             ExtArity::Exact(0),
             |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
@@ -385,7 +538,8 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
         // Browser": the live page tree, queryable as lisp data — the read side
         // of the DOM-manipulation surface. Needs mado's live in-process page
         // state (mado-memory-privileged), so it is a mado intrinsic, not shell.
-        interp.register_fn(
+        both(
+            interp,
             "mado-browser-dom-sexp",
             ExtArity::Exact(1),
             |args: &[ExtValue], _host: &mut VigyHost, sp| {
@@ -404,6 +558,18 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
             },
         );
     })
+}
+
+/// One intrinsic under its lisp name and under the spelling blue can write:
+/// blue has no `-` in a name.
+fn both(
+    interp: &mut ExtInterpreter,
+    lisp: &'static str,
+    arity: ExtArity,
+    run: fn(&[ExtValue], &mut VigyHost, vigy::eval::Span) -> Result<ExtValue, ExtEvalError>,
+) {
+    interp.register_fn(lisp, arity, run);
+    interp.register_fn(lisp.replace('-', "_"), arity, run);
 }
 
 fn probe_tear_attached() -> bool {
@@ -441,3 +607,90 @@ fn lisp_int(v: &ExtValue, sp: vigy::eval::Span) -> std::result::Result<i64, ExtE
 /// `(mado-process-uptime-ms)`. `OnceCell` so concurrent vigy ticks
 /// agree on a single anchor.
 static MADO_START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vigy::eval::{VigyHost, evaluate_in};
+
+    fn blue_extensions() -> Vec<ExtensionHandle> {
+        let mut extensions = standard_extensions();
+        extensions.push(mado_intrinsics_extension());
+        extensions
+    }
+
+    #[test]
+    fn every_intrinsic_has_a_name_blue_can_write() {
+        let program = "x = mado_version()\ny = mado_host()\nz = mado_process_uptime_ms()\nvigy_log(\"info\", \"#{x} #{y} #{z}\")\nvigy_noop()\n";
+        let host = evaluate_in(
+            Language::Blue,
+            program,
+            VigyHost::default(),
+            &blue_extensions(),
+        )
+        .unwrap();
+        assert_eq!(host.actions.len(), 1);
+        assert!(host.log[0].message.contains(env!("CARGO_PKG_VERSION")));
+    }
+
+    #[tokio::test]
+    async fn a_blue_file_ticks_and_its_row_reaches_the_board() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("clock.b"),
+            "n = vigy_tick_count\nmado_board(\"clock\", \"blue tick #{n}\")\nvigy_noop()\n",
+        )
+        .unwrap();
+        std::fs::write(dir.path().join("note.txt"), "not a vigy").unwrap();
+        let every = std::collections::HashMap::from([("clock".to_owned(), 250)]);
+        let vigies = blue_vigies(dir.path(), 5_000, &every, &[]);
+        assert_eq!(vigies.len(), 1);
+        assert_eq!(vigies[0].language, Language::Blue);
+        assert_eq!(vigies[0].tick_interval.as_millis(), 250);
+        let db = dir.path().join("vigy.db");
+        let rt = RuntimeHandle::open_with_scope(
+            &db,
+            blue_extensions(),
+            Scope::HostAndUnlabelled(VIGY_HOST.into()),
+        )
+        .await
+        .unwrap();
+        let vigy = rt.register_or_update(vigies[0].clone()).await.unwrap();
+        let first = rt.tick_now(&vigy.id).await.unwrap();
+        assert!(first.error.is_none(), "{first:?}");
+        let titles = || -> Vec<String> {
+            crate::suggest::store()
+                .ranked_stored(1_000, crate::suggest::now_unix_ms())
+                .iter()
+                .filter(|s| s.item.title.starts_with("blue tick"))
+                .map(|s| s.item.title.clone())
+                .collect()
+        };
+        let first_titles = titles();
+        assert_eq!(first_titles.len(), 1, "{first_titles:?}");
+        let second = rt.tick_now(&vigy.id).await.unwrap();
+        assert!(second.error.is_none(), "{second:?}");
+        let second_titles = titles();
+        assert_eq!(second_titles.len(), 1, "{second_titles:?}");
+        assert_ne!(
+            second_titles, first_titles,
+            "a tick must update the surface"
+        );
+    }
+
+    #[test]
+    fn with_no_file_the_runtime_stays_off_and_the_switches_are_honest() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(blue_files(dir.path()).is_empty());
+        std::fs::write(dir.path().join("a.b"), "vigy_noop()\n").unwrap();
+        assert_eq!(blue_files(dir.path()).len(), 1);
+        assert!(blue_vigies(dir.path(), 1000, &Default::default(), &["a".to_owned()]).is_empty());
+        let off = crate::config::MadoVigyConfig {
+            blue: false,
+            ..crate::config::MadoVigyConfig::default()
+        };
+        assert!(!should_start(&off));
+        let default = crate::config::MadoVigyConfig::default();
+        assert!(!default.enabled && default.blue);
+    }
+}

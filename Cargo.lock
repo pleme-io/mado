@@ -508,18 +508,18 @@ dependencies = [
 
 [[package]]
 name = "blue-lang-bidama"
-version = "0.0.85"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6b79b45ed3df92087cdbe5208476dfa2aedc40ed2ec6f5456ba02dbbfdd88ec"
+checksum = "1dadc936c7a8bda31c4e361f71f6fc780f99a618960c7b4e2508731e12ce3b11"
 dependencies = [
  "blue-lang-waku",
 ]
 
 [[package]]
 name = "blue-lang-check"
-version = "0.0.85"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "424b84f3a0467fc305712ebd5926c2df3ec0f42d49578ad2bd4749632019d392"
+checksum = "f5fce4813019e583045489cbcdd53547da32fb89cae38646cecd98972112b30a"
 dependencies = [
  "blue-lang-syntax",
  "tatara-lisp 0.4.13",
@@ -527,9 +527,9 @@ dependencies = [
 
 [[package]]
 name = "blue-lang-fmt"
-version = "0.0.85"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38f93ad48aecf700f54d398015219af445b3a0d7252c2eeee2cd33301f4926d3"
+checksum = "9c647197fe302d256cc02658f4c14c93bade61fa61aa7dc272964b27b36ad805"
 dependencies = [
  "blue-lang-syntax",
  "tatara-lisp 0.4.13",
@@ -538,14 +538,17 @@ dependencies = [
 
 [[package]]
 name = "blue-lang-host"
-version = "0.0.85"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcd5aa1d21818ba8a7ec6171a3206fb2c2e360b83857062e20638e64c6d9a374"
+checksum = "5ffc49e16698fe1f4fa6ea2164ec8c9ee24a4c8d49eac1686e4cdded34a067f0"
 dependencies = [
  "blue-lang-host-macros",
  "blue-lang-pkg",
  "blue-lang-runtime",
  "blue-lang-waku",
+ "rustix 1.1.6",
+ "serde",
+ "serde_json",
  "tatara-lisp 0.4.13",
  "tatara-lisp-eval 0.4.13",
  "thiserror 2.0.21",
@@ -553,9 +556,9 @@ dependencies = [
 
 [[package]]
 name = "blue-lang-host-macros"
-version = "0.0.85"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "faeb2296886334efcf8397f69a9c30e8d4e7f7ee52ae91d7d7f2760016521531"
+checksum = "7a35a4c6a17e835c2fc5c60307ab9d1dd9747af5efcf598b510adc702014bc4f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -563,14 +566,33 @@ dependencies = [
 ]
 
 [[package]]
-name = "blue-lang-pkg"
-version = "0.0.85"
+name = "blue-lang-mondou"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fca664e0d19bb405137f989de30fc5516295340d20f08fd81f661d44e775b6d7"
+checksum = "9aeda1fc6a7aea52ad913101fa6a4a3d96d860de26416d107a0f8592452f86b7"
 dependencies = [
+ "blake3",
+ "blue-lang-check",
+ "blue-lang-fmt",
+ "blue-lang-runtime",
+ "blue-lang-syntax",
+ "blue-lang-waku",
+ "serde_json",
+ "tatara-lisp-eval 0.4.13",
+]
+
+[[package]]
+name = "blue-lang-pkg"
+version = "0.0.151"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e150a62708cdcb950c2dac72861484eceb3b0bb0e1484d9031d559cfa2373368"
+dependencies = [
+ "blake3",
  "blue-lang-bidama",
  "blue-lang-check",
  "blue-lang-fmt",
+ "blue-lang-mondou",
+ "blue-lang-proc",
  "blue-lang-runtime",
  "blue-lang-syntax",
  "blue-lang-waku",
@@ -583,11 +605,14 @@ dependencies = [
 
 [[package]]
 name = "blue-lang-proc"
-version = "0.0.85"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dee6b456e5d93e8a3428d57038aadd587b5414ba6cc55a6b8de7e64c0dde354"
+checksum = "9873e201017da11d7a73c0bbd75839c8ea6ac6337960ba9b92736138076315a5"
 dependencies = [
+ "blake3",
  "blue-lang-waku",
+ "libc",
+ "rustix 1.1.6",
  "serde_json",
  "tatara-lisp 0.4.13",
  "tatara-lisp-eval 0.4.13",
@@ -595,9 +620,9 @@ dependencies = [
 
 [[package]]
 name = "blue-lang-runtime"
-version = "0.0.85"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26cdcc34e167b9cede448a0c16bb216e2f9ffcdc03ea30622890dbf488564478"
+checksum = "a0091985143fbf7fc96dbf63209903b495f3f4ee7199e71f8c2dfcbd44e64b83"
 dependencies = [
  "blake3",
  "blue-lang-check",
@@ -606,9 +631,12 @@ dependencies = [
  "blue-lang-syntax",
  "blue-lang-waku",
  "ed25519-dalek",
+ "hmac",
+ "quick-xml 0.38.4",
  "rnix",
  "rowan",
  "serde_json",
+ "sha1",
  "sha2",
  "tatara-lisp 0.4.13",
  "tatara-lisp-eval 0.4.13",
@@ -617,20 +645,21 @@ dependencies = [
 
 [[package]]
 name = "blue-lang-syntax"
-version = "0.0.85"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2679500f764b7aede30252635660503015b5eb8af0c48b62e1c4b52e6e770c89"
+checksum = "77add8e11947ca169daf7ecbd9e93eb2ee51cd720f55d2f1a063a694c3161491"
 dependencies = [
  "tatara-lisp 0.4.13",
 ]
 
 [[package]]
 name = "blue-lang-waku"
-version = "0.0.85"
+version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6790408d166b85c80908ea1948c6b64c06005ec43b425a2a5ea5a62dac5a44cc"
+checksum = "56f7a3da54897f5dc5f4c13dca350a844d58509bfc199efb0b2ec2bf0a24de44"
 dependencies = [
  "blue-lang-syntax",
+ "serde",
  "tatara-lisp 0.4.13",
 ]
 
@@ -3570,6 +3599,7 @@ dependencies = [
  "awase",
  "blake3",
  "block2 0.6.2",
+ "blue-lang-host",
  "bytemuck",
  "clap",
  "criterion",
@@ -3601,6 +3631,7 @@ dependencies = [
  "madori",
  "mimalloc",
  "naga",
+ "notify",
  "objc2 0.6.5",
  "objc2-app-kit 0.3.2",
  "objc2-foundation 0.3.2",
@@ -5338,6 +5369,15 @@ name = "quick-error"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a993555f31e5a609f617c12db6250dedcac1b0a85076912c436e6fc9b2c8e6a3"
+
+[[package]]
+name = "quick-xml"
+version = "0.38.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b66c2058c55a409d601666cffe35f04333cf1013010882cec174a7467cd4e21c"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "quick-xml"
@@ -8266,9 +8306,9 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vigy"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8d52e342152401fe57701985fcd5c7f663933688cc5de496f4608edd7a1a930"
+checksum = "a41cd5d244162268d5c854dca040343cb46478277b5d503458241f056e503010"
 dependencies = [
  "vigy-eval",
  "vigy-mcp",
@@ -8279,9 +8319,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-eval"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f43a352e7817b2dfdc50ee625d440a86601edaae913e5d7eb4a9e0e20712d6cc"
+checksum = "15970dc05ebc8af0976e82974f0bd9d96e619d87c950f1bb6b0205ee9cb4e9a3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8299,9 +8339,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-mcp"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0174a8181e69b910c6002ce46b5cb7a866734e94a5a563743dcffc02229ba0a"
+checksum = "6a794be1f98a14a0eb04cbd4ca5b8a5dbf085953c523249a10dbe9938f5ac76a"
 dependencies = [
  "anyhow",
  "serde",
@@ -8314,9 +8354,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-runtime"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c0bf66328a9a1bfcad6b477eb0fb7e2898b116e5397b74159aaf2323efa5260"
+checksum = "8954f0ed2d4bc7e185da5cc33d9ad289af20276e799330b83f8b6ea7d28cb39a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8333,9 +8373,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-store"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3827b89236b6b982583989c56593cdbdbe1cef27293f8b07900522aa3b67aacd"
+checksum = "d50139a9560e3534c12b082b1e793d617218b4cbd2dc37778ace4590f0154878"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8354,9 +8394,9 @@ dependencies = [
 
 [[package]]
 name = "vigy-types"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db6308005aa3cb45695822ad9fccd0614b0b5c80ab0303f196eb1333e2511df4"
+checksum = "16367977a08e947491dd06e890ca81c547479d4ba2af52c817b9f0daf21ebc0f"
 dependencies = [
  "blake3",
  "serde",
@@ -8587,7 +8627,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "338e30461b3a2b67d70eb30a6d89f8e0c93a833e07d2ae89085cd070c4a00ac0"
 dependencies = [
  "proc-macro2",
- "quick-xml",
+ "quick-xml 0.41.0",
  "quote",
 ]
 

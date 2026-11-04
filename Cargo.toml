@@ -285,7 +285,9 @@ tatara-lisp = { version = "=0.3.52" }
 # pieces of mado's state always-converging toward desired. Apps inside
 # panes can register more vigies at runtime via the MCP tools (and via
 # the OSC 1338 extension, future). See pleme-io/vigy for the primitive.
-vigy = { version = "0.1.7", default-features = false, features = ["mcp"] }
+vigy = { version = "0.1.13", default-features = false, features = ["mcp"] }
+blue-lang-host = "0.0.151"
+notify = "8"
 # ── ★ A CONSTRAINT, NOT A USE (2026-09-20) ────────────────────────────────
 # mado does not call tatara-lisp-eval; it arrives through
 # `vigy → vigy-eval → tatara-lisp-eval = "^0.3.3"`. It is named here to HOLD
