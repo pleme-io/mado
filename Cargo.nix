@@ -1522,9 +1522,9 @@ rec {
       };
       "blue-lang-bidama" = rec {
         crateName = "blue-lang-bidama";
-        version = "0.0.85";
+        version = "0.0.151";
         edition = "2021";
-        sha256 = "1v48vnzxn0msara6zv6j1v2fsapsdm3hhlmyrn3j1y9xxm2rpdzn";
+        sha256 = "049vrq91wwq84m77n34n32k9j3vqzkv727rn9qfa7gd8qwvckb8x";
         libName = "blue_lang_bidama";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1539,9 +1539,9 @@ rec {
       };
       "blue-lang-check" = rec {
         crateName = "blue-lang-check";
-        version = "0.0.85";
+        version = "0.0.151";
         edition = "2021";
-        sha256 = "14nk34h66ja7pp98lms95psc0gnzq8k5kg9ff42w6zs6l3rq8js2";
+        sha256 = "02mk28hrg66drr38dqyai7xk5nj76pawvjw9ah287r8r620y9z7m";
         libName = "blue_lang_check";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1560,9 +1560,9 @@ rec {
       };
       "blue-lang-fmt" = rec {
         crateName = "blue-lang-fmt";
-        version = "0.0.85";
+        version = "0.0.151";
         edition = "2021";
-        sha256 = "1lr694gk0cydwbp2wb15syhb6iglk8hib01r9psh1xzciba3my9q";
+        sha256 = "01fqdarjfjwnfb17vak1z9hxxflk9k0z8n16q1n2ab9hzsbp2r4w";
         libName = "blue_lang_fmt";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1585,9 +1585,9 @@ rec {
       };
       "blue-lang-host" = rec {
         crateName = "blue-lang-host";
-        version = "0.0.85";
+        version = "0.0.151";
         edition = "2021";
-        sha256 = "0x53v73693k340p0cmrqp1hf7hmjdwha6wb1xjksi2w144fsmmdw";
+        sha256 = "1w37l0sfvpacdrlc3sj9im64mqlyikn688galr7izzlqcvhlkz2z";
         libName = "blue_lang_host";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1610,6 +1610,22 @@ rec {
             packageId = "blue-lang-waku";
           }
           {
+            name = "rustix";
+            packageId = "rustix 1.1.6";
+            usesDefaultFeatures = false;
+            target = { target, features }: ("linux" == target."os" or null);
+            features = [ "std" "process" ];
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
             name = "tatara-lisp";
             packageId = "tatara-lisp 0.4.13";
           }
@@ -1630,9 +1646,9 @@ rec {
       };
       "blue-lang-host-macros" = rec {
         crateName = "blue-lang-host-macros";
-        version = "0.0.85";
+        version = "0.0.151";
         edition = "2021";
-        sha256 = "0c8ma8b00xpjszbr3bjjxvvygm7862f9mxlphg7yyd33i2b25szs";
+        sha256 = "0kxw2hh71p0aa65mkkzgymx79n8xknmhf0y6qlpmr0vyl73a8dbs";
         procMacro = true;
         libName = "blue_lang_host_macros";
         authors = [
@@ -1655,16 +1671,69 @@ rec {
         ];
 
       };
+      "blue-lang-mondou" = rec {
+        crateName = "blue-lang-mondou";
+        version = "0.0.151";
+        edition = "2021";
+        sha256 = "1dw65x2r518gg886sh96vrhdi5ix99mgl09ij6nm5sksdbya3vcs";
+        libName = "blue_lang_mondou";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "blake3";
+            packageId = "blake3";
+            usesDefaultFeatures = false;
+            features = [ "std" "pure" ];
+          }
+          {
+            name = "blue-lang-check";
+            packageId = "blue-lang-check";
+          }
+          {
+            name = "blue-lang-fmt";
+            packageId = "blue-lang-fmt";
+          }
+          {
+            name = "blue-lang-runtime";
+            packageId = "blue-lang-runtime";
+          }
+          {
+            name = "blue-lang-syntax";
+            packageId = "blue-lang-syntax";
+          }
+          {
+            name = "blue-lang-waku";
+            packageId = "blue-lang-waku";
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "tatara-lisp-eval";
+            packageId = "tatara-lisp-eval 0.4.13";
+          }
+        ];
+
+      };
       "blue-lang-pkg" = rec {
         crateName = "blue-lang-pkg";
-        version = "0.0.85";
+        version = "0.0.151";
         edition = "2021";
-        sha256 = "1mxnfpkl87b63zc8zw101ls9aqjiql7y77cqgw9hbd4vs7h699pw";
+        sha256 = "0s1k6yicynfm6684sj71n05kpszchha8cwmc5l69bjyd10kscl71";
         libName = "blue_lang_pkg";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
         dependencies = [
+          {
+            name = "blake3";
+            packageId = "blake3";
+            usesDefaultFeatures = false;
+            features = [ "std" "pure" ];
+          }
           {
             name = "blue-lang-bidama";
             packageId = "blue-lang-bidama";
@@ -1676,6 +1745,14 @@ rec {
           {
             name = "blue-lang-fmt";
             packageId = "blue-lang-fmt";
+          }
+          {
+            name = "blue-lang-mondou";
+            packageId = "blue-lang-mondou";
+          }
+          {
+            name = "blue-lang-proc";
+            packageId = "blue-lang-proc";
           }
           {
             name = "blue-lang-runtime";
@@ -1717,17 +1794,35 @@ rec {
       };
       "blue-lang-proc" = rec {
         crateName = "blue-lang-proc";
-        version = "0.0.85";
+        version = "0.0.151";
         edition = "2021";
-        sha256 = "0m73vp068znyp2k5bk569d0vb1ymmn506mwd8aiyi4sxdr2npvhd";
+        sha256 = "198mcc3khqbkjadvlq3r6g36msn875cdgfy0fdx1v8bx040y4wwq";
         libName = "blue_lang_proc";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
         dependencies = [
           {
+            name = "blake3";
+            packageId = "blake3";
+            usesDefaultFeatures = false;
+            features = [ "std" "pure" ];
+          }
+          {
             name = "blue-lang-waku";
             packageId = "blue-lang-waku";
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+            target = { target, features }: ("apple" == target."vendor" or null);
+          }
+          {
+            name = "rustix";
+            packageId = "rustix 1.1.6";
+            usesDefaultFeatures = false;
+            target = { target, features }: (("linux" == target."os" or null) || ("android" == target."os" or null));
+            features = [ "std" "process" "thread" ];
           }
           {
             name = "serde_json";
@@ -1752,9 +1847,9 @@ rec {
       };
       "blue-lang-runtime" = rec {
         crateName = "blue-lang-runtime";
-        version = "0.0.85";
+        version = "0.0.151";
         edition = "2021";
-        sha256 = "0y24as4g9nwh51i31sh3vky9ybvf46xic34a8kgcxfb7w4scrk96";
+        sha256 = "10sbwr2bvz1dihgyg6bixvsg75dl0fcj0qxzdp4pzgrz2j2ij2d0";
         libName = "blue_lang_runtime";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1793,6 +1888,16 @@ rec {
             features = [ "std" "fast" "zeroize" ];
           }
           {
+            name = "hmac";
+            packageId = "hmac";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "quick-xml";
+            packageId = "quick-xml 0.38.4";
+            usesDefaultFeatures = false;
+          }
+          {
             name = "rnix";
             packageId = "rnix";
           }
@@ -1803,6 +1908,12 @@ rec {
           {
             name = "serde_json";
             packageId = "serde_json";
+          }
+          {
+            name = "sha1";
+            packageId = "sha1";
+            usesDefaultFeatures = false;
+            features = [ "std" ];
           }
           {
             name = "sha2";
@@ -1824,13 +1935,14 @@ rec {
           }
         ];
         features = {
+          "sys" = [ "dep:tameshi" "dep:rand_core" "dep:blue-lang-senses" "dep:blue-lang-kernel" ];
         };
       };
       "blue-lang-syntax" = rec {
         crateName = "blue-lang-syntax";
-        version = "0.0.85";
+        version = "0.0.151";
         edition = "2021";
-        sha256 = "128cfxp2xdf4w5i8pi7hibmva59ha1h5cqsj0biysyjbfq7m0y96";
+        sha256 = "148l2v1r99k3l3qx4m8gfb6m3vmj7vlxkjvymyfidjj737hxibbp";
         libName = "blue_lang_syntax";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1845,9 +1957,9 @@ rec {
       };
       "blue-lang-waku" = rec {
         crateName = "blue-lang-waku";
-        version = "0.0.85";
+        version = "0.0.151";
         edition = "2021";
-        sha256 = "1k24ban2v9m5bqm5lhivqig001jcnv34h6ga104wi1bb2s6l1437";
+        sha256 = "0i6y4h5bzhif1gxrw6gwkd85hkc418swlgf1yk2mszw9akda7xsn";
         libName = "blue_lang_waku";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1856,6 +1968,11 @@ rec {
           {
             name = "blue-lang-syntax";
             packageId = "blue-lang-syntax";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
           }
           {
             name = "tatara-lisp";
@@ -10889,7 +11006,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.219";
+        version = "0.1.220";
         edition = "2024";
         crateBin = [
           {
@@ -10916,6 +11033,10 @@ rec {
             name = "block2";
             packageId = "block2 0.6.2";
             target = { target, features }: ("macos" == target."os" or null);
+          }
+          {
+            name = "blue-lang-host";
+            packageId = "blue-lang-host";
           }
           {
             name = "bytemuck";
@@ -11039,6 +11160,10 @@ rec {
             name = "mimalloc";
             packageId = "mimalloc";
             usesDefaultFeatures = false;
+          }
+          {
+            name = "notify";
+            packageId = "notify";
           }
           {
             name = "objc2";
@@ -12315,7 +12440,7 @@ rec {
           "serde" = [ "notify-types/serde" ];
           "serialization-compat-6" = [ "notify-types/serialization-compat-6" ];
         };
-        resolvedDefaultFeatures = [ "fsevent-sys" "macos_fsevent" "objc2-core-foundation" "objc2-core-services" ];
+        resolvedDefaultFeatures = [ "default" "fsevent-sys" "macos_fsevent" "objc2-core-foundation" "objc2-core-services" ];
       };
       "notify-types" = rec {
         crateName = "notify-types";
@@ -18306,7 +18431,31 @@ rec {
         ];
 
       };
-      "quick-xml" = rec {
+      "quick-xml 0.38.4" = rec {
+        crateName = "quick-xml";
+        version = "0.38.4";
+        edition = "2021";
+        sha256 = "0772siy4d9vlq77842012c8cycs3y0szxkv62rh9sh2sqmc20v5n";
+        libName = "quick_xml";
+        dependencies = [
+          {
+            name = "memchr";
+            packageId = "memchr";
+          }
+        ];
+        features = {
+          "arbitrary" = [ "dep:arbitrary" ];
+          "async-tokio" = [ "tokio" ];
+          "document-features" = [ "dep:document-features" ];
+          "encoding" = [ "encoding_rs" ];
+          "encoding_rs" = [ "dep:encoding_rs" ];
+          "serde" = [ "dep:serde" ];
+          "serde-types" = [ "serde/derive" ];
+          "serialize" = [ "serde" ];
+          "tokio" = [ "dep:tokio" ];
+        };
+      };
+      "quick-xml 0.41.0" = rec {
         crateName = "quick-xml";
         version = "0.41.0";
         edition = "2021";
@@ -20481,7 +20630,7 @@ rec {
           "thread" = [ "linux-raw-sys/prctl" ];
           "use-libc" = [ "libc_errno" "libc" ];
         };
-        resolvedDefaultFeatures = [ "alloc" "default" "event" "fs" "net" "pipe" "process" "shm" "std" "system" "time" ];
+        resolvedDefaultFeatures = [ "alloc" "default" "event" "fs" "net" "pipe" "process" "shm" "std" "system" "thread" "time" ];
       };
       "rustls" = rec {
         crateName = "rustls";
@@ -28465,9 +28614,9 @@ rec {
       };
       "vigy" = rec {
         crateName = "vigy";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2021";
-        sha256 = "0c59l7bys226dx4xxiccd0rkjrkzbk6mz601fzjiyh2j44s2xmf8";
+        sha256 = "041ha1p0a7r4b0s50pbv4xw69d1w6i0a1p2lr3anh8hn8k9da754";
         authors = [
           "Pleme Team <team@pleme.io>"
         ];
@@ -28505,9 +28654,9 @@ rec {
       };
       "vigy-eval" = rec {
         crateName = "vigy-eval";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2021";
-        sha256 = "1k6n283y5q59niz5sglimvd1wq461925sqpfa3fdzchpg0p3afpl";
+        sha256 = "18z9njffw182dfxz2l69hyfn2vnrv45lz5w2dsbz12mwbv00v5qm";
         libName = "vigy_eval";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -28569,9 +28718,9 @@ rec {
       };
       "vigy-mcp" = rec {
         crateName = "vigy-mcp";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2021";
-        sha256 = "02ms54ic1zyw8cvmcnjax4s6g1ksrfsldkh2c06936z6h60ll5yh";
+        sha256 = "0sn7ba7r7sfv22d288y5adchigsxi9dwmm6b0kms054az7hlnyba";
         libName = "vigy_mcp";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -28612,9 +28761,9 @@ rec {
       };
       "vigy-runtime" = rec {
         crateName = "vigy-runtime";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2021";
-        sha256 = "0q2jz8z35wmab50vg5skdq8qp2g2nw7ynxxlsv5bz8d951izc2qw";
+        sha256 = "16mkik9afvlb7yw314vrdqkj1bw9sad3vhswva2y3isb5pnz0m49";
         libName = "vigy_runtime";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -28671,9 +28820,9 @@ rec {
       };
       "vigy-store" = rec {
         crateName = "vigy-store";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2021";
-        sha256 = "1kdacwxsl8h5j03qngr94zpirgmxrn9nbic975c85fdn6s9bh9rq";
+        sha256 = "0y282pq90iffi9vkgp6jrfs1hwk17mwiwaq85g0k8d8faslkj0fm";
         libName = "vigy_store";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -28742,9 +28891,9 @@ rec {
       };
       "vigy-types" = rec {
         crateName = "vigy-types";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2021";
-        sha256 = "1x0xa7i364zbjvqh60xbh1f0njv1s369zb92b1llbjx3b800hqyv";
+        sha256 = "03xw3vrdmw5r2z455bx29fflfiy5h7591s06vn8p954fl1vpjdhn";
         libName = "vigy_types";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -29385,7 +29534,7 @@ rec {
           }
           {
             name = "quick-xml";
-            packageId = "quick-xml";
+            packageId = "quick-xml 0.41.0";
           }
           {
             name = "quote";

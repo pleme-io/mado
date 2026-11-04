@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "e0214db839f0eef876b3945a8d5f7f290b246f59911876c178eec0c8697f6cab",
+  "cargo_lock_sha256": "de50dd604d3b07ff5d9f3bb27bfb6bd175fdfa28e068c2496c22ad0366f434aa",
   "manifest_sha256": {
-    "Cargo.toml": "0aac11ece48105aac3e6532010e8f03f3c6d16de724f2de383ab912eb1cafde3"
+    "Cargo.toml": "080d695b5945246729e109e86e27b91b5e584caa477c27600b37f9e5b1410327"
   },
   "target_resolves": {
     "base": {
@@ -8093,7 +8093,7 @@
           },
           {
             "name": "samba",
-            "package_key": "samba-0.1.5",
+            "package_key": "samba-0.1.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13173,7 +13173,7 @@
         "runtime_dependencies": [
           {
             "name": "toml_edit",
-            "package_key": "toml_edit-0.25.17+spec-1.1.0",
+            "package_key": "toml_edit-0.25.18+spec-1.1.0",
             "kind": "normal",
             "features": [
               "parse"
@@ -15916,7 +15916,7 @@
           "default"
         ]
       },
-      "samba-0.1.5": {
+      "samba-0.1.6": {
         "runtime_dependencies": [
           {
             "name": "rand",
@@ -23799,7 +23799,7 @@
           "serde"
         ]
       },
-      "toml_edit-0.25.17+spec-1.1.0": {
+      "toml_edit-0.25.18+spec-1.1.0": {
         "runtime_dependencies": [
           {
             "name": "indexmap",
@@ -27980,7 +27980,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.219": {
+          "mado-0.1.220": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -33664,7 +33664,7 @@
               "system"
             ]
           },
-          "mado-0.1.219": {
+          "mado-0.1.220": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -38342,7 +38342,7 @@
               "system"
             ]
           },
-          "mado-0.1.219": {
+          "mado-0.1.220": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -43047,7 +43047,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.219": {
+          "mado-0.1.220": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48806,7 +48806,7 @@
               "system"
             ]
           },
-          "mado-0.1.219": {
+          "mado-0.1.220": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -53559,7 +53559,7 @@
               "system"
             ]
           },
-          "mado-0.1.219": {
+          "mado-0.1.220": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -58041,7 +58041,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.219": {
+    "mado-0.1.220": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -58744,7 +58744,7 @@
     "safe_arch-1.2.0": {
       "edition": "2024"
     },
-    "samba-0.1.5": {
+    "samba-0.1.6": {
       "edition": "2024"
     },
     "same-file-1.0.6": {
@@ -59250,7 +59250,7 @@
     "toml_edit-0.22.27": {
       "edition": "2021"
     },
-    "toml_edit-0.25.17+spec-1.1.0": {
+    "toml_edit-0.25.18+spec-1.1.0": {
       "edition": "2024"
     },
     "toml_parser-1.1.5+spec-1.1.0": {
