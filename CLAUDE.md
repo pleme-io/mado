@@ -90,7 +90,7 @@ an embedded vigy reconciler, and deep Nix integration that no competitor offers.
 ```bash
 cargo build
 cargo run
-cargo test                    # ~1,406 #[test] + 65 #[tokio::test] + 12 proptest!
+cargo test                    # ~2,029 #[test] + 67 #[tokio::test] + 9 proptest! (counted 2026-11-04)
 RUST_LOG=debug cargo run      # with tracing
 nix build                     # Nix package
 nix run .#rebuild             # rebuild HM module (from nix repo)
@@ -130,8 +130,8 @@ cargo fmt --check             # CI gate — the tree must stay rustfmt-clean
 | vs | Mado advantage |
 |----|----------------|
 | **Ghostty** | embedded MCP automation (63 typed tools), blue scripting via the embedded vigy reconciler (a `.b` file in `~/.config/mado/vigies` starts it; `vigy.enabled = true` for the whole runtime), Nix-native typed config (shikumi) |
-| **WezTerm** | wgpu not OpenGL, pure-safe Rust (no C deps), tatara-lisp scripting (vigy) not Lua, Nix-managed config via shikumi, MCP |
-| **Kitty** | Modal vim-style hotkeys (awase), MCP + tatara-lisp scripting (vigy) instead of Python kittens |
+| **WezTerm** | wgpu not OpenGL, Rust with no linked C terminal library, blue scripting (vigy) not Lua, Nix-managed config via shikumi, MCP |
+| **Kitty** | Modal vim-style hotkeys (awase), MCP + blue scripting (vigy) instead of Python kittens |
 | **Alacritty** | Embedded tear multiplexer (panes/tabs/sessions), MCP automation (Alacritty is intentionally minimal) |
 | **Rio** | embedded MCP + vigy automation, deeper Nix integration |
 
@@ -153,18 +153,18 @@ Config <-- shikumi (hot-reload, ArcSwap) <-- ~/.config/mado/mado.yaml
 
 | Module | Lines | Purpose | Key Types |
 |--------|-------|---------|-----------|
-| `terminal.rs` | **13,453** (measured 2026-08-13; the ~11300 here was stale) | VT100/xterm state machine — **destined for `tear-core::PaneGrid`** per [`docs/SHUKEN.md`](https://github.com/pleme-io/tear/blob/main/docs/SHUKEN.md); before hand-adding a VT arm here, read [`theory/NATURALIZE-TERMINAL.md`](https://github.com/pleme-io/theory/blob/main/NATURALIZE-TERMINAL.md) | `Terminal`, `Grid`, `Cell`, `CellAttrs`, `Color`, `MouseMode` |
-| `render.rs` | ~9500 | Multi-pass GPU pipeline | `TerminalRenderer`, `RectPipeline`, `Snapshot` |
-| `main.rs` | ~1450 | Event loop, input dispatch | CLI args, clipboard, double/triple click, single-pane wiring |
-| `config.rs` | ~6200 | shikumi config with hot-reload | `MadoConfig`, `load_and_watch()` |
-| `selection.rs` | ~390 | Mouse text selection | `Selection`, `CellPos` |
-| `keybind.rs` | ~350 | Configurable keybindings | `KeybindManager`, `Action`, `Key` |
-| `pty.rs` | ~330 | PTY allocation + async I/O | `Pty`, `PtyReader`, `PtyWriter` |
-| `theme.rs` | ~280 | Color theme system | `Theme`, 8 built-in themes (Nord, Dracula, etc.) |
-| `search.rs` | ~270 | Scrollback search | `SearchState`, `SearchMatch` |
+| `terminal.rs` | **14,075** (measured 2026-11-04) | VT100/xterm state machine — **destined for `tear-core::PaneGrid`** per [`docs/SHUKEN.md`](https://github.com/pleme-io/tear/blob/main/docs/SHUKEN.md); before hand-adding a VT arm here, read [`theory/NATURALIZE-TERMINAL.md`](https://github.com/pleme-io/theory/blob/main/NATURALIZE-TERMINAL.md) | `Terminal`, `Grid`, `Cell`, `CellAttrs`, `Color`, `MouseMode` |
+| `render.rs` | ~16,100 | Multi-pass GPU pipeline | `TerminalRenderer`, `RectPipeline`, `Snapshot` |
+| `main.rs` | ~1,740 | Event loop, input dispatch | CLI args, clipboard, double/triple click, single-pane wiring |
+| `config.rs` | ~8,800 | shikumi config with hot-reload | `MadoConfig`, `load_and_watch()` |
+| `selection.rs` | ~630 | Mouse text selection | `Selection`, `CellPos` |
+| `keybind.rs` | ~2,160 | Configurable keybindings | `KeybindManager`, `Action`, `Key` |
+| `pty.rs` | ~480 | PTY allocation + async I/O | `Pty`, `PtyReader`, `PtyWriter` |
+| `theme.rs` | ~650 | Color theme system | `Theme`: the irodzuki presets plus `vellum` (the default; alias `nord-matte`) |
+| `search.rs` | ~1,540 | Scrollback search | `SearchState`, `SearchMatch` |
 | `url.rs` | ~530 | Per-row URL detection for the always-on link tint | `DetectedUrl`, `detect_urls_in_row` |
 | `links.rs` | ~1200 | Clickable links: URLs, `file://`, absolute / `~/` / cwd-relative paths that exist, `path:line[:col]` and `path(line,col)`, quoted paths with spaces, OSC 8 spans, all across soft-wrapped rows; and the typed open plan (OS opener or editor) | `LogicalLine`, `Link`, `LinkTarget`, `HoverLink`, `open_plan` |
-| `platform.rs` | ~95 | Platform-native integration | Pure safe Rust via objc2 (macOS styling, dark mode, dock badge) |
+| `platform.rs` | ~1,720 | Platform-native integration | objc2 bindings (macOS styling, dark mode, dock badge, menus); 3 `unsafe` sites |
 | `module/default.nix` | | Home-manager module | `blackmatter.components.mado.*` |
 
 ### Threading Model
@@ -425,7 +425,7 @@ answer different questions, and only the second one explains a build failure.
 | **egaku** | Tab bar, pane split handles, command palette, search overlay widgets | **PARTIAL — geometry only.** Consumed for `egaku::Rect` (17 refs); Cargo.toml says so explicitly. The widget chrome lands at QUADRO T1. |
 | **irodori** | Color palette for themes (replace hardcoded Nord values) | **TRANSITIVE — in the build, not in the source.** Corrected 2026-08-01 alongside the todoku row below, by re-checking every "not a dependency" claim in this table against `Cargo.lock` rather than trusting the audit that wrote them. Zero direct `irodori::` call sites and no `Cargo.toml` declaration, but it arrives via `ishou-tokens → irodori` and compiles on every build. So the palette IS linked; what's missing is mado *using* it in place of the hardcoded Nord values, which is the actual open work this row is tracking. |
 | **irodzuki** | GPU theming: base16 to wgpu uniforms, ANSI color table generation | wired |
-| **kaname** | Embedded MCP server (stdio transport) | **DEAD DEP — declared at Cargo.toml:241, ZERO `kaname::` call sites.** It is compiled and linked and costs build time + closure for nothing. The MCP server is **rmcp 0.15 directly** (63 tools, src/mcp.rs). Either wire it or drop the dependency. |
+| **kaname** | Embedded MCP server (stdio transport) | **REMOVED — not in `Cargo.toml` or `Cargo.lock` (re-checked 2026-11-04).** The MCP server is rmcp 0.15 directly (63 tools, `src/mcp.rs`). Re-adding kaname needs a reason that rmcp does not cover. |
 | **awase** | Modal hotkey system (Normal/Insert/Command modes) | wired (`KeyRepeatGate`, keybinds) |
 | **mojiban** | Rich text in command palette and help overlays | genuinely absent — zero call sites, undeclared, **and absent from `Cargo.lock`** (re-verified 2026-08-01, the check that caught the two rows above). |
 | **tsunagu** | Daemon mode (background multiplexer with IPC) | **SUPERSEDED by tear.** Not a dependency. Multiplexing left mado at Phase 4; do not re-introduce this edge. |
@@ -447,9 +447,14 @@ answer different questions, and only the second one explains a build failure.
   file watcher (works with nix-darwin managed configs)
 - **HM module**: `blackmatter.components.mado.*` generates YAML from typed Nix options
 
-Config sections: `font_family`, `font_size`, `window` (width/height/padding),
-`shell` (command), `cursor` (style/blink/blink_rate_ms), `behavior`
-(scrollback_lines/copy_on_select), `appearance` (background/foreground/opacity).
+Config groups (top-level `MadoConfig` fields, 2026-11-04): `font_family`,
+`font_italic`, `font_symbols`, `font_size`, `line_height`, `font`, `window`,
+`shell`, `appearance`, `cursor`, `behavior`, `theme`, `profiles`,
+`active_profile`, `shaders`, `accessibility`, `shell_integration`,
+`performance`, `environment`, `selection`, `search`, `keybinds`,
+`quick_terminal`, `tear`, `effects`, `vigy`, `suggestions`, `safra`,
+`janitors`, `links`, `feedback`, `display`, `notifications`, `motion`,
+`browser`, `attachments`, `input`. `mado config-schema` prints the full schema.
 
 Glass and window chrome (`docs/GLASS.md`): `appearance.opacity` below 1.0 asks for a
 composited surface at window creation. `window.corner_radius` and `window.rim`
@@ -753,8 +758,11 @@ truecolor are unaffected since their colors won't match the standard
 palette entries.
 
 ### Pure safe Rust for macOS platform integration
-`platform.rs` uses objc2 for all macOS Cocoa API calls -- zero `unsafe` blocks.
-This includes transparent titlebar, dark mode detection, and dock badge updates.
+`platform.rs` uses objc2 for all macOS Cocoa API calls: transparent titlebar,
+dark mode detection, dock badge, native menus. It is not zero-unsafe: 3 sites
+remain (the menu item builder and two appearance-name statics), and the crate
+has 43 sites in 10 files (counted 2026-11-04). The goal is one `#[allow]` per
+seam under a crate-level `#![deny(unsafe_code)]` (`docs/ROADMAP.md` P5).
 
 ---
 
@@ -762,6 +770,6 @@ This includes transparent titlebar, dark mode detection, and dock badge updates.
 
 - **Flake**: `packages.aarch64-darwin.default`, `overlays.default`, `homeManagerModules.default`
 - **HM module path**: `module/default.nix` using substrate `hm-service-helpers.nix`
-- **Build**: `pkgs.rustPlatform.buildRustPackage` (not yet using substrate `rust-tool-release-flake.nix` -- migrate when stabilized)
+- **Build**: substrate `rust.tool` (`flake.nix`), which gives the binary and the HM, NixOS and darwin modules; `installApp` uses substrate `mkDarwinAppBundle`
 - **Config management**: HM module generates `~/.config/mado/mado.yaml` from typed Nix options
 - **Shell integration**: HM module installs shell scripts to `~/.config/mado/shell-integration/`

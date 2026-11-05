@@ -1,5 +1,11 @@
 # Competitive Position (2026-06)
 
+> **Status 2026-11-04.** The research below is from 2026-06-11. Changes since
+> then: the MCP surface is 63 tools (the table says 48); scripting is blue
+> through `mado.b` and vigies (`docs/BLUE-WORLD.md`); the window can be glass
+> with a drawn band (`docs/GLASS.md`); idle is zero redraw. Competitor versions
+> are not re-checked.
+
 Synthesized 2026-06-11 from a 9-agent research pass: deep mado inventory
 (file:line evidence), invariant-coverage audit, perf-architecture audit, and
 competitor research (ghostty 1.3.1 / kitty 0.47.2 / alacritty 0.17 / foot

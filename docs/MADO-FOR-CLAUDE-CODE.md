@@ -5,6 +5,9 @@
 > names any deliverable. The phases at the end are the path down to that shape;
 > they are not the shape. Read §1 as the north star, §7 as the route.
 
+**Status 2026-11-04:** the MCP server has 63 tools (the tables below say 48,
+counted at writing). The phase ledger is not re-checked.
+
 **Status:** design — M0 in progress. Tier-honest throughout: every contract is
 tagged ✓ VERIFIED (confirmed against Claude Code on this machine / official
 docs) or ◇ INFERRED (reported by research, **not** yet confirmed — never built

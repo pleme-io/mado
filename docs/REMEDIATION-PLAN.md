@@ -1,5 +1,20 @@
 # mado — Remediation Plan
 
+> **Status 2026-11-04: historical.** This plan is a 2026-05-31 snapshot. Do not
+> read it as the current state. Checked against `src/` on 2026-11-04:
+>
+> - ✅ M0: `src/scripting.rs` and the soushi/Rhai stub are gone (no `soushi` in
+>   `Cargo.toml` or `Cargo.lock`).
+> - ✅ M1: `ux::InputEngine` (`src/ux/engine.rs`) drives every runtime.
+> - ✅ M2: the 24-byte `Cell` with interned styles and links shipped.
+> - ✅ M4: `ux::config_apply` applies config at runtime; notifications run on
+>   tsuuchi (`docs/NOTIFICATIONS.md`).
+> - ✅ M7 automation: one surface, rmcp (63 tools) plus vigy, now blue-authored
+>   (`docs/BLUE-WORLD.md`).
+> - ➖ M3, M5, M6: not re-checked item by item.
+>
+> The current plan is [`ROADMAP.md`](./ROADMAP.md).
+
 > Generated 2026-05-31 by a 9-agent design workflow (7 parallel work-stream architects + destination-first master sequencer + adversarial plan reviewer). Companion analysis: [GAP-ANALYSIS.md](./GAP-ANALYSIS.md). Sequenced per CSE Operating Principle #0 — destination first, then the path; Cell/Grid is restructured exactly once.
 
 ## Destination

@@ -1,5 +1,12 @@
 # mado — Terminal Capability Gap Analysis
 
+> **Status 2026-11-04: historical.** This audit is a 2026-05-31 snapshot. Its
+> headline gap (no copy, paste, selection, search or mouse in the default tear
+> mode) is closed by `ux::InputEngine`. SIXEL, links, notifications and runtime
+> theme apply shipped after it. The Rhai/soushi scripting it names is deleted;
+> scripting is vigy and blue. The MCP surface is 63 tools, not ~42. Rows not
+> named here are not re-checked. The current plan is [`ROADMAP.md`](./ROADMAP.md).
+
 > Generated 2026-05-31 by a 13-agent review workflow (6 source audits of mado + 5 terminal-landscape research agents + synthesis + completeness critic). Every `have`/`partial` claim is backed by `file:line` evidence in the source audits; the load-bearing claims were independently re-verified by the critic. Companion plan: [REMEDIATION-PLAN.md](./REMEDIATION-PLAN.md).
 
 ## Executive summary

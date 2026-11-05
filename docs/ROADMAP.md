@@ -71,6 +71,19 @@ TODO/FIXME 6. `docs/MOTION.md` §7 M0 and M1 are done in source: the
 suggestion fade uses the render clock (`src/render.rs:3797`) and the snapshot
 reuses `row_scratch` (`src/render.rs:1948`).
 
+## What shipped after the baseline (v0.1.216 to v0.1.220, to 2026-11-04)
+
+The six-axis numbers above are not measured again. These are features, not
+measurements.
+
+- ✅ OSC 104 and RIS restore the theme's base 16, not the built-in palette (66f13a4).
+- ✅ Picker motion reads ishou motion tokens; the query-match tint reads the theme (b234c96, e3b8833).
+- ✅ One `switch_to` helper builds every overlay open transition (8deb958); one `session_picker_reload` helper (e28e3b3).
+- ✅ Ctrl-S Home, End, PageUp, PageDown jumps, `tear.session_picker_jump_keys` (7e09305).
+- ✅ Glass: translucent window, full-strength text, rounded shape, rim, drawn band (7995ccc, `docs/GLASS.md`).
+- ✅ Frost rime on the glass, off by default (e1b5a55).
+- ✅ `mado.b`: new customization is blue; blue vigies start from `vigies/*.b` (0cead22, `docs/BLUE-WORLD.md`). This moves the P6 rows below.
+
 ## Phases, ranked by gain per effort
 
 A phase starts when the phase before it has its gate. Inside a phase, items run
