@@ -42,12 +42,10 @@ builds too.
 
 - Mado is single-pane. Sessions, windows and panes live in
   [tear](https://github.com/pleme-io/tear), the tmux-compatible multiplexer.
-- By default tear runs in-process (`tear.runtime: embedded`). `daemon` and
-  `resident` share sessions across windows and processes. `tear.mode: never`
-  uses a local PTY.
 - Ctrl-S opens the session picker: switch, create, rename and kill sessions,
   with Home/End/PageUp/PageDown jumps.
 - A typed recovery overlay offers actions when a session or pane faults.
+- See [How mado works with tear](#how-mado-works-with-tear).
 
 **Everyday use**
 
@@ -108,6 +106,41 @@ shikumi config (YAML, hot-reload) + blue world (mado.b)
 | `float`, `browser_*` | floating browser panels |
 | `glass`, `window_chrome` | translucent window and the drawn band |
 | `platform` | macOS integration through objc2 |
+
+## How mado works with tear
+
+Mado is the window. [tear](https://github.com/pleme-io/tear) owns the
+sessions: the shell process, its PTY, panes, layouts and session names. Mado
+draws one pane at a time, sends your input to tear, and does not keep its own
+pane, tab or window model.
+
+**Where tear runs** (`tear.runtime`):
+
+| Runtime | tear lives | When the window closes |
+|---|---|---|
+| `embedded` (default) | inside the mado process (`tear_core::InProcess`), no IPC | the session ends with mado |
+| `daemon` | in `tear-daemon`, over a Unix socket | the window owns its session, and the session ends |
+| `resident` | in `tear-daemon`, over a Unix socket | the window detaches; the session keeps running and Ctrl-S re-attaches to it |
+
+**How mado finds tear** (`tear.mode`): `auto` (default) tries tear and falls
+back to a local PTY; `always` requires tear and starts the daemon when `tear.auto_spawn` is on; `attach`
+requires a running daemon and never starts one; `never` uses a local PTY and
+no tear.
+
+**The data path.** tear reads the PTY and parses the bytes into its own grid.
+Mado drains the same bytes each frame into a mirror `Terminal` and renders
+that. Only mado answers terminal queries (cursor position, device attributes,
+colours), so the two grids must agree. `src/shell_seam.rs` tests that they do
+for frost and frostmourne prompts.
+
+**Sessions in the window.** The Ctrl-S picker lists tear's sessions, and a
+switch re-attaches the window to another session. `tear.auto_attach` can
+switch to a project's session when the shell `cd`s into that project
+(default off). A fault in a session or pane opens the recovery overlay.
+
+**Automation.** tear's own MCP server is read-only (sessions, panes, screen
+text). Writes (send keys, new session, input policy, recording, config) go
+through mado's 18 `tear_*` MCP tools.
 
 ## Libraries
 
