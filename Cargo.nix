@@ -11006,7 +11006,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.220";
+        version = "0.1.221";
         edition = "2024";
         crateBin = [
           {
@@ -18018,7 +18018,7 @@ rec {
         dependencies = [
           {
             name = "toml_edit";
-            packageId = "toml_edit 0.25.17+spec-1.1.0";
+            packageId = "toml_edit 0.25.18+spec-1.1.0";
             usesDefaultFeatures = false;
             features = [ "parse" ];
           }
@@ -20954,9 +20954,9 @@ rec {
       };
       "samba" = rec {
         crateName = "samba";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2024";
-        sha256 = "13pn8gyknnxm131c057b2qg5vkcjfx9zngh7bafyc9h41cx7w7cp";
+        sha256 = "0n4l61b0ycxkpvqikjvsf3bi8jnvxid9c2pgyp3sffn0z1ff750f";
         dependencies = [
           {
             name = "rand";
@@ -27161,11 +27161,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "display" "parse" "serde" ];
       };
-      "toml_edit 0.25.17+spec-1.1.0" = rec {
+      "toml_edit 0.25.18+spec-1.1.0" = rec {
         crateName = "toml_edit";
-        version = "0.25.17+spec-1.1.0";
+        version = "0.25.18+spec-1.1.0";
         edition = "2024";
-        sha256 = "174w1b2fjg1jb0wi7384v1m59g7ga79458i022gafjakpddisr73";
+        sha256 = "15hkw83x94drmc7d1xgg3j5485pijzfajbr1il6l5f8dsy5ygihy";
         dependencies = [
           {
             name = "indexmap";
