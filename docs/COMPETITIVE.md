@@ -6,6 +6,14 @@
 > with a drawn band (`docs/GLASS.md`); idle is zero redraw. Competitor versions
 > are not re-checked.
 
+> **Status 2026-11-07 — 12 gap rows re-measured and CLOSED** (each with a
+> second probe in the tree, named in its row): P1#8 OSC 8, P2#4 sixel, P2#5
+> reflow, and the P3 rows for OSC 133;D, blink, OSC 4 ≥16, cwd inheritance,
+> Kitty z-index, pointer-shape apply, origin-mode clamp and the frame pacer.
+> The un-re-measured rows in the P1/P2 tables below still speak as of
+> 2026-06-11 — read them against CLAUDE.md's dated corrections before acting
+> on one.
+
 Synthesized 2026-06-11 from a 9-agent research pass: deep mado inventory
 (file:line evidence), invariant-coverage audit, perf-architecture audit, and
 competitor research (ghostty 1.3.1 / kitty 0.47.2 / alacritty 0.17 / foot
@@ -116,7 +124,7 @@ impossible: both loops drive one engine, pinned by
 | 5 | **Mode 2048 in-band resize** | fixes resize-over-ssh/multiplexer races; small surface | S | DECSET arm `terminal.rs:2603-2659` + DECRQM row `terminal.rs:3024-3056`; emit `CSI 48;rows;cols;h;w t` from the resize paths (`terminal.rs:488-515` Grid::resize callers; tear reconciler `gui_tear_attach.rs:472-499`) |
 | 6 | **XTGETTCAP reply** | runtime feature detection (nvim/notcurses) bypassing terminfo; projects mechanically from TerminalCaps | S–M | DCS hook `terminal.rs:2848-2861` handles only $q/Sixel — add `+q` arm answering from `caps.rs` (named M5 there) |
 | 7 | **Mode 2027 grapheme clustering** | DECRQM-for-2027 is the reviewer litmus; combining handling already exists heuristically | M | arm at `terminal.rs:2603-2659`; width semantics at `terminal.rs:2776` (combining append) + `terminal.rs:2440-2530` (put_char) |
-| 8 | **OSC 8 click-to-open + hover underline** | links from ls/gcc/systemd inert; "absence is disqualifying" per standards entry | M | parsed+stored `terminal.rs:1588`; needs render consumer (underline-on-hover near `render.rs:1658`) + click consumer in both mouse arms |
+| 8 | ~~**OSC 8 click-to-open + hover underline**~~ CLOSED (verified 2026-11-07) | links from ls/gcc/systemd inert; "absence is disqualifying" per standards entry | M | `links.rs` `hyperlink_at` + OSC 8 spans ride the same hover/underline/open path as detected URLs (CLAUDE.md links section) |
 | 9 | **Styled + colored underlines (SGR 4:2–4:5, 58/59)** | editor diagnostics squiggles; the reason TERM is honesty-downgraded to xterm-256color | L | `CellAttrs` saturated u8 `terminal.rs:24-57` (M2 wide-Attrs restructure); SGR arms `terminal.rs:2666-2750`; underline-rect geometry `render.rs:1658,1684`; then flip `caps.rs:29` + TERM projection `pty.rs:375-389` |
 
 ### P2 — bigger structural items
@@ -126,20 +134,20 @@ impossible: both loops drive one engine, pinned by
 | 1 | **OSC 9 notifications → tsuuchi** (+ fix 9;4 mis-parse, add 777/99 subset) | long-job completion alerts — agent + human visible; everything is parse-ready | S–M | `terminal.rs:1459-1460,1607-1613` queue; `drain_notifications` test-only `terminal.rs:5789-5810` — add a production consumer in both event loops; fix 9;9/9;4 at `terminal.rs:2911-2937`; invoke tsuuchi |
 | 2 | **Config hot-reload apply** | every knob edit currently requires restart; watcher already fires | M | `main.rs:489-491` callback only logs; needs ArcSwap (or equivalent) read per frame + apply-delta (REMEDIATION M4); unlocks live theme switch (`theme.rs` + `main.rs:705-710`) |
 | 3 | **Paste-injection guard** | security floor: payloads with embedded `ESC[201~`/newlines go straight to PTY | S | zero PasteGuard matches in src/; wrap both paste sites `gui_tear_attach.rs:935-941` + `main.rs:1017` with a typed sanitize/confirm |
-| 4 | **Sixel decode + render** | compat floor for legacy raster (wezterm/iterm2/foot ship it); capture half done | M | raw bytes already in `sixel_images` `terminal.rs:581-595,2854-2893`; decode (icy_sixel noted in-code) + draw via existing image pass (`render.rs` Pass 2.5) |
-| 5 | **Reflow on resize** | every mainstream terminal rewraps; mado truncates | L | `Grid::resize` `terminal.rs:488-515`; requires LogicalLineId from the M2 grid restructure; `reflow_on_resize` knob exists `config.rs:311-330` (currently dead) |
+| 4 | ~~**Sixel decode + render**~~ CLOSED (verified 2026-11-07) | compat floor for legacy raster (wezterm/iterm2/foot ship it); capture half done | M | `decode_and_place_sixel` (terminal.rs) via icy_sixel, same texture path as Kitty graphics; shipped 2026-07-31 per CLAUDE.md correction |
+| 5 | ~~**Reflow on resize**~~ CLOSED (verified 2026-11-07) | every mainstream terminal rewraps; mado truncates | L | `reflow_on_resize` is wired (terminal.rs, `behavior.reflow_on_resize`); M2 rewrap landed with LogicalLineId |
 
 ### P3 — nice-to-have
 
-- **OSC 133;D exit-status + duration capture** — `prompt_mark.rs:95-100` discards the code tear already carries; unlocks exit-status gutters + semantic-zone selection (S).
-- **Rendered blink (SGR 5)** — stored `terminal.rs:2685,2696`, never read in render.rs (S).
-- **OSC 4 palette ≥16 + OSC 104 full reset** — `terminal.rs:1645-1672` early-returns at idx 16 (S).
-- **cwd inheritance into new sessions** — `terminal.rs:1561` parses OSC 7; `inherit_working_directory` dead `config.rs:567` (S).
-- **Kitty graphics z-index draw order** — parsed `terminal.rs:578`, zero reads in render.rs (M); compression/animation/Unicode placeholders after.
-- **Pointer-shape apply to NSCursor** — typed parse done `terminal.rs:1734-1760`; no platform consumer (S).
-- **OSC 1 icon title** — `terminal.rs:2920` matches only 0|2 (S).
+- **OSC 133;D exit-status + duration capture** — CLOSED (verified 2026-11-07): `prompt_mark.rs` carries `exit_status` + `PromptHistory::apply_exit_status`.
+- **Rendered blink (SGR 5)** — CLOSED (verified 2026-11-07): `snapshot_has_blinking_cell` + `blink_phase_on` + `saw_blinking_cell` in render.rs drive the off-phase hide and the repaint; SGR 6 shares the flag (same day).
+- **OSC 4 palette ≥16 + OSC 104 full reset** — CLOSED (verified 2026-11-07): `handle_osc_4_palette` caps at idx 256, i.e. the full 0..255 cube.
+- **cwd inheritance into new sessions** — CLOSED (verified 2026-11-07): `inherit_working_directory` is consumed by `boot_spawn_cwd` + `TermSpec::with_inherited_cwd`.
+- **Kitty graphics z-index draw order** — CLOSED (verified 2026-11-07): `partition_placements_by_z` (terminal.rs) is consumed by the render path as Pass 2.5 (`z < 0`, below text) and post-Pass-3 (`z >= 0`), stable within band.
+- **Pointer-shape apply to NSCursor** — CLOSED (verified 2026-11-07): OSC 22 → `Terminal::pointer_shape` is the fallback arm of `refresh_hover` (ux/engine.rs) → `EventOutcome::set_pointer_shape` → madori `set_cursor_icon`.
+- **OSC 1 icon title** — `terminal.rs` osc_dispatch matches only 0|2 (S).
 - **Origin-mode CUP clamp** — CLOSED (verified 2026-11-07): `addressable_rows()` (terminal.rs) is the one primitive CUP/HVP/VPA and the CPR report share; 8 unit tests pin region-relative addressing, bottom clamping, CHA exemption and CPR round-trip.
-- **Frame pacer consuming target_fps/battery cap** — `main.rs:590-600` `_effective_fps` unused; `config.rs:762-812` (M).
+- **Frame pacer consuming target_fps/battery cap** — CLOSED (verified 2026-11-07): `resolve_target_fps` is consumed at `main.rs:898` under the `performance.pacing` demand/capped/continuous model.
 - **Mode 2031 + live OS dark/light follow** — depends on P2 hot-reload apply (M).
 - **Power-user tier** — vi/copy mode, rectangular selection, hints, command palette, leader chords (REMEDIATION M6) (L).
 - **XTVERSION (CSI > 0 q)** — not in the inventory; verify and add alongside XTGETTCAP (S).
