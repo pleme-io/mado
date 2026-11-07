@@ -6508,6 +6508,14 @@ impl vte::Perform for Terminal {
                     self.response_bytes
                         .extend_from_slice(crate::caps::TerminalCaps::SECONDARY_DA);
                 }
+                // XTVERSION — CSI > Ps q. The reply is
+                // DCS > | text ST with text = "name(version)" (xterm's
+                // scheme; kitty/ghostty answer the same way). Apps use it
+                // for terminal detection without DA2 parsing.
+                'q' => {
+                    let reply = crate::vt::dcs(&format!(">|mado({})", env!("CARGO_PKG_VERSION")));
+                    self.response_bytes.extend_from_slice(&reply);
+                }
                 'u' => {
                     // Kitty keyboard protocol: push flags onto stack
                     let flags = params.iter().next().map_or(0, |p| p[0] as u32);
@@ -8308,6 +8316,20 @@ mod tests {
         // Single source of truth: caps::TerminalCaps::PRIMARY_DA, now
         // ?62;4;22c — the `4` advertises sixel since the decode path landed.
         assert_eq!(response.as_slice(), crate::caps::TerminalCaps::PRIMARY_DA);
+    }
+
+    #[test]
+    fn xtversion_reply_names_mado_and_its_version() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[>0q");
+        let response = term.take_response().unwrap();
+        let want = crate::vt::dcs(&format!(">|mado({})", env!("CARGO_PKG_VERSION")));
+        assert_eq!(response, want);
+        // The envelope is byte-pinned by vt::dcs's own test; pin the BODY
+        // shape here so a stray format change cannot pass unnoticed.
+        let body = &response[2..response.len() - 2];
+        let text = std::str::from_utf8(body).unwrap();
+        assert!(text.starts_with(">|mado(") && text.ends_with(')'));
     }
 
     /// XTWINOPS `CSI 18 t` — report text-area size in characters. The
