@@ -842,6 +842,107 @@ struct SavedCursor {
     bg: Color,
     attrs: Attrs,
     origin_mode: bool,
+    charsets: Charsets,
+}
+
+// ---------------------------------------------------------------------------
+// Charset — ISO 2022 G0..G3 designation slots (94-character sets)
+// ---------------------------------------------------------------------------
+
+/// A designated 94-character set for one of the four ISO 2022 slots.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+enum Charset {
+    #[default]
+    Ascii,
+    /// UK national set — maps `#` to `£`.
+    Uk,
+    /// DEC Special Graphics (VT100 line drawing).
+    DecGraphics,
+}
+
+impl Charset {
+    /// The set a designation final byte names (`B` US ASCII, `A` UK, `0`
+    /// DEC Special Graphics). Any other final leaves the slot unchanged.
+    fn from_designation(byte: u8) -> Option<Self> {
+        match byte {
+            b'B' => Some(Self::Ascii),
+            b'A' => Some(Self::Uk),
+            b'0' => Some(Self::DecGraphics),
+            _ => None,
+        }
+    }
+
+    fn map(self, ch: char) -> char {
+        match self {
+            Self::Ascii => ch,
+            Self::Uk => match ch {
+                '#' => '\u{00A3}',
+                _ => ch,
+            },
+            Self::DecGraphics => dec_special_graphics(ch),
+        }
+    }
+}
+
+fn dec_special_graphics(ch: char) -> char {
+    match ch {
+        '`' => '\u{25C6}', // ◆ diamond
+        'a' => '\u{2592}', // ▒ checkerboard
+        'b' => '\u{2409}', // HT symbol
+        'c' => '\u{240C}', // FF symbol
+        'd' => '\u{240D}', // CR symbol
+        'e' => '\u{240A}', // LF symbol
+        'f' => '\u{00B0}', // ° degree
+        'g' => '\u{00B1}', // ± plus/minus
+        'h' => '\u{2424}', // NL symbol
+        'i' => '\u{240B}', // VT symbol
+        'j' => '\u{2518}', // ┘ lower right corner
+        'k' => '\u{2510}', // ┐ upper right corner
+        'l' => '\u{250C}', // ┌ upper left corner
+        'm' => '\u{2514}', // └ lower left corner
+        'n' => '\u{253C}', // ┼ crossing lines
+        'o' => '\u{23BA}', // scan line 1
+        'p' => '\u{23BB}', // scan line 3
+        'q' => '\u{2500}', // ─ horizontal line
+        'r' => '\u{23BC}', // scan line 7
+        's' => '\u{23BD}', // scan line 9
+        't' => '\u{251C}', // ├ left tee
+        'u' => '\u{2524}', // ┤ right tee
+        'v' => '\u{2534}', // ┴ bottom tee
+        'w' => '\u{252C}', // ┬ top tee
+        'x' => '\u{2502}', // │ vertical line
+        'y' => '\u{2264}', // ≤ less-or-equal
+        'z' => '\u{2265}', // ≥ greater-or-equal
+        '{' => '\u{03C0}', // π pi
+        '|' => '\u{2260}', // ≠ not-equal
+        '}' => '\u{00A3}', // £ pound sterling
+        '~' => '\u{00B7}', // · middle dot
+        _ => ch,
+    }
+}
+
+/// The terminal's ISO 2022 invocation state: four designation slots
+/// (G0–G3), which slot GL is locked to (SI/SO and LS2/LS3), and the
+/// pending single shift (SS2/SS3) that covers exactly the next printed
+/// character.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct Charsets {
+    slots: [Charset; 4],
+    gl: u8,
+    pending_single_shift: Option<u8>,
+}
+
+impl Charsets {
+    fn designate(&mut self, slot: u8, charset: Charset) {
+        self.slots[usize::from(slot)] = charset;
+    }
+
+    /// The charset the next printed character maps through; a pending
+    /// SS2/SS3 covers exactly one character and is consumed here.
+    fn take_active(&mut self) -> Charset {
+        let slot = self.pending_single_shift.take().unwrap_or(self.gl);
+        self.slots[usize::from(slot)]
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -2043,12 +2144,8 @@ pub struct Terminal {
     /// TUIs redraw themselves).
     reflow_on_resize: bool,
 
-    // Character set designation (G0/G1).
-    // false = ASCII (B), true = DEC Special Graphics (0).
-    charset_g0_graphics: bool,
-    charset_g1_graphics: bool,
-    /// true = GL points to G1 (shift-out), false = GL points to G0 (shift-in).
-    gl_is_g1: bool,
+    /// ISO 2022 charset designation + invocation state (G0–G3, GL, SS2/SS3).
+    charsets: Charsets,
 
     // Mouse tracking
     mouse_mode: MouseMode,
@@ -2419,9 +2516,7 @@ impl Terminal {
             keypad_app_mode: false,
             wrap_pending: false,
             reflow_on_resize: true,
-            charset_g0_graphics: false,
-            charset_g1_graphics: false,
-            gl_is_g1: false,
+            charsets: Charsets::default(),
             mouse_mode: MouseMode::Off,
             sgr_mouse: false,
             scroll_offset: 0,
@@ -4256,9 +4351,7 @@ impl Terminal {
         self.scroll_bottom = self.rows.saturating_sub(1);
         self.saved_cursor = None;
         self.saved_cursor_alt = None;
-        self.charset_g0_graphics = false;
-        self.charset_g1_graphics = false;
-        self.gl_is_g1 = false;
+        self.charsets = Charsets::default();
         self.wrap_pending = false;
         self.kitty_keyboard_stack.clear();
         // Hand the cursor presentation back to the config. DECSTR is what a
@@ -4292,53 +4385,6 @@ impl Terminal {
             }
         }
         self.dirty();
-    }
-
-    /// Map ASCII to DEC Special Graphics characters when the active charset uses graphics.
-    fn translate_charset(&self, ch: char) -> char {
-        let use_graphics = if self.gl_is_g1 {
-            self.charset_g1_graphics
-        } else {
-            self.charset_g0_graphics
-        };
-        if !use_graphics {
-            return ch;
-        }
-        // DEC Special Graphics character set (VT100 line drawing)
-        match ch {
-            '`' => '\u{25C6}', // ◆ diamond
-            'a' => '\u{2592}', // ▒ checkerboard
-            'b' => '\u{2409}', // HT symbol
-            'c' => '\u{240C}', // FF symbol
-            'd' => '\u{240D}', // CR symbol
-            'e' => '\u{240A}', // LF symbol
-            'f' => '\u{00B0}', // ° degree
-            'g' => '\u{00B1}', // ± plus/minus
-            'h' => '\u{2424}', // NL symbol
-            'i' => '\u{240B}', // VT symbol
-            'j' => '\u{2518}', // ┘ lower right corner
-            'k' => '\u{2510}', // ┐ upper right corner
-            'l' => '\u{250C}', // ┌ upper left corner
-            'm' => '\u{2514}', // └ lower left corner
-            'n' => '\u{253C}', // ┼ crossing lines
-            'o' => '\u{23BA}', // scan line 1
-            'p' => '\u{23BB}', // scan line 3
-            'q' => '\u{2500}', // ─ horizontal line
-            'r' => '\u{23BC}', // scan line 7
-            's' => '\u{23BD}', // scan line 9
-            't' => '\u{251C}', // ├ left tee
-            'u' => '\u{2524}', // ┤ right tee
-            'v' => '\u{2534}', // ┴ bottom tee
-            'w' => '\u{252C}', // ┬ top tee
-            'x' => '\u{2502}', // │ vertical line
-            'y' => '\u{2264}', // ≤ less-or-equal
-            'z' => '\u{2265}', // ≥ greater-or-equal
-            '{' => '\u{03C0}', // π pi
-            '|' => '\u{2260}', // ≠ not-equal
-            '}' => '\u{00A3}', // £ pound sterling
-            '~' => '\u{00B7}', // · middle dot
-            _ => ch,
-        }
     }
 
     /// Scroll viewport to the top of scrollback.
@@ -5330,6 +5376,7 @@ impl Terminal {
             bg: self.pen_bg,
             attrs: self.pen_attrs,
             origin_mode: self.origin_mode,
+            charsets: self.charsets,
         };
         if self.use_alternate {
             self.saved_cursor_alt = Some(saved);
@@ -5351,6 +5398,7 @@ impl Terminal {
             self.pen_bg = s.bg;
             self.pen_attrs = s.attrs;
             self.origin_mode = s.origin_mode;
+            self.charsets = s.charsets;
             self.wrap_pending = false;
             self.dirty();
         }
@@ -6184,7 +6232,7 @@ impl vte::Perform for Terminal {
         // operator's own input (ux::InputEngine::write_key_input).
 
         // Apply character set translation (DEC Special Graphics)
-        let ch = self.translate_charset(ch);
+        let ch = self.charsets.take_active().map(ch);
 
         // Combining characters (zero-width) append to the previous cell
         if UnicodeWidthChar::width(ch) == Some(0) {
@@ -6251,12 +6299,12 @@ impl vte::Perform for Terminal {
                 tracing::trace!("BEL");
             }
             0x0E => {
-                // SO — Shift Out: switch GL to G1
-                self.gl_is_g1 = true;
+                // SO — Shift Out: GL locks to G1
+                self.charsets.gl = 1;
             }
             0x0F => {
-                // SI — Shift In: switch GL to G0
-                self.gl_is_g1 = false;
+                // SI — Shift In: GL locks to G0
+                self.charsets.gl = 0;
             }
             _ => {
                 tracing::trace!(byte, "unhandled execute byte");
@@ -6697,14 +6745,28 @@ impl vte::Perform for Terminal {
             ([], b'8') => self.restore_cursor(),
             // DECALN — Screen Alignment Display (ESC # 8)
             ([b'#'], b'8') => self.fill_screen_with_e(),
-            // Character Set Designation — G0 set
-            ([b'('], b'0') => self.charset_g0_graphics = true, // DEC Special Graphics
-            ([b'('], b'B') => self.charset_g0_graphics = false, // US ASCII
-            ([b'('], b'A') => self.charset_g0_graphics = false, // UK ASCII (treat as US)
-            // Character Set Designation — G1 set
-            ([b')'], b'0') => self.charset_g1_graphics = true, // DEC Special Graphics
-            ([b')'], b'B') => self.charset_g1_graphics = false, // US ASCII
-            ([b')'], b'A') => self.charset_g1_graphics = false, // UK ASCII (treat as US)
+            // Character Set Designation — G0..G3 (ESC ( ) * + <F>)
+            ([b'(' | b')' | b'*' | b'+'], _) => {
+                let slot = match intermediates[0] {
+                    b'(' => 0,
+                    b')' => 1,
+                    b'*' => 2,
+                    _ => 3,
+                };
+                match Charset::from_designation(byte) {
+                    Some(cs) => self.charsets.designate(slot, cs),
+                    None => tracing::trace!(byte, "unknown charset designation"),
+                }
+            }
+            // LS2 / LS3 — GL locks to G2 / G3
+            ([], b'n') => self.charsets.gl = 2,
+            ([], b'o') => self.charsets.gl = 3,
+            // SS2 / SS3 — the next character maps through G2 / G3
+            ([], b'N') => self.charsets.pending_single_shift = Some(2),
+            ([], b'O') => self.charsets.pending_single_shift = Some(3),
+            // UTF-8 DOCS — the parser level is already UTF-8, so both
+            // selecting (G/8) and deselecting (@) it are consumed no-ops.
+            ([b'%'], b'G' | b'8' | b'@') => {}
             // DECKPAM — Keypad Application Mode
             ([], b'=') => self.keypad_app_mode = true,
             // DECKPNM — Keypad Numeric Mode
@@ -9468,6 +9530,91 @@ mod tests {
 
         term.scroll_to_bottom();
         assert_eq!(term.scroll_offset(), 0);
+    }
+
+    #[test]
+    fn charset_so_si_g1_graphics() {
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b)0\x0eq\x0fq");
+        assert_eq!(term.cell(0, 0).ch, '\u{2500}');
+        assert_eq!(term.cell(0, 1).ch, 'q');
+    }
+
+    #[test]
+    fn charset_ls2_locks_gl_to_g2() {
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b*0\x1bnqx");
+        assert_eq!(term.cell(0, 0).ch, '\u{2500}');
+        assert_eq!(term.cell(0, 1).ch, '\u{2502}');
+    }
+
+    #[test]
+    fn charset_ls3_follows_g3_redesignation() {
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b+0\x1box");
+        assert_eq!(term.cell(0, 0).ch, '\u{2502}');
+        term.feed(b"\x1b+Bq");
+        assert_eq!(term.cell(0, 1).ch, 'q');
+    }
+
+    #[test]
+    fn charset_ss2_covers_one_character() {
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b*0\x1bNqq");
+        assert_eq!(term.cell(0, 0).ch, '\u{2500}');
+        assert_eq!(term.cell(0, 1).ch, 'q');
+    }
+
+    #[test]
+    fn charset_ss3_covers_one_character() {
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b+0\x1bOxx");
+        assert_eq!(term.cell(0, 0).ch, '\u{2502}');
+        assert_eq!(term.cell(0, 1).ch, 'x');
+    }
+
+    #[test]
+    fn charset_uk_pound_sign() {
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b(A#");
+        assert_eq!(term.cell(0, 0).ch, '\u{00A3}');
+        term.feed(b"\x1b(B#");
+        assert_eq!(term.cell(0, 1).ch, '#');
+    }
+
+    #[test]
+    fn charset_unknown_designation_leaves_slot_unchanged() {
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b(0\x1b(<q");
+        assert_eq!(term.cell(0, 0).ch, '\u{2500}');
+    }
+
+    #[test]
+    fn charset_utf8_docs_is_consumed() {
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b%Gq\x1b%@q");
+        assert_eq!(term.cell(0, 0).ch, 'q');
+        assert_eq!(term.cell(0, 1).ch, 'q');
+    }
+
+    #[test]
+    fn decsc_decrc_round_trips_charset_invocation() {
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b)0\x0eq");
+        assert_eq!(term.cell(0, 0).ch, '\u{2500}');
+        term.feed(b"\x1b7\x0fq");
+        assert_eq!(term.cell(0, 1).ch, 'q');
+        term.feed(b"\x1b8q");
+        assert_eq!(term.cell(0, 1).ch, '\u{2500}');
+    }
+
+    #[test]
+    fn decstr_resets_charsets() {
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b)0\x0eq");
+        assert_eq!(term.cell(0, 0).ch, '\u{2500}');
+        term.feed(b"\x1b[!pq");
+        assert_eq!(term.cell(0, 1).ch, 'q');
     }
 
     #[test]

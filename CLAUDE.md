@@ -301,26 +301,29 @@ and alternate screen buffers. Configurable scrollback (default 10,000 lines).
 - DCS DECRQSS (request setting state: SGR, DECSTBM, DECSCL, DECSCA)
 - Kitty keyboard protocol (push/pop/query stack, progressive enhancement)
 - Kitty graphics protocol (inline PNG images, multi-chunk, placement, GPU upload)
-- DEC Special Graphics charset (ESC ( 0, Shift In/Out)
+- ISO 2022 charsets, full G0–G3 model (shipped 2026-11-07): designations
+  `ESC ( ) * + <B|A|0>`, SO/SI, LS2/LS3 (`ESC n`/`ESC o`), SS2/SS3
+  (`ESC N`/`ESC O`, one-character single shift), UK national `#`→`£`, UTF-8
+  DOCS (`ESC % G/@/8`, consumed no-op — the parser level is always UTF-8);
+  DECSC/DECRC round-trip designation + GL; DECSTR resets to ASCII/G0
 - IRM insert mode, DECSTR soft reset, DECRQM mode queries
 - DA3 tertiary device attributes, DECALN screen alignment test
 - DECKPAM/DECKPNM keypad modes
 
 **Missing sequences** (ordered by priority):
-1. G2/G3 + LS2/LS3 and UTF-8 DOCS charset designation
-2. Full blink-attribute rendering (partial)
-3. Complete colour-emoji coverage: COLR/CBDT (partial)
-4. DECOM origin-mode constraint (partial)
+1. Full blink-attribute rendering (partial)
+2. Complete colour-emoji coverage: COLR/CBDT (partial)
+3. DECOM origin-mode constraint (partial)
 
 > **Corrected 2026-07-31.** SIXEL used to head this list and is **SHIPPED** —
 > `DCS q` payload → `icy_sixel::DcsSettings` → `decode_and_place_sixel`
 > (terminal.rs:4394-4403), sharing the same `store_rgba_image` texture path as
 > Kitty graphics, bounded by `SIXEL_DCS_MAX` (8 MiB) with a poison-past-cap
-> guard and two pinning tests. Items 1-4 come from docs/GAP-ANALYSIS.md
-> (2026-05-31) and are **not re-verified since** — treat as likely-still-open,
-> not confirmed. That doc's headline complaint (no copy/paste/select/search in
-> the default mode) is CLOSED by the M1 `ux::InputEngine` unification; do not
-> cite it as current.
+> guard and two pinning tests. The remaining items come from
+> docs/GAP-ANALYSIS.md (2026-05-31) and are **not re-verified since** — treat
+> as likely-still-open, not confirmed. That doc's headline complaint (no
+> copy/paste/select/search in the default mode) is CLOSED by the M1
+> `ux::InputEngine` unification; do not cite it as current.
 
 ### Font System
 

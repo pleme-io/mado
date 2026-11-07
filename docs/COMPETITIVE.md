@@ -139,7 +139,6 @@ impossible: both loops drive one engine, pinned by
 - **Pointer-shape apply to NSCursor** — typed parse done `terminal.rs:1734-1760`; no platform consumer (S).
 - **OSC 1 icon title** — `terminal.rs:2920` matches only 0|2 (S).
 - **Origin-mode CUP clamp** — mode 6 tracked, CUP/VPA don't clamp `terminal.rs:3004-3012` (S).
-- **G2/G3 charsets + LS2/LS3 + UTF-8 DOCS** — `terminal.rs:3474-3483` (M).
 - **Frame pacer consuming target_fps/battery cap** — `main.rs:590-600` `_effective_fps` unused; `config.rs:762-812` (M).
 - **Mode 2031 + live OS dark/light follow** — depends on P2 hot-reload apply (M).
 - **Power-user tier** — vi/copy mode, rectangular selection, hints, command palette, leader chords (REMEDIATION M6) (L).
