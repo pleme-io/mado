@@ -311,9 +311,19 @@ and alternate screen buffers. Configurable scrollback (default 10,000 lines).
 - DECKPAM/DECKPNM keypad modes
 
 **Missing sequences** (ordered by priority):
-1. Full blink-attribute rendering (partial)
-2. Complete colour-emoji coverage: COLR/CBDT (partial)
-3. DECOM origin-mode constraint (partial)
+1. Complete colour-emoji coverage: COLR/CBDT (partial)
+
+> **Blink struck 2026-11-07** — SGR 5 was already fully animated
+> (`snapshot_has_blinking_cell` + `blink_phase_on` + `saw_blinking_cell` in
+> render.rs); the only gap was SGR 6, which now maps to the shared BLINK flag
+> (xterm's own fallback) and is cleared by SGR 25. The May audit's "partial"
+> was stale on the render side.
+>
+> **DECOM struck 2026-11-07** — "origin-mode constraint (partial)" was stale:
+> `addressable_rows()` is the one shared primitive behind CUP/HVP/VPA and the
+> CPR report, with 8 unit tests pinning region-relative addressing, bottom
+> clamping, the CHA exemption and CPR round-trip. The GAP-ANALYSIS-era claim
+> "CUP/VPA don't clamp" was never re-measured after that landed.
 
 > **Corrected 2026-07-31.** SIXEL used to head this list and is **SHIPPED** —
 > `DCS q` payload → `icy_sixel::DcsSettings` → `decode_and_place_sixel`

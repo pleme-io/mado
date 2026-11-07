@@ -138,7 +138,7 @@ impossible: both loops drive one engine, pinned by
 - **Kitty graphics z-index draw order** — parsed `terminal.rs:578`, zero reads in render.rs (M); compression/animation/Unicode placeholders after.
 - **Pointer-shape apply to NSCursor** — typed parse done `terminal.rs:1734-1760`; no platform consumer (S).
 - **OSC 1 icon title** — `terminal.rs:2920` matches only 0|2 (S).
-- **Origin-mode CUP clamp** — mode 6 tracked, CUP/VPA don't clamp `terminal.rs:3004-3012` (S).
+- **Origin-mode CUP clamp** — CLOSED (verified 2026-11-07): `addressable_rows()` (terminal.rs) is the one primitive CUP/HVP/VPA and the CPR report share; 8 unit tests pin region-relative addressing, bottom clamping, CHA exemption and CPR round-trip.
 - **Frame pacer consuming target_fps/battery cap** — `main.rs:590-600` `_effective_fps` unused; `config.rs:762-812` (M).
 - **Mode 2031 + live OS dark/light follow** — depends on P2 hot-reload apply (M).
 - **Power-user tier** — vi/copy mode, rectangular selection, hints, command palette, leader chords (REMEDIATION M6) (L).

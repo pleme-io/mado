@@ -5553,6 +5553,10 @@ impl Terminal {
                     };
                 }
                 5 => self.pen_attrs.flags.insert(AttrFlags::BLINK),
+                // SGR 6 (rapid blink) has no distinct renderer — xterm's
+                // own fallback displays it as ordinary blink, and SGR 25
+                // clears it together with SGR 5, so the two share a flag.
+                6 => self.pen_attrs.flags.insert(AttrFlags::BLINK),
                 7 => self.pen_attrs.flags.insert(AttrFlags::INVERSE),
                 8 => self.pen_attrs.flags.insert(AttrFlags::HIDDEN),
                 9 => self.pen_attrs.flags.insert(AttrFlags::STRIKETHROUGH),
@@ -9533,6 +9537,26 @@ mod tests {
     }
 
     #[test]
+    fn sgr_6_rapid_blink_sets_blink_and_25_clears_it() {
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b[6mX");
+        assert!(
+            term.cell(0, 0)
+                .attrs(term.styles())
+                .flags
+                .contains(AttrFlags::BLINK)
+        );
+        term.feed(b"\x1b[25mY");
+        assert!(
+            !term
+                .cell(0, 1)
+                .attrs(term.styles())
+                .flags
+                .contains(AttrFlags::BLINK)
+        );
+    }
+
+    #[test]
     fn charset_so_si_g1_graphics() {
         let mut term = Terminal::new(20, 4);
         term.feed(b"\x1b)0\x0eq\x0fq");
@@ -12026,6 +12050,7 @@ mod tests {
                 "4 underline",
             ),
             (b"\x1b[5m", with_flag(AttrFlags::BLINK), "5 blink"),
+            (b"\x1b[6m", with_flag(AttrFlags::BLINK), "6 rapid blink"),
             (b"\x1b[7m", with_flag(AttrFlags::INVERSE), "7 inverse"),
             (b"\x1b[8m", with_flag(AttrFlags::HIDDEN), "8 hidden"),
             (b"\x1b[9m", with_flag(AttrFlags::STRIKETHROUGH), "9 strike"),
