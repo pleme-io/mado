@@ -691,9 +691,9 @@ rec {
       };
       "arc-swap" = rec {
         crateName = "arc-swap";
-        version = "1.9.3";
+        version = "1.9.4";
         edition = "2018";
-        sha256 = "0vmfc2wjnn7gyjfawvnq6a5pxsbiq1rbzzmra0p6969vv6rn429q";
+        sha256 = "14ng7i12wxxm5bl8z53j5lrzdbkr7ydjiqqv71fww3spgbsr8k6v";
         libName = "arc_swap";
         authors = [
           "Michal 'vorner' Vaner <vorner@vorner.cz>"
@@ -2116,10 +2116,10 @@ rec {
       };
       "brotli-decompressor" = rec {
         crateName = "brotli-decompressor";
-        version = "6.2.0";
+        version = "6.3.0";
         edition = "2015";
         crateBin = [];
-        sha256 = "1bzsf3idc8q5nsqsbknyx5h0gwd21d7kaaqiswm9a76288zpiiil";
+        sha256 = "019cd5lhijajg2b1ah10ik4a5zv5g8xg3fh6kid4r525bcg0gncp";
         libName = "brotli_decompressor";
         authors = [
           "Daniel Reiter Horn <danielrh@dropbox.com>"
@@ -2408,9 +2408,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.11.0";
+        version = "1.11.1";
         edition = "2021";
-        sha256 = "0ssz5frnjb3x873yhp2790xf9v8jz8hdbgj28i1gm861rvg8jn9p";
+        sha256 = "0mgicvynjmz4xan2nbdi1dr62pjqb9kikml0j21qq3zzdw9aiwjg";
         dependencies = [
           {
             name = "find-msvc-tools";
@@ -5615,9 +5615,9 @@ rec {
       };
       "flate2" = rec {
         crateName = "flate2";
-        version = "1.1.10";
+        version = "1.1.11";
         edition = "2018";
-        sha256 = "1jvd2cl8j5hyf8imi62y1x7gwzz1hajirni0801yxhds1qp4wqvf";
+        sha256 = "1i44w2j9sw5lqvkrw0d0d3dnn84zrz3nzlsyyrq6wr3b68l4jvb2";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
           "Josh Triplett <josh@joshtriplett.org>"
@@ -9843,9 +9843,9 @@ rec {
       };
       "kotae" = rec {
         crateName = "kotae";
-        version = "0.1.1";
+        version = "0.1.2";
         edition = "2024";
-        sha256 = "010b0jfaqw187yrlly2r0dy7f0b8v41xinckjwpp48br66fni50i";
+        sha256 = "022d9qy8wmqqymh9nb3sq12kmnfg2f1rwbqwja4r5240rxx9css9";
         dependencies = [
           {
             name = "serde";
@@ -11006,7 +11006,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.221";
+        version = "0.1.222";
         edition = "2024";
         crateBin = [
           {
@@ -11748,9 +11748,9 @@ rec {
       };
       "mime" = rec {
         crateName = "mime";
-        version = "0.3.17";
+        version = "0.3.18";
         edition = "2015";
-        sha256 = "16hkibgvb9klh0w0jk5crr5xv90l3wlf77ggymzjmvl1818vnxv8";
+        sha256 = "18dzfqp5gaza7lg8qqpq1xh83zw79b1al3zryaacy5w1krd8z16m";
         authors = [
           "Sean McArthur <sean@seanmonstar.com>"
         ];
@@ -18018,7 +18018,7 @@ rec {
         dependencies = [
           {
             name = "toml_edit";
-            packageId = "toml_edit 0.25.18+spec-1.1.0";
+            packageId = "toml_edit 0.25.19+spec-1.1.0";
             usesDefaultFeatures = false;
             features = [ "parse" ];
           }
@@ -23170,9 +23170,9 @@ rec {
       };
       "smallvec" = rec {
         crateName = "smallvec";
-        version = "1.16.4";
+        version = "1.16.5";
         edition = "2018";
-        sha256 = "1j772prjisi2872lxry7d9fkss3dfbjwl16jmsvvp2qvk2qx9mfh";
+        sha256 = "0ipfizwpq0byhrl50xcizs2yf758mgccmq6s5nqk8wszi94hk4ql";
         authors = [
           "The Servo Project Developers"
         ];
@@ -27086,11 +27086,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "serde" ];
       };
-      "toml_datetime 1.1.2+spec-1.1.0" = rec {
+      "toml_datetime 1.1.3+spec-1.1.0" = rec {
         crateName = "toml_datetime";
-        version = "1.1.2+spec-1.1.0";
+        version = "1.1.3+spec-1.1.0";
         edition = "2024";
-        sha256 = "0lrhcmqvhjr259w4f2kijya7fgi0kpmhg9fb3m144v3cj1kxg1ib";
+        sha256 = "0jbfdgsl0vw6f394cifqm62d8q0aiiima891v2i7c8fdhg42agqp";
         dependencies = [
           {
             name = "serde_core";
@@ -27161,11 +27161,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "display" "parse" "serde" ];
       };
-      "toml_edit 0.25.18+spec-1.1.0" = rec {
+      "toml_edit 0.25.19+spec-1.1.0" = rec {
         crateName = "toml_edit";
-        version = "0.25.18+spec-1.1.0";
+        version = "0.25.19+spec-1.1.0";
         edition = "2024";
-        sha256 = "15hkw83x94drmc7d1xgg3j5485pijzfajbr1il6l5f8dsy5ygihy";
+        sha256 = "063j62l4wsmxpvbiqfw89avzxhv79a3rz6ngw552dmsq9266hhyx";
         dependencies = [
           {
             name = "indexmap";
@@ -27174,7 +27174,7 @@ rec {
           }
           {
             name = "toml_datetime";
-            packageId = "toml_datetime 1.1.2+spec-1.1.0";
+            packageId = "toml_datetime 1.1.3+spec-1.1.0";
           }
           {
             name = "toml_parser";
@@ -27183,7 +27183,7 @@ rec {
           }
           {
             name = "winnow";
-            packageId = "winnow 1.0.4";
+            packageId = "winnow 1.0.5";
             optional = true;
           }
         ];
@@ -27204,7 +27204,7 @@ rec {
         dependencies = [
           {
             name = "winnow";
-            packageId = "winnow 1.0.4";
+            packageId = "winnow 1.0.5";
             usesDefaultFeatures = false;
           }
         ];
@@ -28487,14 +28487,9 @@ rec {
       };
       "uuid" = rec {
         crateName = "uuid";
-        version = "1.29.0";
+        version = "1.29.1";
         edition = "2021";
-        sha256 = "0525458ww4jwa0nw513jdrhgwxrldglzvfrbw5gnjl0cc88js3ja";
-        authors = [
-          "Ashley Mannix<ashleymannix@live.com.au>"
-          "Dylan DPC<dylan.dpc@gmail.com>"
-          "Hunar Roop Kahlon<hunar.roop@gmail.com>"
-        ];
+        sha256 = "1p3b7vh4jvpj5q64q1qrvlrd15c5h1wkwzdgpg3rn03bhn5g01ja";
         dependencies = [
           {
             name = "getrandom";
@@ -34490,11 +34485,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "alloc" "default" "std" ];
       };
-      "winnow 1.0.4" = rec {
+      "winnow 1.0.5" = rec {
         crateName = "winnow";
-        version = "1.0.4";
+        version = "1.0.5";
         edition = "2021";
-        sha256 = "10fzxipa7lx16172p3aca9j60hzbqgjki2f95kqksd5qywcp7f93";
+        sha256 = "1vvs4zmisyxxp1igpjpi87z26d6wl3q98shcvx68gazhklcr6fwc";
         dependencies = [
           {
             name = "memchr";
