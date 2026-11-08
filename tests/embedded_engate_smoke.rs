@@ -153,9 +153,20 @@ fn embedded_engate_producer_snapshot_then_subscribe_ordering() {
     // After subscribe, sending bytes via control plane should deliver
     // them to the rx side.
     inproc.send_keys(pane, b"X").expect("send_keys");
-    let item = rx
-        .recv_timeout(Duration::from_millis(500))
-        .expect("live items flow after subscribe");
-    // The shell echoes the X back (terminal in cooked mode).
-    assert!(item.contains(&b'X'));
+    // The shell echoes the X back (terminal in cooked mode). The FIRST
+    // live item can be pre-echo noise (prompt redraw, engine chatter) and
+    // a loaded CI runner delays the echo itself, so drain until the echo
+    // within a deadline rather than asserting on one 500 ms recv — the
+    // single-recv form flaked red on a busy shared runner with an item
+    // that arrived in time but carried no X.
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        let left = deadline.saturating_duration_since(std::time::Instant::now());
+        let item = rx
+            .recv_timeout(left)
+            .expect("live items flow after subscribe");
+        if item.contains(&b'X') {
+            break;
+        }
+    }
 }
