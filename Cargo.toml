@@ -286,11 +286,11 @@ tatara-lisp = { version = "=0.3.52" }
 # panes can register more vigies at runtime via the MCP tools (and via
 # the OSC 1338 extension, future). See pleme-io/vigy for the primitive.
 vigy = { version = "0.1.13", default-features = false, features = ["mcp"] }
-blue-lang-host = "0.0.163"
+blue-lang-host = "0.0.169"
 # The ibuki wire host half (frames, Flash bucket, MTU) — the SAME crate the
 # host above already compiles in, pinned to the same version so the wire
 # mado speaks IS blue's wire, not a copy of it (theory/IBUKI.md §III.6–III.8).
-blue-lang-runtime = "0.0.163"
+blue-lang-runtime = "0.0.169"
 notify = "8"
 # ── ★ A CONSTRAINT, NOT A USE (2026-09-20) ────────────────────────────────
 # mado does not call tatara-lisp-eval; it arrives through
