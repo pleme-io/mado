@@ -40,6 +40,7 @@ mod grid_col;
 mod grid_damage;
 mod gui_tear_attach;
 mod host;
+mod ibuki_serve;
 mod janitors;
 mod kanshou_state;
 mod keybind;
@@ -195,6 +196,16 @@ enum SubCmd {
         /// $MADO_E2E_SHELL, then `frostmourne` resolved on PATH.
         #[arg(long, env = "MADO_E2E_SHELL", default_value = "frostmourne")]
         shell: String,
+    },
+    /// Run the ibuki wire endpoint (see docs/BLUE-WORLD.md "The wire"):
+    /// bind UDP, speak blue's wire transport, and relay the typed MCP
+    /// surface to docked blue programs granted comm-flash. Control in
+    /// Flash frames, bulk over the Tide (LEDBAT-paced), acks on Flash.
+    Ibuki {
+        /// Address to bind. Default loopback — the dock is reached over
+        /// the tailnet, not the public internet.
+        #[arg(long, default_value = "127.0.0.1:8432")]
+        bind: String,
     },
     /// Detect the runtime posture (displays, refresh rates, GPU,
     /// platform) and print it as JSON. Useful for debugging "what does
@@ -500,6 +511,15 @@ fn main() -> anyhow::Result<()> {
             })
             .map_err(|e| anyhow::anyhow!("MCP server error: {e}"))?;
             return Ok(());
+        }
+        Some(SubCmd::Ibuki { ref bind }) => {
+            std::process::exit(match ibuki_serve::serve(bind) {
+                Ok(()) => 0,
+                Err(e) => {
+                    eprintln!("ibuki endpoint error: {e:#}");
+                    1
+                }
+            });
         }
         Some(SubCmd::E2e { ref shell }) => {
             // Tracing to stderr — stdout carries exactly one JSON
