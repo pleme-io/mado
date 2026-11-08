@@ -101,7 +101,7 @@ fn the_endpoint_answers_the_binary_protocol_over_udp() {
     assert_eq!(bytes[0], 0x81, "status is a small reply");
     let len = u16::from_be_bytes([bytes[1], bytes[2]]) as usize;
     let body = std::str::from_utf8(&bytes[3..3 + len]).expect("utf8 body");
-    assert!(body.contains("version"), "status body: {body}");
+    assert!(body.contains(r#""app":"mado""#), "status body: {body}");
     drop(endpoint);
 }
 
@@ -122,7 +122,7 @@ fn a_bulk_probe_rides_the_tide_and_acks_feed_the_controller() {
     let bytes = reply.raw.as_slice();
     assert_eq!(bytes[0], 0x82, "ok-tide");
     let frames = u16::from_be_bytes([bytes[1], bytes[2]]) as usize;
-    let cwnd0 = u32::from_be_bytes([bytes[7], bytes[8], bytes[9], bytes[10]]);
+    let cwnd0 = u32::from_be_bytes([bytes[9], bytes[10], bytes[11], bytes[12]]);
     assert!(frames >= want / 1271, "{frames} frames for {want} bytes");
     assert_eq!(cwnd0, 2560, "the window starts at its floor");
 
