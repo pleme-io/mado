@@ -31,4 +31,9 @@ pub mod float;
 // named destination, currently blocked on org repo creation (all 5 shards
 // parked), so it lives here and is already importable as `mado::hanko`.
 pub mod hanko;
+// ibuki — mado's wire border (frames, Flash bucket, Tide, canonical JSON,
+// and the worker-reply reader). In the LIB so the integration tests read
+// through the same seam the window process does; the bin's world bridge is
+// the sender-side consumer.
+pub mod ibuki;
 pub mod motion;

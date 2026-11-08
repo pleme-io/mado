@@ -23,7 +23,7 @@ fn the_binary_judges_a_world_and_refuses_a_bad_entry_alone() {
     let (_d, path) = scratch(
         "use(\"motenashi\", %i[bind look])\n\ndef mado()\n  [look({opacity: 0.5}), bind(\"x\", 7)]\nend\n",
     );
-    let Load::Judged(judged) = world::read(worker(&path), &path, world::READ_LIMIT) else {
+    let Load::Judged(judged) = mado::ibuki::spawn_and_load(worker(&path), world::READ_LIMIT) else {
         panic!("a world must be judged");
     };
     assert_eq!(world::listed(&judged, "accepted").len(), 1);
@@ -35,7 +35,7 @@ fn a_world_whose_command_names_a_host_word_is_judged() {
     let (_d, path) = scratch(
         "use(\"motenashi\", [:command])\n\ndef mado()\n  [command(\"hello\", {})]\nend\n\ndef hello()\n  send_text(\"echo hello\\n\")\nend\n",
     );
-    let load = world::read(worker(&path), &path, world::READ_LIMIT);
+    let load = mado::ibuki::spawn_and_load(worker(&path), world::READ_LIMIT);
     let Load::Judged(judged) = load else {
         panic!("{load:?}");
     };
@@ -45,7 +45,7 @@ fn a_world_whose_command_names_a_host_word_is_judged() {
 #[test]
 fn a_loop_and_a_native_runaway_cannot_hold_the_window() {
     let (_d, spin) = scratch("def mado()\n  while(true, 1)\nend\n");
-    let Load::Refused(r) = world::read(worker(&spin), &spin, world::READ_LIMIT) else {
+    let Load::Refused(r) = mado::ibuki::spawn_and_load(worker(&spin), world::READ_LIMIT) else {
         panic!("a loop must be refused");
     };
     assert_eq!(r.kind, "exhausted");
@@ -54,7 +54,7 @@ fn a_loop_and_a_native_runaway_cannot_hold_the_window() {
         scratch("def mado()\n  xs = range(0, 100000000000000)\n  [length(xs)]\nend\n");
     let started = Instant::now();
     let limit = Duration::from_secs(2);
-    let Load::Refused(r) = world::read(worker(&native), &native, limit) else {
+    let Load::Refused(r) = mado::ibuki::spawn_and_load(worker(&native), limit) else {
         panic!("a native runaway must be refused");
     };
     assert!(r.kind == "killed" || r.kind == "died", "{r}");

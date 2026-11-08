@@ -156,6 +156,7 @@ Config <-- shikumi (hot-reload, ArcSwap) <-- ~/.config/mado/mado.yaml
 | `terminal.rs` | **14,075** (measured 2026-11-04) | VT100/xterm state machine — **destined for `tear-core::PaneGrid`** per [`docs/SHUKEN.md`](https://github.com/pleme-io/tear/blob/main/docs/SHUKEN.md); before hand-adding a VT arm here, read [`theory/NATURALIZE-TERMINAL.md`](https://github.com/pleme-io/theory/blob/main/NATURALIZE-TERMINAL.md) | `Terminal`, `Grid`, `Cell`, `CellAttrs`, `Color`, `MouseMode` |
 | `render.rs` | ~16,100 | Multi-pass GPU pipeline | `TerminalRenderer`, `RectPipeline`, `Snapshot` |
 | `main.rs` | ~1,740 | Event loop, input dispatch | CLI args, clipboard, double/triple click, single-pane wiring |
+| `ibuki.rs` | ~800 (2026-11-07) | mado's ibuki wire border — the worker reply channel (`mado blue-world`/`blue-command` ⇄ window) as canonical JSON in Flash frames (blue's own `blue_lang_runtime::wire` primitive: 1280 MTU, host Flash bucket, 16 KiB/s) over a length envelope, with the plain one-line form still read; holds the Tide LEDBAT controller for the bulk seam | `ReplySender`, `framed_payload`, `BorderRefusal`, `Tide`, `Ack` |
 | `config.rs` | ~8,800 | shikumi config with hot-reload | `MadoConfig`, `load_and_watch()` |
 | `selection.rs` | ~630 | Mouse text selection | `Selection`, `CellPos` |
 | `keybind.rs` | ~2,160 | Configurable keybindings | `KeybindManager`, `Action`, `Key` |

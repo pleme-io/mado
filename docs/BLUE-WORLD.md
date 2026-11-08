@@ -70,6 +70,22 @@ from the host. A command has those, and these words: `send_text`, `run_action` a
 A vigy tick runs in process, so a native call in a vigy can still hold its thread
 and allocate. It never holds the render loop.
 
+## The wire the answers ride
+
+A worker's answer crosses the ibuki wire (`src/ibuki.rs`, the same frames
+`blue_lang_runtime::wire` defines — mado consumes blue's contract, it does not
+copy it). The reply body is canonical JSON (keys sorted recursively); it is
+chunked into Flash frames no larger than the wire MTU of 1280 bytes, each
+paced by the host Flash bucket (16 KiB/s, one-second burst), and each travels
+in a two-byte length envelope — the length a UDP carrier would carry, since a
+pipe keeps no datagram boundaries. A reply too large for the bucket inside the
+parent's deadline becomes a framed `wire` refusal rather than a truncation.
+The reader refuses a datagram past the MTU, a framing byte that names no
+channel and a Tide frame in a reply, each by name; an unframed answer — the
+former one-line plain JSON — is still read, so the two forms interoperate
+across a mixed fleet. The Tide controller (LEDBAT, RFC 6817) lives beside
+them for the bulk seam; its pins are mado's tests.
+
 With a `mado.b`, the first window waits at most 400 ms for the child, because the
 surface's alpha mode is fixed when the window is made. A later answer arrives as a
 reload. With no file, nothing starts and nothing waits. The render loop only reads

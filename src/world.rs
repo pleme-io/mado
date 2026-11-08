@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::config::{KeybindEntry, MadoConfig};
+use mado::ibuki;
 
 pub const WORLD_FUEL: usize = 20_000_000;
 pub const COMMAND_FUEL: usize = 5_000_000;
@@ -57,13 +58,59 @@ fn config_home() -> Option<PathBuf> {
     absolute("XDG_CONFIG_HOME").or_else(|| absolute("HOME").map(|h| h.join(".config")))
 }
 
+/// Wall-clock milliseconds since the epoch — the worker's Flash clock.
+fn wire_now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_millis()).unwrap_or(0))
+}
+
+/// Frame one worker reply onto `out`: canonical JSON, Flash frames, the
+/// host bucket pacing every spend. A frame the bucket still refuses after
+/// its wait was waited out (a reply so large the 10 s parent deadline
+/// cannot carry it) becomes a framed REFUSAL reply, so the channel stays
+/// framed and the parent learns why.
+fn wire_reply(
+    out: &mut impl std::io::Write,
+    result: &Result<Value, Refusal>,
+) -> std::io::Result<()> {
+    let reply = ibuki::reply_value(result);
+    let waited = std::cell::Cell::new(0_u64);
+    let mut send = |reply: &Value| -> std::io::Result<ibuki::Sent> {
+        let mut sender = ibuki::ReplySender::new(out, ibuki::border_rate());
+        sender.send(reply, wire_now_ms(), &mut |wait_ms| {
+            waited.set(waited.get() + wait_ms);
+            if waited.get() < 8_000 {
+                std::thread::sleep(Duration::from_millis(wait_ms));
+            }
+        })
+    };
+    match send(&reply)? {
+        ibuki::Sent::Written { .. } => Ok(()),
+        ibuki::Sent::Refused { wait_ms, .. } => {
+            let why = format!(
+                "the reply is past the wire's Flash rate; it would still be sending after {} + {wait_ms} ms",
+                waited.get()
+            );
+            send(&json!({ "refused": { "kind": "wire", "why": why } }))?;
+            Ok(())
+        }
+    }
+}
+
 #[must_use]
 pub fn serve_world(file: &Path) -> i32 {
-    world::serve::<CommandHost>(file, &SPEC, world::DEFAULT_MEMORY_MB)
+    world::bound_memory(world::DEFAULT_MEMORY_MB);
+    let result = world::judged::<CommandHost>(file, &SPEC);
+    let stdout = std::io::stdout();
+    i32::from(wire_reply(&mut stdout.lock(), &result).is_err())
 }
 
 #[must_use]
 pub fn read_world(file: &Path) -> Load {
+    if !file.exists() {
+        return Load::Absent;
+    }
     let exe = match std::env::current_exe() {
         Ok(exe) => exe,
         Err(e) => return Load::Refused(Refusal::new("spawn", e.to_string())),
@@ -73,7 +120,7 @@ pub fn read_world(file: &Path) -> Load {
         .args(["blue-world", "--file"])
         .arg(file)
         .env("RUST_LOG", "off");
-    world::read(command, file, world::READ_LIMIT)
+    ibuki::spawn_and_load(command, world::READ_LIMIT)
 }
 
 fn set_fields(overlay: &mut Overlay, group: &str, fields: &Value) {
@@ -325,13 +372,11 @@ impl CommandHost {
 #[must_use]
 pub fn serve_command(file: &Path, call: &str) -> i32 {
     world::bound_memory(world::DEFAULT_MEMORY_MB);
-    let answer = command_effects(file, call);
-    let line = match &answer {
-        Ok(effects) => json!({ "effects": effects }),
-        Err(why) => json!({ "refused": why }),
-    };
-    println!("{line}");
-    0
+    let result = command_effects(file, call)
+        .map(|effects| json!({ "effects": effects }))
+        .map_err(|why| Refusal::new("command", why));
+    let stdout = std::io::stdout();
+    i32::from(wire_reply(&mut stdout.lock(), &result).is_err())
 }
 
 fn command_effects(file: &Path, call: &str) -> Result<Vec<Effect>, String> {
@@ -358,16 +403,34 @@ fn command_effects(file: &Path, call: &str) -> Result<Vec<Effect>, String> {
 }
 
 fn effects_from(stdout: &[u8]) -> Result<Vec<Effect>, String> {
-    let text = String::from_utf8_lossy(stdout);
-    let line = text.lines().rev().find(|l| !l.trim().is_empty());
-    let reply: Value = line
-        .and_then(|l| serde_json::from_str(l).ok())
-        .ok_or_else(|| String::from("the command worker gave no answer"))?;
+    let reply = framed_reply(stdout).or_else(|| {
+        let text = String::from_utf8_lossy(stdout);
+        text.lines()
+            .rev()
+            .find(|l| !l.trim().is_empty())
+            .and_then(|l| serde_json::from_str::<Value>(l).ok())
+    });
+    let reply: Value = reply.ok_or_else(|| String::from("the command worker gave no answer"))?;
     if let Some(why) = reply.get("refused").and_then(Value::as_str) {
         return Err(why.to_owned());
     }
+    if let Some(refused) = reply.get("refused").and_then(Value::as_object) {
+        let kind = refused
+            .get("kind")
+            .and_then(Value::as_str)
+            .unwrap_or("command");
+        let why = refused.get("why").and_then(Value::as_str).unwrap_or("");
+        return Err(format!("{kind}: {why}"));
+    }
     serde_json::from_value(reply.get("effects").cloned().unwrap_or(Value::Null))
         .map_err(|e| e.to_string())
+}
+
+/// The reply `Value` of a framed worker answer, or `None` when the stream
+/// is not framed (the former plain one-line answer).
+fn framed_reply(stdout: &[u8]) -> Option<Value> {
+    let payload = ibuki::framed_payload(stdout).ok()?;
+    serde_json::from_str(String::from_utf8_lossy(&payload).trim()).ok()
 }
 
 fn run_command_child(file: &Path, call: &str) -> Result<Vec<Effect>, String> {
@@ -440,6 +503,50 @@ pub fn board_row(key: String, title: String) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn frame_reply_of(reply: &Value) -> Vec<u8> {
+        let mut out = Vec::new();
+        let mut no_wait = |_ms: u64| {};
+        ibuki::ReplySender::new(&mut out, ibuki::border_rate())
+            .send(reply, 0, &mut no_wait)
+            .expect("a reply fits the border");
+        out
+    }
+
+    #[test]
+    fn effects_read_back_from_flash_frames_and_from_the_plain_line() {
+        let effects = vec![
+            Effect::SendText("echo hi\n".into()),
+            Effect::RunAction("scroll_to_top".into()),
+            Effect::Board {
+                key: "clock".into(),
+                title: "tick".into(),
+            },
+        ];
+        let reply = json!({ "effects": effects });
+        let framed = frame_reply_of(&reply);
+        assert_eq!(effects_from(&framed).unwrap(), effects);
+        let plain = format!("{}\n", serde_json::to_string(&reply).unwrap());
+        assert_eq!(effects_from(plain.as_bytes()).unwrap(), effects);
+    }
+
+    #[test]
+    fn a_framed_refusal_keeps_its_kind_and_why_and_a_plain_line_still_reads() {
+        let refused = frame_reply_of(&ibuki::reply_value(&Err(Refusal::new(
+            "load",
+            "no such word",
+        ))));
+        assert_eq!(
+            ibuki::framed_load(&refused),
+            Some(Load::Refused(Refusal::new("load", "no such word")))
+        );
+        let judged = frame_reply_of(&ibuki::reply_value(&Ok(json!({"font": {"size": 14}}))));
+        assert_eq!(
+            ibuki::framed_load(&judged),
+            Some(Load::Judged(json!({"font": {"size": 14}})))
+        );
+        assert_eq!(ibuki::framed_load(b"{\"judged\": {\"a\": 1}}\n"), None);
+    }
 
     fn judged(accepted: Value) -> Load {
         Load::Judged(json!({"accepted": accepted, "off": [], "refusals": []}))

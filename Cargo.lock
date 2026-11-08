@@ -512,7 +512,16 @@ version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1dadc936c7a8bda31c4e361f71f6fc780f99a618960c7b4e2508731e12ce3b11"
 dependencies = [
- "blue-lang-waku",
+ "blue-lang-waku 0.0.151",
+]
+
+[[package]]
+name = "blue-lang-bidama"
+version = "0.0.163"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9cce6b485290d69c5aed4257d955ca2f12f6f1d4869aa6b4224e3c81da7a589d"
+dependencies = [
+ "blue-lang-waku 0.0.163",
 ]
 
 [[package]]
@@ -521,7 +530,17 @@ version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f5fce4813019e583045489cbcdd53547da32fb89cae38646cecd98972112b30a"
 dependencies = [
- "blue-lang-syntax",
+ "blue-lang-syntax 0.0.151",
+ "tatara-lisp 0.4.13",
+]
+
+[[package]]
+name = "blue-lang-check"
+version = "0.0.163"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ba58bf9761737b0ed31cbdaa899f8b3263455eccacebb4292ff6ce73a440046"
+dependencies = [
+ "blue-lang-syntax 0.0.163",
  "tatara-lisp 0.4.13",
 ]
 
@@ -531,7 +550,18 @@ version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c647197fe302d256cc02658f4c14c93bade61fa61aa7dc272964b27b36ad805"
 dependencies = [
- "blue-lang-syntax",
+ "blue-lang-syntax 0.0.151",
+ "tatara-lisp 0.4.13",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "blue-lang-fmt"
+version = "0.0.163"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6de61ced383b760c1c4700b518f66f43ac9f41caa81a2cafcbeefe8b1919ed09"
+dependencies = [
+ "blue-lang-syntax 0.0.163",
  "tatara-lisp 0.4.13",
  "thiserror 2.0.21",
 ]
@@ -542,10 +572,28 @@ version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ffc49e16698fe1f4fa6ea2164ec8c9ee24a4c8d49eac1686e4cdded34a067f0"
 dependencies = [
- "blue-lang-host-macros",
- "blue-lang-pkg",
- "blue-lang-runtime",
- "blue-lang-waku",
+ "blue-lang-host-macros 0.0.151",
+ "blue-lang-pkg 0.0.151",
+ "blue-lang-runtime 0.0.151",
+ "blue-lang-waku 0.0.151",
+ "rustix 1.1.6",
+ "serde",
+ "serde_json",
+ "tatara-lisp 0.4.13",
+ "tatara-lisp-eval 0.4.13",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "blue-lang-host"
+version = "0.0.163"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff146b6430dd43fa5948e57573ab75b72f1c44ab6fbadf232b954565019f130b"
+dependencies = [
+ "blue-lang-host-macros 0.0.163",
+ "blue-lang-pkg 0.0.163",
+ "blue-lang-runtime 0.0.163",
+ "blue-lang-waku 0.0.163",
  "rustix 1.1.6",
  "serde",
  "serde_json",
@@ -566,17 +614,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "blue-lang-host-macros"
+version = "0.0.163"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51c83adc2d45ca935338d666a5ea6785165030df3bd08d99d38a4647b289df29"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "blue-lang-mondou"
 version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9aeda1fc6a7aea52ad913101fa6a4a3d96d860de26416d107a0f8592452f86b7"
 dependencies = [
  "blake3",
- "blue-lang-check",
- "blue-lang-fmt",
- "blue-lang-runtime",
- "blue-lang-syntax",
- "blue-lang-waku",
+ "blue-lang-check 0.0.151",
+ "blue-lang-fmt 0.0.151",
+ "blue-lang-runtime 0.0.151",
+ "blue-lang-syntax 0.0.151",
+ "blue-lang-waku 0.0.151",
+ "serde_json",
+ "tatara-lisp-eval 0.4.13",
+]
+
+[[package]]
+name = "blue-lang-mondou"
+version = "0.0.163"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d874b9865d34b415a00e10e8343305935d480f1429d31358747facb72c525c62"
+dependencies = [
+ "blake3",
+ "blue-lang-check 0.0.163",
+ "blue-lang-fmt 0.0.163",
+ "blue-lang-runtime 0.0.163",
+ "blue-lang-syntax 0.0.163",
+ "blue-lang-waku 0.0.163",
  "serde_json",
  "tatara-lisp-eval 0.4.13",
 ]
@@ -588,14 +663,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e150a62708cdcb950c2dac72861484eceb3b0bb0e1484d9031d559cfa2373368"
 dependencies = [
  "blake3",
- "blue-lang-bidama",
- "blue-lang-check",
- "blue-lang-fmt",
- "blue-lang-mondou",
- "blue-lang-proc",
- "blue-lang-runtime",
- "blue-lang-syntax",
- "blue-lang-waku",
+ "blue-lang-bidama 0.0.151",
+ "blue-lang-check 0.0.151",
+ "blue-lang-fmt 0.0.151",
+ "blue-lang-mondou 0.0.151",
+ "blue-lang-proc 0.0.151",
+ "blue-lang-runtime 0.0.151",
+ "blue-lang-syntax 0.0.151",
+ "blue-lang-waku 0.0.151",
+ "serde",
+ "serde_json",
+ "tatara-lisp 0.4.13",
+ "tatara-lisp-eval 0.4.13",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "blue-lang-pkg"
+version = "0.0.163"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f2defbcefd955e5492428fb7e46928217d90841368514bf47727bb9bbdb38b2"
+dependencies = [
+ "blake3",
+ "blue-lang-bidama 0.0.163",
+ "blue-lang-check 0.0.163",
+ "blue-lang-fmt 0.0.163",
+ "blue-lang-mondou 0.0.163",
+ "blue-lang-proc 0.0.163",
+ "blue-lang-runtime 0.0.163",
+ "blue-lang-syntax 0.0.163",
+ "blue-lang-waku 0.0.163",
  "serde",
  "serde_json",
  "tatara-lisp 0.4.13",
@@ -610,7 +707,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9873e201017da11d7a73c0bbd75839c8ea6ac6337960ba9b92736138076315a5"
 dependencies = [
  "blake3",
- "blue-lang-waku",
+ "blue-lang-waku 0.0.151",
+ "libc",
+ "rustix 1.1.6",
+ "serde_json",
+ "tatara-lisp 0.4.13",
+ "tatara-lisp-eval 0.4.13",
+]
+
+[[package]]
+name = "blue-lang-proc"
+version = "0.0.163"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e93576a3b1d1101045ea01c9d1ccf5f373a0ccd70089d473496385bc6508358"
+dependencies = [
+ "blake3",
+ "blue-lang-waku 0.0.163",
  "libc",
  "rustix 1.1.6",
  "serde_json",
@@ -625,11 +737,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0091985143fbf7fc96dbf63209903b495f3f4ee7199e71f8c2dfcbd44e64b83"
 dependencies = [
  "blake3",
- "blue-lang-check",
- "blue-lang-fmt",
- "blue-lang-proc",
- "blue-lang-syntax",
- "blue-lang-waku",
+ "blue-lang-check 0.0.151",
+ "blue-lang-fmt 0.0.151",
+ "blue-lang-proc 0.0.151",
+ "blue-lang-syntax 0.0.151",
+ "blue-lang-waku 0.0.151",
+ "ed25519-dalek",
+ "hmac",
+ "quick-xml 0.38.4",
+ "rnix",
+ "rowan",
+ "serde_json",
+ "sha1",
+ "sha2",
+ "tatara-lisp 0.4.13",
+ "tatara-lisp-eval 0.4.13",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "blue-lang-runtime"
+version = "0.0.163"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0da0ee9295bf6a0ca74434d392cdb6848ccf3798c82af7a2058a7753e7ca27e8"
+dependencies = [
+ "blake3",
+ "blue-lang-check 0.0.163",
+ "blue-lang-fmt 0.0.163",
+ "blue-lang-proc 0.0.163",
+ "blue-lang-syntax 0.0.163",
+ "blue-lang-waku 0.0.163",
  "ed25519-dalek",
  "hmac",
  "quick-xml 0.38.4",
@@ -653,12 +790,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "blue-lang-syntax"
+version = "0.0.163"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "057315a257617808f70b12deccf450fdc15871207eeb87194ab0361e135777b0"
+dependencies = [
+ "tatara-lisp 0.4.13",
+]
+
+[[package]]
 name = "blue-lang-waku"
 version = "0.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56f7a3da54897f5dc5f4c13dca350a844d58509bfc199efb0b2ec2bf0a24de44"
 dependencies = [
- "blue-lang-syntax",
+ "blue-lang-syntax 0.0.151",
+ "serde",
+ "tatara-lisp 0.4.13",
+]
+
+[[package]]
+name = "blue-lang-waku"
+version = "0.0.163"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3505a1f23cc5588fb4cbd56b88015e78d10360e90d710a1aa86848b6aa86ecaf"
+dependencies = [
+ "blue-lang-syntax 0.0.163",
  "serde",
  "tatara-lisp 0.4.13",
 ]
@@ -3599,7 +3756,8 @@ dependencies = [
  "awase",
  "blake3",
  "block2 0.6.2",
- "blue-lang-host",
+ "blue-lang-host 0.0.163",
+ "blue-lang-runtime 0.0.163",
  "bytemuck",
  "clap",
  "criterion",
@@ -8325,7 +8483,7 @@ checksum = "15970dc05ebc8af0976e82974f0bd9d96e619d87c950f1bb6b0205ee9cb4e9a3"
 dependencies = [
  "anyhow",
  "async-trait",
- "blue-lang-host",
+ "blue-lang-host 0.0.151",
  "serde",
  "serde_json",
  "tatara-lisp 0.4.13",
