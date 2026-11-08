@@ -1537,11 +1537,11 @@ rec {
         ];
 
       };
-      "blue-lang-bidama 0.0.163" = rec {
+      "blue-lang-bidama 0.0.169" = rec {
         crateName = "blue-lang-bidama";
-        version = "0.0.163";
+        version = "0.0.169";
         edition = "2021";
-        sha256 = "17aqgbd82g2f4asad6l6skqzc4igr9axjms2xmd9rmlha946pklw";
+        sha256 = "0fi8y50dqv2j42gvgqnai5g92scas935k8w8q8nmafqlkz6lra1h";
         libName = "blue_lang_bidama";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1549,7 +1549,7 @@ rec {
         dependencies = [
           {
             name = "blue-lang-waku";
-            packageId = "blue-lang-waku 0.0.163";
+            packageId = "blue-lang-waku 0.0.169";
           }
         ];
 
@@ -1575,11 +1575,11 @@ rec {
         ];
 
       };
-      "blue-lang-check 0.0.163" = rec {
+      "blue-lang-check 0.0.169" = rec {
         crateName = "blue-lang-check";
-        version = "0.0.163";
+        version = "0.0.169";
         edition = "2021";
-        sha256 = "0ih08hxffv7zj91bpknaxiak89mkz2csinnb67nv0dqpfvwqp98b";
+        sha256 = "0alrb7lyzz05sa91gh8rc7a2pmccdz2rzcjavzqk2rxg5bainph8";
         libName = "blue_lang_check";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1587,7 +1587,7 @@ rec {
         dependencies = [
           {
             name = "blue-lang-syntax";
-            packageId = "blue-lang-syntax 0.0.163";
+            packageId = "blue-lang-syntax 0.0.169";
           }
           {
             name = "tatara-lisp";
@@ -1621,11 +1621,11 @@ rec {
         ];
 
       };
-      "blue-lang-fmt 0.0.163" = rec {
+      "blue-lang-fmt 0.0.169" = rec {
         crateName = "blue-lang-fmt";
-        version = "0.0.163";
+        version = "0.0.169";
         edition = "2021";
-        sha256 = "02gd34cqpzpfrfpjq6m8r90rzb23dzv1id808wf0qxiv73nirrkd";
+        sha256 = "0y4b5az1gf5qvc4wnlp56i8ccb9qf9pbv8sbw4d3hgj4dak0r3lj";
         libName = "blue_lang_fmt";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1633,7 +1633,7 @@ rec {
         dependencies = [
           {
             name = "blue-lang-syntax";
-            packageId = "blue-lang-syntax 0.0.163";
+            packageId = "blue-lang-syntax 0.0.169";
           }
           {
             name = "tatara-lisp";
@@ -1707,11 +1707,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "packages" ];
       };
-      "blue-lang-host 0.0.163" = rec {
+      "blue-lang-host 0.0.169" = rec {
         crateName = "blue-lang-host";
-        version = "0.0.163";
+        version = "0.0.169";
         edition = "2021";
-        sha256 = "02qkkw0naicm5cixzfkgmd21qbxpfnmp6xg591czlhyx61j6n57z";
+        sha256 = "1qsilys87cynqqz0848ymns5n0f5f9ffb5i99q6d0sb5qgkw1rdd";
         libName = "blue_lang_host";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1719,19 +1719,19 @@ rec {
         dependencies = [
           {
             name = "blue-lang-host-macros";
-            packageId = "blue-lang-host-macros 0.0.163";
+            packageId = "blue-lang-host-macros 0.0.169";
           }
           {
             name = "blue-lang-pkg";
-            packageId = "blue-lang-pkg 0.0.163";
+            packageId = "blue-lang-pkg 0.0.169";
           }
           {
             name = "blue-lang-runtime";
-            packageId = "blue-lang-runtime 0.0.163";
+            packageId = "blue-lang-runtime 0.0.169";
           }
           {
             name = "blue-lang-waku";
-            packageId = "blue-lang-waku 0.0.163";
+            packageId = "blue-lang-waku 0.0.169";
           }
           {
             name = "rustix";
@@ -1795,11 +1795,11 @@ rec {
         ];
 
       };
-      "blue-lang-host-macros 0.0.163" = rec {
+      "blue-lang-host-macros 0.0.169" = rec {
         crateName = "blue-lang-host-macros";
-        version = "0.0.163";
+        version = "0.0.169";
         edition = "2021";
-        sha256 = "0afzi6r4filasfcqvl1vvwq505l5czmaarnn719r7jj55pf3mj2i";
+        sha256 = "0qrfj91hzk8m0mgi13is5sdy68fnv9y2727nzq5gh6gx7d49y9bg";
         procMacro = true;
         libName = "blue_lang_host_macros";
         authors = [
@@ -1869,11 +1869,11 @@ rec {
         ];
 
       };
-      "blue-lang-mondou 0.0.163" = rec {
+      "blue-lang-mondou 0.0.169" = rec {
         crateName = "blue-lang-mondou";
-        version = "0.0.163";
+        version = "0.0.169";
         edition = "2021";
-        sha256 = "0qjwa8nbgb3zfic17lr92h7lhpck0lrk9s0h1sh1bd1lbn3bjx6q";
+        sha256 = "0pkwysiv9xyf2gsx27bznf43s504vgaw8mh2xn8c0cyycdbfwkvf";
         libName = "blue_lang_mondou";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -1887,23 +1887,23 @@ rec {
           }
           {
             name = "blue-lang-check";
-            packageId = "blue-lang-check 0.0.163";
+            packageId = "blue-lang-check 0.0.169";
           }
           {
             name = "blue-lang-fmt";
-            packageId = "blue-lang-fmt 0.0.163";
+            packageId = "blue-lang-fmt 0.0.169";
           }
           {
             name = "blue-lang-runtime";
-            packageId = "blue-lang-runtime 0.0.163";
+            packageId = "blue-lang-runtime 0.0.169";
           }
           {
             name = "blue-lang-syntax";
-            packageId = "blue-lang-syntax 0.0.163";
+            packageId = "blue-lang-syntax 0.0.169";
           }
           {
             name = "blue-lang-waku";
-            packageId = "blue-lang-waku 0.0.163";
+            packageId = "blue-lang-waku 0.0.169";
           }
           {
             name = "serde_json";
@@ -1990,11 +1990,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "embedded" ];
       };
-      "blue-lang-pkg 0.0.163" = rec {
+      "blue-lang-pkg 0.0.169" = rec {
         crateName = "blue-lang-pkg";
-        version = "0.0.163";
+        version = "0.0.169";
         edition = "2021";
-        sha256 = "1ciqvfxvjyvj8yzi919n844dj5w2j937xyr84i4yamfrxyyfybbz";
+        sha256 = "1ys1cmpxfxja7193xak1rkai3n4jq1ppb7dlxvr90dkj8vs67838";
         libName = "blue_lang_pkg";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -2008,35 +2008,35 @@ rec {
           }
           {
             name = "blue-lang-bidama";
-            packageId = "blue-lang-bidama 0.0.163";
+            packageId = "blue-lang-bidama 0.0.169";
           }
           {
             name = "blue-lang-check";
-            packageId = "blue-lang-check 0.0.163";
+            packageId = "blue-lang-check 0.0.169";
           }
           {
             name = "blue-lang-fmt";
-            packageId = "blue-lang-fmt 0.0.163";
+            packageId = "blue-lang-fmt 0.0.169";
           }
           {
             name = "blue-lang-mondou";
-            packageId = "blue-lang-mondou 0.0.163";
+            packageId = "blue-lang-mondou 0.0.169";
           }
           {
             name = "blue-lang-proc";
-            packageId = "blue-lang-proc 0.0.163";
+            packageId = "blue-lang-proc 0.0.169";
           }
           {
             name = "blue-lang-runtime";
-            packageId = "blue-lang-runtime 0.0.163";
+            packageId = "blue-lang-runtime 0.0.169";
           }
           {
             name = "blue-lang-syntax";
-            packageId = "blue-lang-syntax 0.0.163";
+            packageId = "blue-lang-syntax 0.0.169";
           }
           {
             name = "blue-lang-waku";
-            packageId = "blue-lang-waku 0.0.163";
+            packageId = "blue-lang-waku 0.0.169";
           }
           {
             name = "serde";
@@ -2117,11 +2117,11 @@ rec {
         ];
 
       };
-      "blue-lang-proc 0.0.163" = rec {
+      "blue-lang-proc 0.0.169" = rec {
         crateName = "blue-lang-proc";
-        version = "0.0.163";
+        version = "0.0.169";
         edition = "2021";
-        sha256 = "0n43a335nf4n6i3rs23hrl63ldszrwf9s750bq20248x7dm5g4qy";
+        sha256 = "10k69qifgqkjlvxz5cbqqmnlcyjni3qrv7j3nsw38czfwmrg7hci";
         libName = "blue_lang_proc";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -2135,7 +2135,7 @@ rec {
           }
           {
             name = "blue-lang-waku";
-            packageId = "blue-lang-waku 0.0.163";
+            packageId = "blue-lang-waku 0.0.169";
           }
           {
             name = "libc";
@@ -2263,11 +2263,11 @@ rec {
           "sys" = [ "dep:tameshi" "dep:rand_core" "dep:blue-lang-senses" "dep:blue-lang-kernel" ];
         };
       };
-      "blue-lang-runtime 0.0.163" = rec {
+      "blue-lang-runtime 0.0.169" = rec {
         crateName = "blue-lang-runtime";
-        version = "0.0.163";
+        version = "0.0.169";
         edition = "2021";
-        sha256 = "1s17rbkm6xwa0nigfan8k0vwz344nv6r5lrl8jkhqsmzjn9fx80d";
+        sha256 = "1q69yz0avqp1nlj8rj55sm97y83lxav17symqjwv48977s9syqxz";
         libName = "blue_lang_runtime";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -2281,23 +2281,23 @@ rec {
           }
           {
             name = "blue-lang-check";
-            packageId = "blue-lang-check 0.0.163";
+            packageId = "blue-lang-check 0.0.169";
           }
           {
             name = "blue-lang-fmt";
-            packageId = "blue-lang-fmt 0.0.163";
+            packageId = "blue-lang-fmt 0.0.169";
           }
           {
             name = "blue-lang-proc";
-            packageId = "blue-lang-proc 0.0.163";
+            packageId = "blue-lang-proc 0.0.169";
           }
           {
             name = "blue-lang-syntax";
-            packageId = "blue-lang-syntax 0.0.163";
+            packageId = "blue-lang-syntax 0.0.169";
           }
           {
             name = "blue-lang-waku";
-            packageId = "blue-lang-waku 0.0.163";
+            packageId = "blue-lang-waku 0.0.169";
           }
           {
             name = "ed25519-dalek";
@@ -2353,7 +2353,11 @@ rec {
           }
         ];
         features = {
-          "sys" = [ "dep:tameshi" "dep:rand_core" "dep:blue-lang-senses" "dep:blue-lang-kernel" ];
+          "kernel" = [ "host" "dep:blue-lang-kernel" ];
+          "senses" = [ "host" "dep:blue-lang-senses" ];
+          "storage-append" = [ "host" ];
+          "sys" = [ "host" "threshold" "storage-append" "kernel" "senses" ];
+          "threshold" = [ "host" "dep:tameshi" "dep:rand_core" ];
         };
       };
       "blue-lang-syntax 0.0.151" = rec {
@@ -2373,11 +2377,11 @@ rec {
         ];
 
       };
-      "blue-lang-syntax 0.0.163" = rec {
+      "blue-lang-syntax 0.0.169" = rec {
         crateName = "blue-lang-syntax";
-        version = "0.0.163";
+        version = "0.0.169";
         edition = "2021";
-        sha256 = "1c3paw9iwdmh98cqgsvy41qmihgxa3scrphj1gvhhy31ayi1awq5";
+        sha256 = "0pr23hwv6szx3si2blrpjgx3y6056474v8f7x1dsj88fab5qxq1w";
         libName = "blue_lang_syntax";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -2416,11 +2420,11 @@ rec {
         ];
 
       };
-      "blue-lang-waku 0.0.163" = rec {
+      "blue-lang-waku 0.0.169" = rec {
         crateName = "blue-lang-waku";
-        version = "0.0.163";
+        version = "0.0.169";
         edition = "2021";
-        sha256 = "1bzchsmbcj38m0d0lw8dx5h07lbqbq0qhsymrfs8yn657kra219m";
+        sha256 = "1w4nl2yn0siz52b67q9183lrdfcbkvkm8lbzqw78xh3wcfdbp5yl";
         libName = "blue_lang_waku";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -2428,7 +2432,7 @@ rec {
         dependencies = [
           {
             name = "blue-lang-syntax";
-            packageId = "blue-lang-syntax 0.0.163";
+            packageId = "blue-lang-syntax 0.0.169";
           }
           {
             name = "serde";
@@ -11467,7 +11471,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.223";
+        version = "0.1.224";
         edition = "2024";
         crateBin = [
           {
@@ -11497,11 +11501,11 @@ rec {
           }
           {
             name = "blue-lang-host";
-            packageId = "blue-lang-host 0.0.163";
+            packageId = "blue-lang-host 0.0.169";
           }
           {
             name = "blue-lang-runtime";
-            packageId = "blue-lang-runtime 0.0.163";
+            packageId = "blue-lang-runtime 0.0.169";
           }
           {
             name = "bytemuck";

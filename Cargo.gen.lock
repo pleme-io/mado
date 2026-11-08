@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "1825a1b9671b54e7c9b7ec738073e2cd5b4cec0c881c6f1794c06cf623120746",
+  "cargo_lock_sha256": "bc84af6114508e63e72e9fec704984085bf63c4ac9e9fabf2f3af26af406a0ae",
   "manifest_sha256": {
-    "Cargo.toml": "e206bbd8b04005ff0348901a97f3e129836181a8ca99eb94353aff2729527b8b"
+    "Cargo.toml": "c0b6e4b4ec62a971198e7f7642957143836d519cd1769b35efb6f25e685f25e0"
   },
   "target_resolves": {
     "base": {
@@ -13130,7 +13130,7 @@
           },
           {
             "name": "notify",
-            "package_key": "notify-8.2.1",
+            "package_key": "notify-8.2.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13140,7 +13140,7 @@
           },
           {
             "name": "notify",
-            "package_key": "notify-8.2.1",
+            "package_key": "notify-8.2.2",
             "kind": "normal",
             "features": [
               "macos_fsevent"
@@ -18671,7 +18671,7 @@
           },
           {
             "name": "notify",
-            "package_key": "notify-8.2.1",
+            "package_key": "notify-8.2.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -18681,7 +18681,7 @@
           },
           {
             "name": "notify",
-            "package_key": "notify-8.2.1",
+            "package_key": "notify-8.2.2",
             "kind": "normal",
             "features": [
               "macos_fsevent"
@@ -22495,7 +22495,7 @@
           },
           {
             "name": "notify",
-            "package_key": "notify-8.2.1",
+            "package_key": "notify-8.2.2",
             "kind": "normal",
             "features": [
               "macos_fsevent"
@@ -22841,7 +22841,7 @@
           },
           {
             "name": "notify",
-            "package_key": "notify-8.2.1",
+            "package_key": "notify-8.2.2",
             "kind": "normal",
             "features": [
               "macos_fsevent"
@@ -28749,7 +28749,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.223": {
+          "mado-0.1.224": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -29115,7 +29115,7 @@
               },
               {
                 "name": "notify",
-                "package_key": "notify-8.2.1",
+                "package_key": "notify-8.2.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29841,7 +29841,7 @@
               "link"
             ]
           },
-          "notify-8.2.1": {
+          "notify-8.2.2": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -34630,7 +34630,7 @@
               "system"
             ]
           },
-          "mado-0.1.223": {
+          "mado-0.1.224": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34986,7 +34986,7 @@
               },
               {
                 "name": "notify",
-                "package_key": "notify-8.2.1",
+                "package_key": "notify-8.2.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35547,7 +35547,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "notify-8.2.1": {
+          "notify-8.2.2": {
             "runtime_dependencies": [
               {
                 "name": "inotify",
@@ -39505,7 +39505,7 @@
               "system"
             ]
           },
-          "mado-0.1.223": {
+          "mado-0.1.224": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39861,7 +39861,7 @@
               },
               {
                 "name": "notify",
-                "package_key": "notify-8.2.1",
+                "package_key": "notify-8.2.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40422,7 +40422,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "notify-8.2.1": {
+          "notify-8.2.2": {
             "runtime_dependencies": [
               {
                 "name": "inotify",
@@ -44390,7 +44390,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.223": {
+          "mado-0.1.224": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44756,7 +44756,7 @@
               },
               {
                 "name": "notify",
-                "package_key": "notify-8.2.1",
+                "package_key": "notify-8.2.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45482,7 +45482,7 @@
               "link"
             ]
           },
-          "notify-8.2.1": {
+          "notify-8.2.2": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -50346,7 +50346,7 @@
               "system"
             ]
           },
-          "mado-0.1.223": {
+          "mado-0.1.224": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -50702,7 +50702,7 @@
               },
               {
                 "name": "notify",
-                "package_key": "notify-8.2.1",
+                "package_key": "notify-8.2.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51263,7 +51263,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "notify-8.2.1": {
+          "notify-8.2.2": {
             "runtime_dependencies": [
               {
                 "name": "inotify",
@@ -55296,7 +55296,7 @@
               "system"
             ]
           },
-          "mado-0.1.223": {
+          "mado-0.1.224": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -55652,7 +55652,7 @@
               },
               {
                 "name": "notify",
-                "package_key": "notify-8.2.1",
+                "package_key": "notify-8.2.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -56213,7 +56213,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "notify-8.2.1": {
+          "notify-8.2.2": {
             "runtime_dependencies": [
               {
                 "name": "inotify",
@@ -59823,7 +59823,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.223": {
+    "mado-0.1.224": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -59934,7 +59934,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "notify-8.2.1": {
+    "notify-8.2.2": {
       "edition": "2021"
     },
     "notify-types-2.2.0": {
