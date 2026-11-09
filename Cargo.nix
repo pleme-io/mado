@@ -11471,7 +11471,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.224";
+        version = "0.1.225";
         edition = "2024";
         crateBin = [
           {
@@ -12806,9 +12806,9 @@ rec {
       };
       "notify" = rec {
         crateName = "notify";
-        version = "8.2.1";
+        version = "8.2.2";
         edition = "2021";
-        sha256 = "0x2651clb8sbwaifxv7lk2a7xgi597h89y6k2rad6xdw5xq15y42";
+        sha256 = "1aq5088m1j07fs25yb5j35hq344zsz96sa2pqqn35ycxynjh86n4";
         authors = [
           "Félix Saparelli <me@passcod.name>"
           "Daniel Faust <hessijames@gmail.com>"
