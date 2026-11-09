@@ -67,7 +67,7 @@ struct GetOutputInput {
 }
 
 // SplitPaneInput removed at Phase 4 — multiplexing belongs in
-// tear (see theory/MADO-TEAR-M5.md). Use `tear-client::Client::
+// tear. Use `tear-client::Client::
 // split_pane` or invoke `tear` from the shell.
 
 // ── tear MCP bridge input shapes ───────────────────────────────────
@@ -1059,7 +1059,7 @@ impl MadoMcp {
 
     // split_pane / new_tab removed at Phase 4 — mado is now a
     // single-pane terminal. Multi-pane / tab operations live in
-    // tear (theory/MADO-TEAR-M5.md). Clients that need to drive
+    // tear. Clients that need to drive
     // panes call tear-client (or `tear` from the shell) directly.
 
     // ── Typed session spawning — the escriba integration surface ─────────────

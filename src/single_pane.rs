@@ -2,8 +2,7 @@
 //!
 //! Replaces the `WindowState` / `PaneManager` / `TabManager`
 //! triple. Mado now runs exactly one terminal with one PTY; if a
-//! user wants splits / tabs they run `tear` (see
-//! `theory/MADO-TEAR-M5.md`).
+//! user wants splits / tabs they run `tear`.
 //!
 //! Lifts `PaneTerminal` + the PTY spawn / reader / writer / resize
 //! orchestration out of `window.rs` so the legacy modules can be

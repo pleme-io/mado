@@ -1,8 +1,8 @@
 //! `float` — the pure, engine-agnostic substrate for mado's **floating &
 //! snapping browser surfaces**.
 //!
-//! This module is the L0/L1 core of the floating-browser stack (design:
-//! [`theory/BROWSER.md`], reuse-first per Op#1): everything here is pure
+//! This module is the L0/L1 core of the floating-browser stack
+//! (reuse-first per Op#1): everything here is pure
 //! geometry, state, and one injectable engine seam — **zero GPU, zero live
 //! engine, zero MCP wiring**. That is deliberate: because the whole
 //! float/snap/focus/control machinery is engine-agnostic behind

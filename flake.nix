@@ -237,7 +237,7 @@
           };
         };
 
-        # Floating & snapping browser surfaces (theory/BROWSER.md).
+        # Floating & snapping browser surfaces.
         # Lands at blackmatter.components.mado.browser.* in Nix and
         # `browser: { … }` in ~/.config/mado/mado.yaml — the typed mirror of
         # config.rs::BrowserConfig (keep the two in lockstep or a rendered

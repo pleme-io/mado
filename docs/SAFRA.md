@@ -112,8 +112,7 @@ deployment layer.
 
 ## 2.5 Upstream — the Lareira tap mesh (what safra absorbs)
 
-**The concrete source is the Lareira observability program**
-(doctrine home to author: `pleme-io/theory/LAREIRA.md`). Its tap layer deploys
+**The concrete source is the Lareira observability program.** Its tap layer deploys
 **taps** that branch live data flows off a target fleet — a matrix of Vector
 clusters across (tenant × cloud × dev/staging/prod) — into an in-boundary
 **Lareira mesh** —

@@ -1,7 +1,6 @@
 # Unrepresentability Verification Ledger
 
-Per the org-level ★★ UNREPRESENTABILITY model
-(`pleme-io/theory/UNREPRESENTABILITY.md`): **we do not mitigate bad
+Per the org-level ★★ UNREPRESENTABILITY model: **we do not mitigate bad
 states — we make them unrepresentable.** This ledger grades every
 hardened mado surface honestly, row by row.
 

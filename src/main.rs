@@ -975,8 +975,8 @@ fn main() -> anyhow::Result<()> {
 
     let scrollback = config.behavior.scrollback_lines;
 
-    // Phase-4 — single pane only. Multiplexing belongs in tear
-    // (theory/MADO-TEAR-M5.md). One Terminal + one PTY +
+    // Phase-4 — single pane only. Multiplexing belongs in tear.
+    // One Terminal + one PTY +
     // single SinglePane wrapper, all in single_pane.rs.
     let pane = Arc::new(single_pane::spawn(
         shell,
@@ -1003,8 +1003,7 @@ fn main() -> anyhow::Result<()> {
     // visible in screenshots prior to M3. The typed path makes this
     // class of bug uncompilable: there is no `From<Srgb> for
     // wgpu_types::Color` in ishou-tokens — every wgpu::Color must come
-    // from a LinearRgba. Architecture:
-    // pleme-io/theory/THEME-ARCHITECTURE.md
+    // from a LinearRgba.
     let bg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.background)
         .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40));
     let bg_color: wgpu::Color = bg_srgb

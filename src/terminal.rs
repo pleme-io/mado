@@ -14140,12 +14140,12 @@ mod proptests {
 // it renders as a FROZEN one, and no error is raised anywhere.
 //
 // That is damage ASSERTED by whoever mutates rather than DERIVED from the
-// state, which is `theory/SHATEI.md`'s shape: the fact "this changed the
+// state: the fact "this changed the
 // screen" has to hold at every mutation site, and it is represented by each
 // site remembering to bump a counter. ~20 CSI sites plus a proc-macro-derived
 // setter, every one of them free to forget.
 //
-// The seal for the class is `theory/KENTOU.md`'s `Model::reduce` — a
+// The seal for the class is a `Model::reduce` — a
 // transition that RETURNS its damage, so forgetting has no expressible form.
 // Until that lands, this test is the honest floor: it cannot make the bad
 // state unrepresentable, but it makes it loud, over a corpus that walks the
@@ -14153,7 +14153,7 @@ mod proptests {
 //
 // Deliberately NOT behind `feature = "gpu_tests"`. It needs no GPU, and the
 // guards that were gated behind that default-off feature are the reason this
-// class went unmeasured (`theory/KENTOU.md` §IV.2).
+// class went unmeasured.
 #[cfg(test)]
 mod damage_invariant {
     use super::*;
@@ -14240,7 +14240,7 @@ mod damage_invariant {
             "a mutation changed the screen without claiming damage. \
              `needs_frame` will answer false, madori will not acquire a \
              swapchain image, and the display will FREEZE on the previous \
-             frame with no error anywhere (theory/KENTOU.md):\n  {}",
+             frame with no error anywhere:\n  {}",
             silent.join("\n  ")
         );
     }

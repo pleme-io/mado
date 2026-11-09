@@ -217,7 +217,7 @@ tsuuchi = "0.1"
 # for the `mado tear-attach` mode (subscribe to a remote pane's
 # byte stream + stream it to stdout for now; future Phase 3.1
 # renders it in the GPU window). Phase 3 MVP of the mado⇄tear
-# de-overlap roadmap — see theory/MADO-TEAR-M5.md.
+# de-overlap roadmap.
 # From crates.io. The floor is 0.1.38, the release whose producers take the
 # window's waker (`PaneProducer::new(.., waker)`, tear PERFORMANCE R10); it
 # also ships `tear_core::feeder`, which `Terminal::feed` runs every byte
@@ -289,7 +289,7 @@ vigy = { version = "0.1.13", default-features = false, features = ["mcp"] }
 blue-lang-host = "0.0.169"
 # The ibuki wire host half (frames, Flash bucket, MTU) — the SAME crate the
 # host above already compiles in, pinned to the same version so the wire
-# mado speaks IS blue's wire, not a copy of it (theory/IBUKI.md §III.6–III.8).
+# mado speaks IS blue's wire, not a copy of it.
 blue-lang-runtime = "0.0.169"
 notify = "8"
 # ── ★ A CONSTRAINT, NOT A USE (2026-09-20) ────────────────────────────────
@@ -354,7 +354,6 @@ kanchi = "0.1"
 # constructs goes through `Srgb::to_linear()` first. The previous
 # direct-sRGB-to-wgpu construction (the cause of the washed-out gray
 # background visible on Retina pre-M3) cannot recompile.
-# Architecture: pleme-io/theory/THEME-ARCHITECTURE.md
 ishou-tokens = { version = "0.1.20", features = ["wgpu"] }
 # wadachi (轍) directory frecency — READER ONLY. mado calls pleme_io_wadachi::
 # top_n / resolve in-process for the DirPicker overlay + MCP tools, and NEVER

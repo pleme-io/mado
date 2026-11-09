@@ -1,7 +1,7 @@
 //! mado's ibuki-compliant communication border.
 //!
-//! A docked blue program with a terminal face runs in a mado session
-//! (theory/IBUKI.md §V.2), and its window-side communication — the world
+//! A docked blue program with a terminal face runs in a mado session,
+//! and its window-side communication — the world
 //! answer of `mado blue-world`, the effects of `mado blue-command` — crosses
 //! this border. The wire frames, the Flash bucket and the MTU are blue's
 //! own (`blue_lang_runtime::wire`, the crate `blue-lang-host` already

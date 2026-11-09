@@ -21,7 +21,7 @@ frame. Each of these properties has a number, and a ratchet holds the number.
 
 ## Six axes: baseline and target
 
-Each target is a ratchet (`theory/JOEIRA.md` §6.2). The baseline is the
+Each target is a ratchet. The baseline is the
 recorded ceiling. Growth past it is red. A shrink is banked by the ratchet's
 own command. ➖ means "not measured yet". A ➖ is an infinite ceiling, so the
 first phase removes the ➖ rows.

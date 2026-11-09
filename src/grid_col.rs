@@ -29,7 +29,7 @@
 //! dense index (Curry–Howard). Every pipeline consumes [`glyph_columns`],
 //! so the single source of column truth is shared by construction.
 //!
-//! Tier (per theory/UNREPRESENTABILITY.md): *truly-unrepresentable* for
+//! Tier: *truly-unrepresentable* for
 //! "a glyph/decoration positioned at a non-index column" (sealed
 //! constructor). The residual obligations are *test-proven*, not
 //! compile-proven (C1 — Rust has no dependent types): that

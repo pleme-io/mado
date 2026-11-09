@@ -38,9 +38,7 @@ an embedded vigy reconciler, and deep Nix integration that no competitor offers.
 > `window.rs` have been **DELETED** — multiplexing lives in
 > [`pleme-io/tear`](https://github.com/pleme-io/tear) (the
 > tmux-compatible multiplexer), not here; mado is single-pane
-> (`single_pane.rs`) and attaches to tear. The canonical destination
-> and phased plan live in
-> [`theory/MADO-TEAR-M5.md`](../theory/MADO-TEAR-M5.md). Phase 1
+> (`single_pane.rs`) and attaches to tear. Phase 1
 > (tear-daemon UDS RPC + tear-client) shipped at tear@0d0a240; Phase 2
 > (tear-core gains per-pane vte parsing + cell grids) is the next
 > heavy lift. **Do not re-introduce in-mado multiplexing** — pane/tab/
@@ -80,9 +78,7 @@ an embedded vigy reconciler, and deep Nix integration that no competitor offers.
 > and the 163-line local copy is gone, so the "do NOT re-author it a third time"
 > warning below is satisfied rather than pending. `pending-browser-async-fetch`:
 > `src/browser_fetch.rs` fetches on a detached thread and carries an `epoch`
-> stale-guard so a superseded navigate's response is discarded. **Doctrine +
-> phased M0..M4 ledger:**
-> [`theory/DOM-WAY.md`](../theory/DOM-WAY.md). Do NOT re-author the DrawCmd→GPU
+> stale-guard so a superseded navigate's response is discarded. Do NOT re-author the DrawCmd→GPU
 > translator a third time — the Op#1 fix is one shared crate.
 
 ## Build & Test
@@ -153,7 +149,7 @@ Config <-- shikumi (hot-reload, ArcSwap) <-- ~/.config/mado/mado.yaml
 
 | Module | Lines | Purpose | Key Types |
 |--------|-------|---------|-----------|
-| `terminal.rs` | **14,075** (measured 2026-11-04) | VT100/xterm state machine — **destined for `tear-core::PaneGrid`** per [`docs/SHUKEN.md`](https://github.com/pleme-io/tear/blob/main/docs/SHUKEN.md); before hand-adding a VT arm here, read [`theory/NATURALIZE-TERMINAL.md`](https://github.com/pleme-io/theory/blob/main/NATURALIZE-TERMINAL.md) | `Terminal`, `Grid`, `Cell`, `CellAttrs`, `Color`, `MouseMode` |
+| `terminal.rs` | **14,075** (measured 2026-11-04) | VT100/xterm state machine — **destined for `tear-core::PaneGrid`** per [`docs/SHUKEN.md`](https://github.com/pleme-io/tear/blob/main/docs/SHUKEN.md) | `Terminal`, `Grid`, `Cell`, `CellAttrs`, `Color`, `MouseMode` |
 | `render.rs` | ~16,100 | Multi-pass GPU pipeline | `TerminalRenderer`, `RectPipeline`, `Snapshot` |
 | `main.rs` | ~1,740 | Event loop, input dispatch | CLI args, clipboard, double/triple click, single-pane wiring |
 | `ibuki.rs` | ~800 (2026-11-07) | mado's ibuki wire border — the worker reply channel (`mado blue-world`/`blue-command` ⇄ window) as canonical JSON in Flash frames (blue's own `blue_lang_runtime::wire` primitive: 1280 MTU, host Flash bucket, 16 KiB/s) over a length envelope, with the plain one-line form still read; holds the Tide LEDBAT controller for the bulk seam | `ReplySender`, `framed_payload`, `BorderRefusal`, `Tide`, `Ack` |
@@ -556,8 +552,7 @@ mado exposes two typed automation primitives — **no third scripting engine**:
   clipboard history, prompt/command blocks, asciinema recording, 18 `tear_*`,
   11 `browser_*`, 5 `vigy_*`, 3 `suggest_*`; see the MCP Server section below)
   for agent / external drive.
-- **embedded vigy reconciler** in-process (see `vigy_host.rs`; doctrine
-  `theory/VIGY.md`). Scripting is vigy: user automation is authored in
+- **embedded vigy reconciler** in-process (see `vigy_host.rs`). Scripting is vigy: user automation is authored in
   **blue**, lowered to the tatara-lisp AST vigy evaluates (existing `(def…)`
   tatara-lisp forms keep working and move to blue on refactor), over mado intrinsics registered through vigy's `register_fn`
   / `ExtInterpreter` (e.g. `(mado-tear-attached?)`). Output-driven triggers

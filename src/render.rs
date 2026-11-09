@@ -13493,8 +13493,6 @@ mod render_gpu_invariants {
     /// answer to "what should be on screen", so agreement means something. The
     /// oracle is a fresh renderer painting a fresh target: no accumulated
     /// `last_seqno`, no slot history, no damage bookkeeping to be wrong about.
-    ///
-    /// See `theory/KENTOU.md` §VII.
     #[test]
     fn incremental_frames_match_a_full_repaint_oracle_across_a_rotating_swapchain() {
         use garasu::headless::{HeadlessSwapchain, HeadlessTarget, frame_hash};
@@ -13561,7 +13559,7 @@ mod render_gpu_invariants {
         // So the default fixture exercises the topology no operator runs, and
         // a test written without this line is green about the wrong program.
         //
-        // Gate 0 calls this S10... S9 (theory/KENTOU.md): the authoritative
+        // Gate 0 calls this S10... S9: the authoritative
         // target chosen by config, so tests and production diverge.
         let mut effects = crate::config::MadoEffectsConfig::default();
         effects.ambience = crate::ambience::AmbiencePreset::Off;
@@ -13637,7 +13635,7 @@ mod render_gpu_invariants {
             divergences.is_empty(),
             "an incrementally-rendered frame disagreed with a full repaint of the \
              SAME model state — the screen is showing something the model does not \
-             say. This is the stale-frame class (theory/KENTOU.md):\n  {}",
+             say. This is the stale-frame class:\n  {}",
             divergences.join("\n  ")
         );
     }

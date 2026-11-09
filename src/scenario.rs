@@ -16,8 +16,7 @@
 //! its test as a single commit, and the substrate gets *strictly*
 //! stronger: there is no fix-and-forget path. Pattern lifts into
 //! `garasu-introspect` (or `kaname-app-introspect`) when the
-//! second GPU app needs it — see
-//! `pleme-io/theory/HEADLESS-INTROSPECTION.md`.
+//! second GPU app needs it.
 //!
 //! ## YAML shape
 //!

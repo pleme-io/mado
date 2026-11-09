@@ -110,8 +110,8 @@ pub enum Action {
     FontReset,
     // NewTab / CloseTab / NextTab / PrevTab / SplitHorizontal /
     // SplitVertical / FocusNext / FocusPrev / ClosePane removed
-    // at Phase 4 — multiplexing lives in tear, not mado. See
-    // theory/MADO-TEAR-M5.md. Users who want splits / tabs run
+    // at Phase 4 — multiplexing lives in tear, not mado.
+    // Users who want splits / tabs run
     // tear inside mado (or use `mado tear-attach --gpu`).
     #[kind(name = "reset_terminal", alias = "reset")]
     ResetTerminal,

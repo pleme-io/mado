@@ -105,7 +105,7 @@ pub struct MadoConfig {
     pub keybinds: KeybindConfig,
     #[serde(default)]
     pub quick_terminal: QuickTerminalConfig,
-    /// Tear-multiplexer integration (theory/MADO-TEAR-M5.md).
+    /// Tear-multiplexer integration.
     /// Mado discovers + optionally attaches to a tear-daemon at
     /// launch; the mode + socket override + auto-spawn knob all
     /// live here. Default = `TearMode::Auto` — try tear, fall
@@ -1381,8 +1381,7 @@ impl MadoLinksConfig {
     }
 }
 
-/// Floating & snapping browser surfaces (see [`crate::float`] +
-/// theory/BROWSER.md). Tiered: bare = the whole subsystem OFF (no float
+/// Floating & snapping browser surfaces (see [`crate::float`]). Tiered: bare = the whole subsystem OFF (no float
 /// surface can be spawned); prescribed = ON with a sensible default float
 /// geometry + edge-snapping armed. The snap knobs project into the pure
 /// [`mado::float::SnapConfig`] the [`mado::float::SnapSystem`] consumes —
