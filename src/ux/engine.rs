@@ -236,7 +236,7 @@ pub struct InputEngine {
     /// matches on this one enum and draws exactly the overlay the FSM
     /// says owns the keyboard, so "two overlays visible at once" is
     /// unrepresentable at the render layer — not a priority heuristic
-    /// (theory §VI, docs/THEORY.md §VIII row 1). The picker `.open`
+    /// (docs/DESIGN.md §VIII row 1). The picker `.open`
     /// bools remain for each picker's own data lifecycle, but no longer
     /// decide what paints.
     overlay_focus: Arc<Mutex<Overlay>>,

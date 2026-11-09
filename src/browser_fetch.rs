@@ -8,7 +8,7 @@
 //! completed fetches each tick and `render_html`s them (fast, non-blocking) —
 //! the page appears "a tick later", never a freeze.
 //!
-//! The `mpsc` channel IS the Environment seam (TESTING-SUBSTRATE §IX): tests
+//! The `mpsc` channel IS the Environment seam: tests
 //! feed a synthetic [`FetchDone`] into the receiver — they never touch the
 //! network or `todoku`.
 

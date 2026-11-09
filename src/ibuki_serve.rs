@@ -5,8 +5,8 @@
 //! surface — the same 63 tools an agent reaches over stdio — through
 //! blue's own wire transport (`blue_lang_runtime::wire::Wire`: the
 //! framing, the MTU and the Flash bucket are blue's, not a copy). This
-//! is the docking surface IBUKI.md §V.2 names: "a docked app with a
-//! terminal face runs in a mado session".
+//! is the docking surface: a docked app with a
+//! terminal face runs in a mado session.
 //!
 //! ## The protocol (version 1, BINARY)
 //!

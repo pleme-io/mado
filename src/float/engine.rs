@@ -1,6 +1,6 @@
 //! The browser-engine seam — the ONE injectable trait ([`BrowserBackend`]) that
 //! keeps the whole floating-browser control + geometry stack pure and
-//! engine-agnostic (TESTING-SUBSTRATE §IX: "the seam is the whole game").
+//! engine-agnostic (the seam is the whole game).
 //!
 //! The concrete engine (destination: nami-core's `BrowserEngine` +
 //! `NamiNativeEngine`, wired at L1/M1; servo/CDP later) lives *behind* this

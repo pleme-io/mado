@@ -1888,7 +1888,7 @@ pub struct TerminalRenderer {
     /// search-status text each `prepare`+`render` their OWN layer so a second
     /// text pass within a frame cannot clobber the first's vertex buffer (the
     /// top-left-blank Ctrl-S bug). See `garasu::TextLayerStack` + the §VIII
-    /// ledger row in `docs/THEORY.md`. `TEXT_LAYERS` names them; a forcing-
+    /// ledger row in `docs/DESIGN.md`. `TEXT_LAYERS` names them; a forcing-
     /// function test asserts `ensure_layers` mints exactly that many.
     term_layer: Option<garasu::TextLayerId>,
     overlay_layer: Option<garasu::TextLayerId>,

@@ -1,4 +1,4 @@
-# THEORY.md — The Theory of mado (窓)
+# DESIGN.md — The Theory of mado (窓)
 
 > The unifying frame for every system in mado. Read this once; it is the
 > lens the per-area docs ([UNREPRESENTABILITY-VERIFICATION](./UNREPRESENTABILITY-VERIFICATION.md),
