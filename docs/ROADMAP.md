@@ -161,3 +161,101 @@ You cannot ratchet a ➖. This phase turns each ➖ into a number on
 P0 → P1 → P2 → P3 → P4 → P5 → P6. P5 can start beside P1, because it reads
 no P0 sensor. P4 waits for the P0 dropped-frame counter. P6 waits for the P4
 spring.
+
+## Feature phases 1 to 5 (moved from CLAUDE.md)
+
+### Phase 1 -- Core Correctness [DONE]
+All VT100/xterm sequences, mouse tracking, Kitty keyboard/graphics protocols,
+DCS/DECRQSS, OSC 52/8/133/4/10/11/12, shell integration.
+
+### Phase 2 -- Rendering Quality [IN PROGRESS]
+
+> **★ Two of these are DONE and were listed as targets for months — corrected
+> 2026-08-06 after a five-survey audit found 49 of 134 outstanding deliverables
+> already shipped.** A roadmap that lists finished work is not merely untidy: it
+> sends real effort at problems that no longer exist, and it did.
+>
+> **HarfBuzz shaping — SHIPPED.** cosmic-text 0.14.2 shapes through rustybuzz
+> 0.14.1 (both in `Cargo.lock`), reached via `shape_run` (`render.rs:4146`). What
+> is genuinely missing is the *control* surface: `font.features`
+> (`config.rs:5990`) is parse-tested and has zero consumers, so `-calt` and
+> break-ligature-under-cursor are unreachable. That is the remaining work — not
+> the shaper.
+>
+> **sRGB-correct linear blending — SHIPPED.** See the corrected bullet above.
+>
+> **Dual texture atlas — genuinely still open.** Worth stating explicitly because
+> the audit got this one WRONG in the other direction: it reported the atlas as
+> shipped on the grounds that glyphon 0.9 carries `mask_atlas`/`color_atlas`
+> internally. Those names appear nowhere in `src/`, and this repo's own comment
+> at `render.rs:2192` says "the **shared** atlas". An upstream implementation
+> detail is not a mado deliverable. Verify against `src/` before striking an item.
+
+Remaining: dual texture atlas, font fallback, synthetic italic, ligature/feature
+control, subpixel text, custom shader chain.
+
+### Phase 3 -- Features [DONE]
+Themes, keybindings, search, URL detection, bell, Kitty graphics, sixel,
+Kitty keyboard, shell integration, profile system.
+
+> **Corrected 2026-07-31: "Split panes, tabs" used to head this DONE list and
+> is FALSE — they were DELETED, not shipped.** Commits `bdb8721` + `f26bb00`
+> ("Phase 4") removed `pane.rs`/`tab.rs`/`window.rs`, `render_multi_pane` and
+> `snapshot_pane`, because tear already owned sessions/windows/panes/layouts
+> correctly and mado's copy was duplication that drifted. **mado is
+> single-pane by design.** Multi-pane returns by rendering tear's
+> `LayoutNode`/`compute_rects` — tracked as M5 in
+> `tear/docs/SESSION-TYPESCAPE.md`, and it is NOT a restore.
+>
+> **Corrected 2026-08-03 — the clipping half of that note has EXPIRED.** It
+> read "there is no clipping primitive anywhere in the GPU stack to turn on
+> (measured: zero `set_scissor_rect`, zero `set_viewport` across
+> mado/garasu/engawa/madori)". True when measured; false the same day it was
+> written. garasu commits `51db8ce` ("pane: bounded drawing — a rect a caller
+> cannot paint outside of") and `4883ee7` ("pane: `text_bounds()` — the
+> cheapest fix for text bleed") landed `garasu/src/pane.rs`: `PaneRect`
+> (private fields, constructible only via `root`/`split_x`/`split_y`/`inset`,
+> so containment is closed under construction), `LayeredPass::in_pane` (issues
+> the single `set_scissor_rect` BEFORE the closure can record a draw),
+> `PanePass` (exposes no `set_scissor_rect`, no `set_viewport`, no `Deref`),
+> and `PaneRect::text_bounds()` for glyphon's CPU-side per-glyph clip.
+>
+> **WIRED 2026-08-03 (`d667540`) — the paragraph above described the state
+> for a few hours.** It read "SHIPPED-in-garasu, UNWIRED-in-mado … zero
+> references to `in_pane`/`LayeredPass`/`PanePass`". Now: `grid_pane:
+> Option<PaneRect>` on `TerminalRenderer`, `None` = whole window (today's
+> single-pane truth, byte-identical — a scissor equal to the attachment
+> clips nothing), and BOTH consumers read that one value: the GPU scissor
+> via `LayeredPass::in_pane` on the rect pass, and glyphon's bounds via
+> `grid_pane.text_bounds()`. Multi-pane is `set_grid_pane(Some(rect))`.
+>
+> **Two corrections that survived the wiring, because both were wrong in the
+> plan.** (1) The rect pass — cell backgrounds, cursor, selection, search
+> highlights, URL underlines — had **no scissor at all**, so every one would
+> have bled across the window in multi-pane. The old note calling the text
+> clip "the ONLY clip in the whole pipeline" was true of TEXT and read as
+> true of everything, which is how that went unnoticed. (2) The three
+> `root(..)` sites were **not** three instances of one swap: two are
+> window-level chrome that clip to the window because they ARE window
+> furniture, and only the grid becomes a pane. Both chrome sites now say so
+> in place, so neither reads as un-migrated work.
+>
+> So the remaining M5 cost is per-pane `Terminal`s + an input-routing loop
+> (`PaneRect::contains`) + the tear `LayoutNode` loop — NOT a missing GPU
+> primitive, and no longer a missing wire either. Four tests pin the seam,
+> including that an emptying split is REFUSED rather than clamped.
+
+### Phase 4 -- Architecture [NEXT]
+Four-thread model, paged memory (mmap, CoW, style dedup), terminal inspector,
+Quick Terminal, native menus.
+
+> Two items were struck 2026-07-31: **daemon mode (tsunagu)** is SUPERSEDED by
+> tear — do not re-introduce that edge — and the **MCP server SHIPPED** (rmcp,
+> 63 tools), so it is not a future phase. The four-thread model remains a
+> genuine target; today's data paths are under Threading Model, and
+> `src/grid_damage.rs`'s `DirtyRegion` types are built but deliberately
+> unwired pending it.
+
+### Phase 5 -- Polish
+Variable fonts, Nerd Font embedding, vttest full pass, Ghostty-level throughput,
+accessibility (contrast enforcement, font scaling, reduce motion).
