@@ -197,12 +197,26 @@ impl PromptHistory {
     /// same `(grid_row, kind)`, this is a no-op — many shells
     /// re-emit OSC 133 A on prompt redraw and we don't want dupes
     /// (the dedupe deliberately ignores `at_unix_ms`: a repaint at a
-    /// later instant is still the same prompt).
+    /// later instant is still the same prompt). A shell that paints
+    /// A and B inside its prompt repaints the pair, so a prompt-phase
+    /// mark is also a no-op when the trailing prompt-phase marks on
+    /// that row already hold it.
     pub fn record(&mut self, grid_row: usize, kind: PromptKind, at_unix_ms: u128) {
-        if let Some(last) = self.marks.back() {
-            if last.grid_row == grid_row && last.kind == kind {
-                return;
-            }
+        let prompt_phase =
+            |k: PromptKind| matches!(k, PromptKind::Start | PromptKind::CommandStart);
+        let repaint = if prompt_phase(kind) {
+            self.marks
+                .iter()
+                .rev()
+                .take_while(|m| m.grid_row == grid_row && prompt_phase(m.kind))
+                .any(|m| m.kind == kind)
+        } else {
+            self.marks
+                .back()
+                .is_some_and(|last| last.grid_row == grid_row && last.kind == kind)
+        };
+        if repaint {
+            return;
         }
         self.marks.push_back(PromptMark {
             grid_row,
@@ -374,6 +388,21 @@ mod tests {
         // Same row but different kind is kept — that's prompt → command.
         h.record(5, PromptKind::CommandStart, 0);
         assert_eq!(h.len(), 2);
+    }
+
+    #[test]
+    fn record_dedupes_a_repainted_prompt_pair() {
+        let mut h = PromptHistory::default();
+        for _ in 0..4 {
+            h.record(5, PromptKind::Start, 0);
+            h.record(5, PromptKind::CommandStart, 0);
+        }
+        assert_eq!(h.len(), 2);
+
+        h.record(5, PromptKind::CommandOutput, 0);
+        h.record(6, PromptKind::CommandEnd, 0);
+        h.record(5, PromptKind::Start, 0);
+        assert_eq!(h.len(), 5, "a new prompt on a reused row is kept");
     }
 
     #[test]
