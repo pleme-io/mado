@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "c93bf82e913b5367e84444053a9f1855061b54a4acbdaddc9d1879b3cf43f38a",
+  "cargo_lock_sha256": "6c2bd9ce46b6ab9bcc72a071a8d46ede61a5ca27549616428030bbc11ba6e76f",
   "manifest_sha256": {
-    "Cargo.toml": "b70edefbe1a261e140f6f539640294e7c8812879cd360939260aafbe85c7d931"
+    "Cargo.toml": "47f0f1bafa2ec1fddce12213cd2fe780ffa82fd2f008427b121e2df2f1372434"
   },
   "target_resolves": {
     "base": {
@@ -271,7 +271,7 @@
           "std"
         ]
       },
-      "ar_archive_writer-0.5.3": {
+      "ar_archive_writer-0.5.5": {
         "runtime_dependencies": [
           {
             "name": "object",
@@ -583,7 +583,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "awase-0.1.10": {
+      "awase-0.1.12": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -772,7 +772,7 @@
         "runtime_dependencies": [
           {
             "name": "bit_vec",
-            "package_key": "bit-vec-0.10.1",
+            "package_key": "bit-vec-0.10.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -803,7 +803,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "bit-vec-0.10.1": {
+      "bit-vec-0.10.2": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -946,7 +946,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -972,7 +972,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -998,7 +998,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1034,7 +1034,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1209,7 +1209,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.13",
+            "package_key": "tatara-lisp-eval-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1298,7 +1298,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.13",
+            "package_key": "tatara-lisp-eval-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1429,7 +1429,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1439,7 +1439,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.13",
+            "package_key": "tatara-lisp-eval-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1582,7 +1582,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1592,7 +1592,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.13",
+            "package_key": "tatara-lisp-eval-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1771,7 +1771,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1781,7 +1781,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.13",
+            "package_key": "tatara-lisp-eval-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1958,7 +1958,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1968,7 +1968,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.13",
+            "package_key": "tatara-lisp-eval-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1994,7 +1994,7 @@
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2010,7 +2010,7 @@
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2048,7 +2048,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2086,7 +2086,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2192,7 +2192,7 @@
           "schema"
         ]
       },
-      "brotli-9.1.1": {
+      "brotli-9.1.3": {
         "runtime_dependencies": [
           {
             "name": "alloc_no_stdlib",
@@ -2216,7 +2216,7 @@
           },
           {
             "name": "brotli_decompressor",
-            "package_key": "brotli-decompressor-6.3.1",
+            "package_key": "brotli-decompressor-6.3.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -2232,7 +2232,7 @@
           "std"
         ]
       },
-      "brotli-decompressor-6.3.1": {
+      "brotli-decompressor-6.3.2": {
         "runtime_dependencies": [
           {
             "name": "alloc_no_stdlib",
@@ -2261,7 +2261,7 @@
           "std"
         ]
       },
-      "bumpalo-3.20.3": {
+      "bumpalo-3.20.4": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -2391,7 +2391,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "cc-1.11.1": {
+      "cc-1.11.2": {
         "runtime_dependencies": [
           {
             "name": "find_msvc_tools",
@@ -2767,7 +2767,7 @@
         "runtime_dependencies": [
           {
             "name": "brotli",
-            "package_key": "brotli-9.1.1",
+            "package_key": "brotli-9.1.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3214,7 +3214,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "crc32fast-1.5.4": {
+      "crc32fast-1.5.5": {
         "runtime_dependencies": [
           {
             "name": "cfg_if",
@@ -4480,7 +4480,7 @@
         "runtime_dependencies": [
           {
             "name": "awase",
-            "package_key": "awase-0.1.10",
+            "package_key": "awase-0.1.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4490,7 +4490,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.24",
+            "package_key": "ishou-tokens-0.1.25",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4863,7 +4863,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "errno-0.3.14": {
+      "errno-0.3.15": {
         "runtime_dependencies": [
           {
             "name": "libc",
@@ -5146,7 +5146,7 @@
         "runtime_dependencies": [
           {
             "name": "crc32fast",
-            "package_key": "crc32fast-1.5.4",
+            "package_key": "crc32fast-1.5.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -5861,7 +5861,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.56": {
+      "gen-macros-0.1.59": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -5900,11 +5900,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.55": {
+      "gen-platform-0.1.59": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.56",
+            "package_key": "gen-macros-0.1.59",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5914,7 +5914,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.56",
+            "package_key": "gen-types-0.1.59",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5968,7 +5968,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.56": {
+      "gen-types-0.1.59": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -7631,7 +7631,7 @@
           },
           {
             "name": "webpki_roots",
-            "package_key": "webpki-roots-1.0.11",
+            "package_key": "webpki-roots-1.0.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8572,7 +8572,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.24": {
+      "ishou-tokens-0.1.25": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -8692,7 +8692,7 @@
           },
           {
             "name": "samba",
-            "package_key": "samba-0.1.6",
+            "package_key": "samba-0.1.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -8799,7 +8799,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1085",
+            "package_key": "shikumi-0.1.1086",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8920,7 +8920,7 @@
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.5",
+            "package_key": "pest-2.9.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8930,7 +8930,7 @@
           },
           {
             "name": "pest_derive",
-            "package_key": "pest_derive-2.9.5",
+            "package_key": "pest_derive-2.9.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10105,7 +10105,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "kukaku-0.1.53": {
+      "kukaku-0.1.54": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -10182,7 +10182,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.11.1",
+            "package_key": "cc-1.11.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -10198,7 +10198,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.11.1",
+            "package_key": "cc-1.11.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -10839,7 +10839,7 @@
           "with-alloc"
         ]
       },
-      "mio-1.2.4": {
+      "mio-1.2.5": {
         "runtime_dependencies": [
           {
             "name": "libc",
@@ -10876,7 +10876,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "monosashi-0.4.13": {
+      "monosashi-0.4.17": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -11318,7 +11318,7 @@
           "socket"
         ]
       },
-      "notify-types-2.3.0": {
+      "notify-types-2.3.1": {
         "runtime_dependencies": [
           {
             "name": "bitflags",
@@ -12429,7 +12429,7 @@
           "std"
         ]
       },
-      "pest-2.9.5": {
+      "pest-2.9.6": {
         "runtime_dependencies": [
           {
             "name": "memchr",
@@ -12469,11 +12469,11 @@
           "std"
         ]
       },
-      "pest_derive-2.9.5": {
+      "pest_derive-2.9.6": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.5",
+            "package_key": "pest-2.9.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -12483,7 +12483,7 @@
           },
           {
             "name": "pest_generator",
-            "package_key": "pest_generator-2.9.5",
+            "package_key": "pest_generator-2.9.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -12498,11 +12498,11 @@
           "std"
         ]
       },
-      "pest_generator-2.9.5": {
+      "pest_generator-2.9.6": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.5",
+            "package_key": "pest-2.9.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -12512,7 +12512,7 @@
           },
           {
             "name": "pest_meta",
-            "package_key": "pest_meta-2.9.5",
+            "package_key": "pest_meta-2.9.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12556,11 +12556,11 @@
           "std"
         ]
       },
-      "pest_meta-2.9.5": {
+      "pest_meta-2.9.6": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.5",
+            "package_key": "pest-2.9.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13266,7 +13266,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "pleme-nami-core-0.1.17": {
+      "pleme-nami-core-0.1.18": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -13330,7 +13330,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.24",
+            "package_key": "ishou-tokens-0.1.25",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -13426,7 +13426,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.830",
+            "package_key": "tatara-eval-0.2.833",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13519,7 +13519,7 @@
           },
           {
             "name": "crc32fast",
-            "package_key": "crc32fast-1.5.4",
+            "package_key": "crc32fast-1.5.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13703,11 +13703,11 @@
           "std"
         ]
       },
-      "praca-0.1.53": {
+      "praca-0.1.54": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.24",
+            "package_key": "ishou-tokens-0.1.25",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13739,7 +13739,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.53",
+            "package_key": "tear-types-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13959,7 +13959,7 @@
           },
           {
             "name": "bit_vec",
-            "package_key": "bit-vec-0.10.1",
+            "package_key": "bit-vec-0.10.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14011,7 +14011,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.10.3",
+            "package_key": "rand-0.10.4",
             "kind": "normal",
             "features": [
               "alloc"
@@ -14094,7 +14094,7 @@
         "build_dependencies": [
           {
             "name": "ar_archive_writer",
-            "package_key": "ar_archive_writer-0.5.3",
+            "package_key": "ar_archive_writer-0.5.5",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -14104,7 +14104,7 @@
           },
           {
             "name": "cc",
-            "package_key": "cc-1.11.1",
+            "package_key": "cc-1.11.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -14226,7 +14226,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.10.3",
+            "package_key": "rand-0.10.4",
             "kind": "normal",
             "features": [
               "alloc"
@@ -14454,7 +14454,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.10.3",
+            "package_key": "rand-0.10.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14643,7 +14643,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "rand-0.10.3": {
+      "rand-0.10.4": {
         "runtime_dependencies": [
           {
             "name": "chacha20",
@@ -15393,7 +15393,7 @@
           },
           {
             "name": "rustls_pki_types",
-            "package_key": "rustls-pki-types-1.15.1",
+            "package_key": "rustls-pki-types-1.16.0",
             "kind": "normal",
             "features": [
               "std"
@@ -15528,7 +15528,7 @@
           },
           {
             "name": "webpki_roots",
-            "package_key": "webpki-roots-1.0.11",
+            "package_key": "webpki-roots-1.0.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16215,7 +16215,7 @@
           },
           {
             "name": "pki_types",
-            "package_key": "rustls-pki-types-1.15.1",
+            "package_key": "rustls-pki-types-1.16.0",
             "kind": "normal",
             "features": [
               "alloc"
@@ -16227,7 +16227,7 @@
           },
           {
             "name": "webpki",
-            "package_key": "rustls-webpki-0.103.16",
+            "package_key": "rustls-webpki-0.103.17",
             "kind": "normal",
             "features": [
               "alloc"
@@ -16267,7 +16267,7 @@
           "tls12"
         ]
       },
-      "rustls-pki-types-1.15.1": {
+      "rustls-pki-types-1.16.0": {
         "runtime_dependencies": [
           {
             "name": "zeroize",
@@ -16289,7 +16289,7 @@
           "web-time"
         ]
       },
-      "rustls-webpki-0.103.16": {
+      "rustls-webpki-0.103.17": {
         "runtime_dependencies": [
           {
             "name": "ring",
@@ -16303,7 +16303,7 @@
           },
           {
             "name": "pki_types",
-            "package_key": "rustls-pki-types-1.15.1",
+            "package_key": "rustls-pki-types-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16515,7 +16515,7 @@
           "default"
         ]
       },
-      "samba-0.1.6": {
+      "samba-0.1.7": {
         "runtime_dependencies": [
           {
             "name": "rand",
@@ -18555,7 +18555,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1085",
+            "package_key": "shikumi-0.1.1086",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18602,7 +18602,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.1085": {
+      "shikumi-0.1.1086": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -18651,7 +18651,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.55",
+            "package_key": "gen-platform-0.1.59",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18661,7 +18661,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.56",
+            "package_key": "gen-types-0.1.59",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18772,7 +18772,7 @@
         "runtime_dependencies": [
           {
             "name": "errno",
-            "package_key": "errno-0.3.14",
+            "package_key": "errno-0.3.15",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20811,7 +20811,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.11.1",
+            "package_key": "cc-1.11.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -21378,11 +21378,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.4.13": {
+      "tatara-closed-set-0.4.17": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.4.13",
+            "package_key": "tatara-closed-set-derive-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21432,7 +21432,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.4.13": {
+      "tatara-closed-set-derive-0.4.17": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -21470,7 +21470,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.830": {
+      "tatara-core-0.2.833": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21581,7 +21581,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1085",
+            "package_key": "shikumi-0.1.1086",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21636,11 +21636,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.830": {
+      "tatara-eval-0.2.833": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
-            "package_key": "bumpalo-3.20.3",
+            "package_key": "bumpalo-3.20.4",
             "kind": "normal",
             "features": [
               "collections"
@@ -21706,7 +21706,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.830": {
+      "tatara-lattice-0.2.833": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -21734,7 +21734,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.830",
+            "package_key": "tatara-core-0.2.833",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21826,7 +21826,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.4.13": {
+      "tatara-lisp-0.4.17": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -21862,7 +21862,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.13",
+            "package_key": "tatara-closed-set-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21872,7 +21872,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.4.13",
+            "package_key": "tatara-lisp-derive-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21934,7 +21934,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.4.13": {
+      "tatara-lisp-derive-0.4.17": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -22018,8 +22018,18 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.4.13": {
+      "tatara-lisp-eval-0.4.17": {
         "runtime_dependencies": [
+          {
+            "name": "arc_swap",
+            "package_key": "arc-swap-1.9.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
           {
             "name": "blake3",
             "package_key": "blake3-1.8.7",
@@ -22042,7 +22052,7 @@
           },
           {
             "name": "monosashi",
-            "package_key": "monosashi-0.4.13",
+            "package_key": "monosashi-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22074,7 +22084,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.4.13",
+            "package_key": "tatara-closed-set-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22084,7 +22094,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22152,7 +22162,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.830",
+            "package_key": "tatara-lattice-0.2.833",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22350,7 +22360,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.830",
+            "package_key": "tatara-core-0.2.833",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22392,7 +22402,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.53": {
+      "tear-client-0.1.54": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -22436,7 +22446,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.53",
+            "package_key": "tear-config-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22446,7 +22456,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.53",
+            "package_key": "tear-types-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22461,7 +22471,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.53": {
+      "tear-config-0.1.54": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -22485,7 +22495,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.24",
+            "package_key": "ishou-tokens-0.1.25",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22549,7 +22559,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1085",
+            "package_key": "shikumi-0.1.1086",
             "kind": "normal",
             "features": [
               "cli"
@@ -22561,7 +22571,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.53",
+            "package_key": "tear-types-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22593,7 +22603,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.53": {
+      "tear-core-0.1.54": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -22637,7 +22647,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.24",
+            "package_key": "ishou-tokens-0.1.25",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22709,7 +22719,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.53",
+            "package_key": "tear-config-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22719,7 +22729,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.53",
+            "package_key": "tear-makimono-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22729,7 +22739,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.53",
+            "package_key": "tear-tamotsu-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22739,7 +22749,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.53",
+            "package_key": "tear-types-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22794,7 +22804,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.53": {
+      "tear-daemon-0.1.54": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -22863,7 +22873,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.53",
+            "package_key": "praca-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22905,7 +22915,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.53",
+            "package_key": "tear-config-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22915,7 +22925,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.53",
+            "package_key": "tear-core-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22925,7 +22935,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.53",
+            "package_key": "tear-makimono-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22935,7 +22945,7 @@
           },
           {
             "name": "tamotsu",
-            "package_key": "tear-tamotsu-0.1.53",
+            "package_key": "tear-tamotsu-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22945,7 +22955,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.53",
+            "package_key": "tear-types-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22983,7 +22993,7 @@
           "default"
         ]
       },
-      "tear-makimono-0.1.53": {
+      "tear-makimono-0.1.54": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -23009,7 +23019,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.53",
+            "package_key": "tear-types-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23043,11 +23053,11 @@
           "default"
         ]
       },
-      "tear-picker-0.1.53": {
+      "tear-picker-0.1.54": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.24",
+            "package_key": "ishou-tokens-0.1.25",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23057,7 +23067,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.53",
+            "package_key": "praca-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23091,7 +23101,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.53",
+            "package_key": "tear-types-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23117,7 +23127,7 @@
           "testing"
         ]
       },
-      "tear-tamotsu-0.1.53": {
+      "tear-tamotsu-0.1.54": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -23188,7 +23198,7 @@
           },
           {
             "name": "makimono",
-            "package_key": "tear-makimono-0.1.53",
+            "package_key": "tear-makimono-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23212,7 +23222,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.53": {
+      "tear-types-0.1.54": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -23256,7 +23266,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.24",
+            "package_key": "ishou-tokens-0.1.25",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23266,7 +23276,7 @@
           },
           {
             "name": "kukaku",
-            "package_key": "kukaku-0.1.53",
+            "package_key": "kukaku-0.1.54",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23956,7 +23966,7 @@
           },
           {
             "name": "mio",
-            "package_key": "mio-1.2.4",
+            "package_key": "mio-1.2.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -23966,7 +23976,7 @@
           },
           {
             "name": "mio",
-            "package_key": "mio-1.2.4",
+            "package_key": "mio-1.2.5",
             "kind": "normal",
             "features": [
               "os-ext",
@@ -25799,7 +25809,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.4.13",
+            "package_key": "tatara-lisp-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25809,7 +25819,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.4.13",
+            "package_key": "tatara-lisp-eval-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26490,7 +26500,7 @@
         "runtime_dependencies": [
           {
             "name": "parent",
-            "package_key": "webpki-roots-1.0.11",
+            "package_key": "webpki-roots-1.0.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26502,11 +26512,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "webpki-roots-1.0.11": {
+      "webpki-roots-1.0.12": {
         "runtime_dependencies": [
           {
             "name": "pki_types",
-            "package_key": "rustls-pki-types-1.15.1",
+            "package_key": "rustls-pki-types-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -27451,7 +27461,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -27579,7 +27589,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27589,7 +27599,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27680,7 +27690,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27690,7 +27700,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27762,7 +27772,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27772,7 +27782,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27831,7 +27841,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27841,7 +27851,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28749,7 +28759,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.225": {
+          "mado-0.1.226": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -28763,7 +28773,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.10",
+                "package_key": "awase-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28983,7 +28993,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -29265,7 +29275,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.17",
+                "package_key": "pleme-nami-core-0.1.18",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -29279,7 +29289,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.53",
+                "package_key": "praca-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29380,7 +29390,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -29432,7 +29442,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.53",
+                "package_key": "tear-client-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -29444,7 +29454,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.53",
+                "package_key": "tear-config-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29454,7 +29464,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.53",
+                "package_key": "tear-core-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -29466,7 +29476,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.53",
+                "package_key": "tear-picker-0.1.54",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -29478,7 +29488,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.53",
+                "package_key": "tear-types-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -29640,7 +29650,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -29694,7 +29704,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29875,7 +29885,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.3.0",
+                "package_key": "notify-types-2.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32064,7 +32074,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -32094,7 +32104,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -32104,7 +32114,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -32114,7 +32124,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -32163,7 +32173,7 @@
             "runtime_dependencies": [
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.1",
+                "package_key": "rustls-pki-types-1.16.0",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -33435,7 +33445,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -33529,7 +33539,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33539,7 +33549,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33643,7 +33653,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33653,7 +33663,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33729,7 +33739,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33739,7 +33749,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33802,7 +33812,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33812,7 +33822,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34630,7 +34640,7 @@
               "system"
             ]
           },
-          "mado-0.1.225": {
+          "mado-0.1.226": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34644,7 +34654,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.10",
+                "package_key": "awase-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34854,7 +34864,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -35076,7 +35086,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.17",
+                "package_key": "pleme-nami-core-0.1.18",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -35090,7 +35100,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.53",
+                "package_key": "praca-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35191,7 +35201,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35243,7 +35253,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.53",
+                "package_key": "tear-client-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35255,7 +35265,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.53",
+                "package_key": "tear-config-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35265,7 +35275,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.53",
+                "package_key": "tear-core-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35277,7 +35287,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.53",
+                "package_key": "tear-picker-0.1.54",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -35289,7 +35299,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.53",
+                "package_key": "tear-types-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35451,7 +35461,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -35495,7 +35505,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35581,7 +35591,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.4",
+                "package_key": "mio-1.2.5",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -35593,7 +35603,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.4",
+                "package_key": "mio-1.2.5",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -35605,7 +35615,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.3.0",
+                "package_key": "notify-types-2.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35921,7 +35931,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -35960,7 +35970,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -35970,7 +35980,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -35980,7 +35990,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -36069,7 +36079,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -36079,7 +36089,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -36089,7 +36099,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -36179,7 +36189,7 @@
               },
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.1",
+                "package_key": "rustls-pki-types-1.16.0",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -36688,7 +36698,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -38310,7 +38320,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -38404,7 +38414,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38414,7 +38424,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38518,7 +38528,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38528,7 +38538,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38604,7 +38614,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38614,7 +38624,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38677,7 +38687,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38687,7 +38697,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39505,7 +39515,7 @@
               "system"
             ]
           },
-          "mado-0.1.225": {
+          "mado-0.1.226": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39519,7 +39529,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.10",
+                "package_key": "awase-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39729,7 +39739,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -39951,7 +39961,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.17",
+                "package_key": "pleme-nami-core-0.1.18",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -39965,7 +39975,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.53",
+                "package_key": "praca-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40066,7 +40076,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -40118,7 +40128,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.53",
+                "package_key": "tear-client-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40130,7 +40140,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.53",
+                "package_key": "tear-config-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40140,7 +40150,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.53",
+                "package_key": "tear-core-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40152,7 +40162,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.53",
+                "package_key": "tear-picker-0.1.54",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -40164,7 +40174,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.53",
+                "package_key": "tear-types-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40326,7 +40336,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -40370,7 +40380,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40456,7 +40466,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.4",
+                "package_key": "mio-1.2.5",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -40468,7 +40478,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.4",
+                "package_key": "mio-1.2.5",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -40480,7 +40490,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.3.0",
+                "package_key": "notify-types-2.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40675,7 +40685,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -40714,7 +40724,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -40724,7 +40734,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -40734,7 +40744,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -40823,7 +40833,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -40833,7 +40843,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -40843,7 +40853,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -40933,7 +40943,7 @@
               },
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.1",
+                "package_key": "rustls-pki-types-1.16.0",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -41442,7 +41452,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -43050,7 +43060,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -43178,7 +43188,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43188,7 +43198,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43279,7 +43289,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43289,7 +43299,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43361,7 +43371,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43371,7 +43381,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43430,7 +43440,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43440,7 +43450,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44390,7 +44400,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.225": {
+          "mado-0.1.226": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44404,7 +44414,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.10",
+                "package_key": "awase-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44624,7 +44634,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -44906,7 +44916,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.17",
+                "package_key": "pleme-nami-core-0.1.18",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -44920,7 +44930,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.53",
+                "package_key": "praca-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45021,7 +45031,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -45073,7 +45083,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.53",
+                "package_key": "tear-client-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45085,7 +45095,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.53",
+                "package_key": "tear-config-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45095,7 +45105,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.53",
+                "package_key": "tear-core-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45107,7 +45117,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.53",
+                "package_key": "tear-picker-0.1.54",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -45119,7 +45129,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.53",
+                "package_key": "tear-types-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45281,7 +45291,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -45335,7 +45345,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45516,7 +45526,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.3.0",
+                "package_key": "notify-types-2.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47685,7 +47695,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -47715,7 +47725,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -47725,7 +47735,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -47735,7 +47745,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -47784,7 +47794,7 @@
             "runtime_dependencies": [
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.1",
+                "package_key": "rustls-pki-types-1.16.0",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -49109,7 +49119,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -49203,7 +49213,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49213,7 +49223,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49317,7 +49327,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49327,7 +49337,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49403,7 +49413,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49413,7 +49423,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49476,7 +49486,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49486,7 +49496,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50346,7 +50356,7 @@
               "system"
             ]
           },
-          "mado-0.1.225": {
+          "mado-0.1.226": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -50360,7 +50370,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.10",
+                "package_key": "awase-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50570,7 +50580,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -50792,7 +50802,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.17",
+                "package_key": "pleme-nami-core-0.1.18",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -50806,7 +50816,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.53",
+                "package_key": "praca-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50907,7 +50917,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -50959,7 +50969,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.53",
+                "package_key": "tear-client-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -50971,7 +50981,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.53",
+                "package_key": "tear-config-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50981,7 +50991,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.53",
+                "package_key": "tear-core-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -50993,7 +51003,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.53",
+                "package_key": "tear-picker-0.1.54",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -51005,7 +51015,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.53",
+                "package_key": "tear-types-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -51167,7 +51177,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -51211,7 +51221,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51297,7 +51307,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.4",
+                "package_key": "mio-1.2.5",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -51309,7 +51319,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.4",
+                "package_key": "mio-1.2.5",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -51321,7 +51331,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.3.0",
+                "package_key": "notify-types-2.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51617,7 +51627,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -51656,7 +51666,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -51666,7 +51676,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -51676,7 +51686,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -51765,7 +51775,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -51775,7 +51785,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -51785,7 +51795,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -51875,7 +51885,7 @@
               },
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.1",
+                "package_key": "rustls-pki-types-1.16.0",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -52403,7 +52413,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -54059,7 +54069,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -54153,7 +54163,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -54163,7 +54173,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -54267,7 +54277,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -54277,7 +54287,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -54353,7 +54363,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -54363,7 +54373,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -54426,7 +54436,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.4.13",
+                "package_key": "tatara-lisp-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -54436,7 +54446,7 @@
               },
               {
                 "name": "tatara_lisp_eval",
-                "package_key": "tatara-lisp-eval-0.4.13",
+                "package_key": "tatara-lisp-eval-0.4.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -55296,7 +55306,7 @@
               "system"
             ]
           },
-          "mado-0.1.225": {
+          "mado-0.1.226": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -55310,7 +55320,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.10",
+                "package_key": "awase-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -55520,7 +55530,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -55742,7 +55752,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.17",
+                "package_key": "pleme-nami-core-0.1.18",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -55756,7 +55766,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.53",
+                "package_key": "praca-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -55857,7 +55867,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -55909,7 +55919,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.53",
+                "package_key": "tear-client-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -55921,7 +55931,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.53",
+                "package_key": "tear-config-0.1.54",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -55931,7 +55941,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.53",
+                "package_key": "tear-core-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -55943,7 +55953,7 @@
               },
               {
                 "name": "tear_picker",
-                "package_key": "tear-picker-0.1.53",
+                "package_key": "tear-picker-0.1.54",
                 "kind": "normal",
                 "features": [
                   "schema"
@@ -55955,7 +55965,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.53",
+                "package_key": "tear-types-0.1.54",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -56117,7 +56127,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.24",
+                "package_key": "ishou-tokens-0.1.25",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -56161,7 +56171,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1085",
+                "package_key": "shikumi-0.1.1086",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -56247,7 +56257,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.4",
+                "package_key": "mio-1.2.5",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -56259,7 +56269,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.4",
+                "package_key": "mio-1.2.5",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -56271,7 +56281,7 @@
               },
               {
                 "name": "notify_types",
-                "package_key": "notify-types-2.3.0",
+                "package_key": "notify-types-2.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -56446,7 +56456,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -56485,7 +56495,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -56495,7 +56505,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -56505,7 +56515,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -56594,7 +56604,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -56604,7 +56614,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -56614,7 +56624,7 @@
               },
               {
                 "name": "libc_errno",
-                "package_key": "errno-0.3.14",
+                "package_key": "errno-0.3.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -56704,7 +56714,7 @@
               },
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.1",
+                "package_key": "rustls-pki-types-1.16.0",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -57232,7 +57242,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.11.1",
+                "package_key": "cc-1.11.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -58754,7 +58764,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "ar_archive_writer-0.5.3": {
+    "ar_archive_writer-0.5.5": {
       "edition": "2024"
     },
     "arboard-3.7.0": {
@@ -58805,7 +58815,7 @@
     "autocfg-1.5.1": {
       "edition": "2015"
     },
-    "awase-0.1.10": {
+    "awase-0.1.12": {
       "edition": "2024"
     },
     "backon-1.6.0": {
@@ -58833,7 +58843,7 @@
     "bit-set-0.8.0": {
       "edition": "2015"
     },
-    "bit-vec-0.10.1": {
+    "bit-vec-0.10.2": {
       "edition": "2021"
     },
     "bit-vec-0.8.0": {
@@ -58948,7 +58958,7 @@
       "edition": "2018",
       "proc_macro": true
     },
-    "brotli-9.1.1": {
+    "brotli-9.1.3": {
       "edition": "2015",
       "binaries": [
         {
@@ -58961,7 +58971,7 @@
         }
       ]
     },
-    "brotli-decompressor-6.3.1": {
+    "brotli-decompressor-6.3.2": {
       "edition": "2015",
       "binaries": [
         {
@@ -58970,7 +58980,7 @@
         }
       ]
     },
-    "bumpalo-3.20.3": {
+    "bumpalo-3.20.4": {
       "edition": "2021"
     },
     "by_address-1.2.1": {
@@ -59004,7 +59014,7 @@
     "cast-0.3.0": {
       "edition": "2018"
     },
-    "cc-1.11.1": {
+    "cc-1.11.2": {
       "edition": "2021"
     },
     "cfg-if-1.0.5": {
@@ -59117,7 +59127,7 @@
     "crc-catalog-2.5.0": {
       "edition": "2018"
     },
-    "crc32fast-1.5.4": {
+    "crc32fast-1.5.5": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -59317,7 +59327,7 @@
     "equivalent-1.0.3": {
       "edition": "2015"
     },
-    "errno-0.3.14": {
+    "errno-0.3.15": {
       "edition": "2018"
     },
     "etagere-0.2.15": {
@@ -59442,14 +59452,14 @@
         }
       ]
     },
-    "gen-macros-0.1.56": {
+    "gen-macros-0.1.59": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.55": {
+    "gen-platform-0.1.59": {
       "edition": "2024"
     },
-    "gen-types-0.1.56": {
+    "gen-types-0.1.59": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -59679,7 +59689,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.24": {
+    "ishou-tokens-0.1.25": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -59750,7 +59760,7 @@
     "kube-runtime-0.99.0": {
       "edition": "2021"
     },
-    "kukaku-0.1.53": {
+    "kukaku-0.1.54": {
       "edition": "2024"
     },
     "lazy_static-1.5.1": {
@@ -59823,7 +59833,7 @@
     "mac_address-1.2.1": {
       "edition": "2018"
     },
-    "mado-0.1.225": {
+    "mado-0.1.226": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -59895,13 +59905,13 @@
     "miniz_oxide-0.9.1": {
       "edition": "2021"
     },
-    "mio-1.2.4": {
+    "mio-1.2.5": {
       "edition": "2021"
     },
     "monosashi-0.3.64": {
       "edition": "2021"
     },
-    "monosashi-0.4.13": {
+    "monosashi-0.4.17": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -59937,7 +59947,7 @@
     "notify-8.2.2": {
       "edition": "2021"
     },
-    "notify-types-2.3.0": {
+    "notify-types-2.3.1": {
       "edition": "2024"
     },
     "nu-ansi-term-0.50.3": {
@@ -60166,18 +60176,18 @@
     "percent-encoding-2.3.2": {
       "edition": "2018"
     },
-    "pest-2.9.5": {
-      "edition": "2021"
+    "pest-2.9.6": {
+      "edition": "2024"
     },
-    "pest_derive-2.9.5": {
-      "edition": "2021",
+    "pest_derive-2.9.6": {
+      "edition": "2024",
       "proc_macro": true
     },
-    "pest_generator-2.9.5": {
-      "edition": "2021"
+    "pest_generator-2.9.6": {
+      "edition": "2024"
     },
-    "pest_meta-2.9.5": {
-      "edition": "2021"
+    "pest_meta-2.9.6": {
+      "edition": "2024"
     },
     "pest_stack_guard-1.0.1": {
       "edition": "2021",
@@ -60271,7 +60281,7 @@
       "edition": "2024",
       "proc_macro": true
     },
-    "pleme-nami-core-0.1.17": {
+    "pleme-nami-core-0.1.18": {
       "edition": "2024",
       "lib_target": {
         "name": "nami_core",
@@ -60299,7 +60309,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.53": {
+    "praca-0.1.54": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -60372,7 +60382,7 @@
       "edition": "2018",
       "build_script": "build.rs"
     },
-    "rand-0.10.3": {
+    "rand-0.10.4": {
       "edition": "2024"
     },
     "rand-0.8.8": {
@@ -60496,10 +60506,10 @@
     "rustls-native-certs-0.8.5": {
       "edition": "2021"
     },
-    "rustls-pki-types-1.15.1": {
+    "rustls-pki-types-1.16.0": {
       "edition": "2021"
     },
-    "rustls-webpki-0.103.16": {
+    "rustls-webpki-0.103.17": {
       "edition": "2021",
       "lib_target": {
         "name": "webpki",
@@ -60526,7 +60536,7 @@
     "safe_arch-1.2.0": {
       "edition": "2024"
     },
-    "samba-0.1.6": {
+    "samba-0.1.7": {
       "edition": "2024"
     },
     "same-file-1.0.6": {
@@ -60687,7 +60697,7 @@
     "shidou-0.1.11": {
       "edition": "2024"
     },
-    "shikumi-0.1.1085": {
+    "shikumi-0.1.1086": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -60846,44 +60856,44 @@
     "tatara-closed-set-0.3.64": {
       "edition": "2021"
     },
-    "tatara-closed-set-0.4.13": {
+    "tatara-closed-set-0.4.17": {
       "edition": "2021"
     },
     "tatara-closed-set-derive-0.3.64": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-closed-set-derive-0.4.13": {
+    "tatara-closed-set-derive-0.4.17": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.830": {
+    "tatara-core-0.2.833": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.830": {
+    "tatara-eval-0.2.833": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.830": {
+    "tatara-lattice-0.2.833": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-0.4.13": {
+    "tatara-lisp-0.4.17": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.3.52": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.4.13": {
+    "tatara-lisp-derive-0.4.17": {
       "edition": "2021",
       "proc_macro": true
     },
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-eval-0.4.13": {
+    "tatara-lisp-eval-0.4.17": {
       "edition": "2021"
     },
     "tatara-nix-0.2.568": {
@@ -60898,29 +60908,29 @@
         }
       ]
     },
-    "tear-client-0.1.53": {
+    "tear-client-0.1.54": {
       "edition": "2024"
     },
-    "tear-config-0.1.53": {
+    "tear-config-0.1.54": {
       "edition": "2024"
     },
-    "tear-core-0.1.53": {
+    "tear-core-0.1.54": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.53": {
+    "tear-daemon-0.1.54": {
       "edition": "2024"
     },
-    "tear-makimono-0.1.53": {
+    "tear-makimono-0.1.54": {
       "edition": "2024",
       "lib_target": {
         "name": "makimono",
         "path": "src/lib.rs"
       }
     },
-    "tear-picker-0.1.53": {
+    "tear-picker-0.1.54": {
       "edition": "2024"
     },
-    "tear-tamotsu-0.1.53": {
+    "tear-tamotsu-0.1.54": {
       "edition": "2024",
       "lib_target": {
         "name": "tamotsu",
@@ -60933,7 +60943,7 @@
         }
       ]
     },
-    "tear-types-0.1.53": {
+    "tear-types-0.1.54": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
@@ -61294,7 +61304,7 @@
     "webpki-roots-0.26.11": {
       "edition": "2021"
     },
-    "webpki-roots-1.0.11": {
+    "webpki-roots-1.0.12": {
       "edition": "2021"
     },
     "weezl-0.1.12": {
